@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: envio-indexer
+contracts:
+  - name: HoneyJar
+    handler: src/EventHandlers.ts
+    events:
+      - event: Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)
+      - event: ApprovalForAll(address indexed owner, address indexed operator, bool approved)
+      - event: BaseURISet(string uri)
+      - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+      - event: SetGenerated(bool generated)
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+networks:
+  - id: 1
+    start_block: 0
+    contracts:
+      - name: HoneyJar
+        address:
+          - 0xa20cf9b0874c3e46b344deaaea9c2e0c3e1db37d
+          - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05
+  - id: 42161
+    start_block: 0
+    contracts:
+      - name: HoneyJar
+        address:
+          - 0x1b2751328f41d1a0b91f3710edcd33e996591b72
+  - id: 7777777
+    start_block: 0
+    contracts:
+      - name: HoneyJar
+        address:
+          - 0xe798c4d40bc050bc93c7f3b149a0dfe5cfc49fb0
+  - id: 10
+    start_block: 0
+    contracts:
+      - name: HoneyJar
+        address:
+          - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301
+  - id: 8453
+    start_block: 0
+    contracts:
+      - name: HoneyJar
+        address:
+          - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4
+unordered_multichain_mode: true
+preload_handlers: true
