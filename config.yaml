@@ -10,6 +10,9 @@ contracts:
       - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
       - event: SetGenerated(bool generated)
       - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
 networks:
   - id: 1
     start_block: 0

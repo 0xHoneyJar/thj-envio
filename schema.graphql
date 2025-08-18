@@ -1,37 +1,31 @@
-type HoneyJar_Approval {
+type Transfer {
   id: ID!
-  owner: String!
-  approved: String!
   tokenId: BigInt!
-}
-
-type HoneyJar_ApprovalForAll {
-  id: ID!
-  owner: String!
-  operator: String!
-  approved: Boolean!
-}
-
-type HoneyJar_BaseURISet {
-  id: ID!
-  uri: String!
-}
-
-type HoneyJar_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-}
-
-type HoneyJar_SetGenerated {
-  id: ID!
-  generated: Boolean!
-}
-
-type HoneyJar_Transfer {
-  id: ID!
   from: String!
   to: String!
-  tokenId: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  collection: String!
+  chainId: Int!
 }
 
+type Holder {
+  id: ID!
+  address: String!
+  balance: Int!
+  totalMinted: Int!
+  lastActivityTime: BigInt!
+  firstMintTime: BigInt
+  collection: String!
+  chainId: Int!
+}
+
+type CollectionStat {
+  id: ID!
+  collection: String!
+  totalSupply: Int!
+  uniqueHolders: Int!
+  lastMintTime: BigInt
+  chainId: Int!
+}
