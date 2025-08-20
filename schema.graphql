@@ -10,6 +10,54 @@ type Transfer {
   chainId: Int!
 }
 
+type HoneyJar_Approval {
+  id: ID!
+  owner: String!
+  approved: String!
+  tokenId: BigInt!
+}
+
+type HoneyJar_ApprovalForAll {
+  id: ID!
+  owner: String!
+  operator: String!
+  approved: Boolean!
+}
+
+type HoneyJar_BaseURISet {
+  id: ID!
+  uri: String!
+}
+
+type HoneyJar_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type HoneyJar_SetGenerated {
+  id: ID!
+  generated: Boolean!
+}
+
+type HoneyJar_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  tokenId: BigInt!
+}
+
+type Mint {
+  id: ID!
+  tokenId: BigInt!
+  to: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  collection: String!
+  chainId: Int!
+}
+
 type Holder {
   id: ID!
   address: String!
@@ -28,4 +76,63 @@ type CollectionStat {
   uniqueHolders: Int!
   lastMintTime: BigInt
   chainId: Int!
+}
+
+type UserBalance {
+  id: ID!
+  address: String!
+  generation: Int!
+  balanceHomeChain: Int!
+  balanceBerachain: Int!
+  balanceTotal: Int!
+  mintedHomeChain: Int!
+  mintedBerachain: Int!
+  mintedTotal: Int!
+  lastActivityTime: BigInt!
+  firstMintTime: BigInt
+}
+
+type Vault {
+  id: ID!
+  user: String!
+  accountIndex: Int!
+  honeycombId: BigInt!
+  isActive: Boolean!
+  shares: BigInt!
+  totalBurned: Int!
+  burnedGen1: Boolean!
+  burnedGen2: Boolean!
+  burnedGen3: Boolean!
+  burnedGen4: Boolean!
+  burnedGen5: Boolean!
+  burnedGen6: Boolean!
+  createdAt: BigInt!
+  closedAt: BigInt
+  lastActivityTime: BigInt!
+}
+
+type VaultActivity {
+  id: ID!
+  user: String!
+  accountIndex: Int!
+  activityType: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  honeycombId: BigInt
+  hjGen: Int
+  shares: BigInt
+  reward: BigInt
+}
+
+type UserVaultSummary {
+  id: ID!
+  user: String!
+  totalVaults: Int!
+  activeVaults: Int!
+  totalShares: BigInt!
+  totalRewardsClaimed: BigInt!
+  totalHJsBurned: Int!
+  firstVaultTime: BigInt
+  lastActivityTime: BigInt!
 }
