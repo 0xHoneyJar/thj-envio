@@ -1,14 +1,44 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
-name: envio-indexer
+name: thj-indexer
 contracts:
   - name: HoneyJar
     handler: src/EventHandlers.ts
     events:
-      - event: Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)
-      - event: ApprovalForAll(address indexed owner, address indexed operator, bool approved)
-      - event: BaseURISet(string uri)
-      - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-      - event: SetGenerated(bool generated)
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: HoneyJar2Eth
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: HoneyJar3Eth
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: HoneyJar4Eth
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: HoneyJar5Eth
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: Honeycomb
+    handler: src/EventHandlers.ts
+    events:
       - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
         field_selection:
           transaction_fields:
@@ -36,53 +66,89 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+
 networks:
+  # Ethereum Mainnet
   - id: 1
-    start_block: 0
+    start_block: 16751283  # Earliest block (Honeycomb)
     contracts:
+      # Native HoneyJar contracts on Ethereum
       - name: HoneyJar
         address:
-          - 0xa20cf9b0874c3e46b344deaaea9c2e0c3e1db37d
-          - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05
+          - 0xa20cf9b0874c3e46b344deaeea9c2e0c3e1db37d  # HoneyJar1
+          - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05  # HoneyJar6
+      # Honeycomb on Ethereum
+      - name: Honeycomb
+        address:
           - 0xcb0477d1af5b8b05795d89d59f4667b59eae9244
+      # Layer Zero reminted HoneyJar contracts on Ethereum
+      - name: HoneyJar2Eth
+        address:
+          - 0x3f4dd25ba6fb6441bfd1a869cbda6a511966456d  # HoneyJar2 L0 remint
+      - name: HoneyJar3Eth
+        address:
+          - 0x49f3915a52e137e597d6bf11c73e78c68b082297  # HoneyJar3 L0 remint (was missing!)
+      - name: HoneyJar4Eth
+        address:
+          - 0x0b820623485dcfb1c40a70c55755160f6a42186d  # HoneyJar4 L0 remint (was missing!)
+      - name: HoneyJar5Eth
+        address:
+          - 0x39eb35a84752b4bd3459083834af1267d276a54c  # HoneyJar5 L0 remint (was missing!)
+
+  # Arbitrum
   - id: 42161
-    start_block: 0
+    start_block: 102894033
     contracts:
       - name: HoneyJar
         address:
-          - 0x1b2751328f41d1a0b91f3710edcd33e996591b72
+          - 0x1b2751328f41d1a0b91f3710edcd33e996591b72  # HoneyJar2
+
+  # Zora
   - id: 7777777
-    start_block: 0
+    start_block: 18071873
     contracts:
       - name: HoneyJar
         address:
-          - 0xe798c4d40bc050bc93c7f3b149a0dfe5cfc49fb0
+          - 0xe798c4d40bc050bc93c7f3b149a0dfe5cfc49fb0  # HoneyJar3
+
+  # Optimism
   - id: 10
-    start_block: 0
+    start_block: 125752663
     contracts:
       - name: HoneyJar
         address:
-          - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301
+          - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301  # HoneyJar4
+
+  # Base
   - id: 8453
-    start_block: 0
+    start_block: 23252723
     contracts:
       - name: HoneyJar
         address:
-          - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4
+          - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4  # HoneyJar5
+
+  # Berachain (Bartio testnet)
   - id: 80094
-    start_block: 0
+    start_block: 866405
     contracts:
+      # HoneyJar contracts on Berachain
       - name: HoneyJar
         address:
-          - 0xedc5dfd6f37464cc91bbce572b6fe2c97f1bc7b3
-          - 0x1c6c24cac266c791c4ba789c3ec91f04331725bd
-          - 0xf1e4a550772fabfc35b28b51eb8d0b6fcd1c4878
-          - 0xdb602ab4d6bd71c8d11542a9c8c936877a9a4f45
-          - 0x0263728e7f59f315c17d3c180aeade027a375f17
-          - 0xb62a9a21d98478f477e134e175fd2003c15cb83a
-          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be
+          - 0xedc5dfd6f37464cc91bbce572b6fe2c97f1bc7b3  # HoneyJar1 Bera
+          - 0x1c6c24cac266c791c4ba789c3ec91f04331725bd  # HoneyJar2 Bera
+          - 0xf1e4a550772fabfc35b28b51eb8d0b6fcd1c4878  # HoneyJar3 Bera
+          - 0xdb602ab4d6bd71c8d11542a9c8c936877a9a4f45  # HoneyJar4 Bera
+          - 0x0263728e7f59f315c17d3c180aeade027a375f17  # HoneyJar5 Bera
+          - 0xb62a9a21d98478f477e134e175fd2003c15cb83a  # HoneyJar6 Bera
+      # Honeycomb on Berachain
+      - name: Honeycomb
+        address:
+          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be  # Honeycomb Bera
+      # MoneycombVault on Berachain
       - name: MoneycombVault
         address:
           - 0x9279b2227b57f349a0ce552b25af341e735f6309
+
+# Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true
 preload_handlers: true

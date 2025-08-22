@@ -73,9 +73,37 @@ type CollectionStat {
   id: ID!
   collection: String!
   totalSupply: Int!
+  totalMinted: Int!
+  totalBurned: Int!
   uniqueHolders: Int!
   lastMintTime: BigInt
   chainId: Int!
+}
+
+type GlobalCollectionStat {
+  id: ID!
+  collection: String!
+  circulatingSupply: Int!
+  homeChainSupply: Int!
+  ethereumSupply: Int!
+  berachainSupply: Int!
+  proxyLockedSupply: Int!
+  totalMinted: Int!
+  totalBurned: Int!
+  uniqueHoldersTotal: Int!
+  lastUpdateTime: BigInt!
+  homeChainId: Int!
+}
+
+type Token {
+  id: ID!
+  collection: String!
+  chainId: Int!
+  tokenId: BigInt!
+  owner: String!
+  isBurned: Boolean!
+  mintedAt: BigInt!
+  lastTransferTime: BigInt!
 }
 
 type UserBalance {
@@ -83,9 +111,11 @@ type UserBalance {
   address: String!
   generation: Int!
   balanceHomeChain: Int!
+  balanceEthereum: Int!
   balanceBerachain: Int!
   balanceTotal: Int!
   mintedHomeChain: Int!
+  mintedEthereum: Int!
   mintedBerachain: Int!
   mintedTotal: Int!
   lastActivityTime: BigInt!
