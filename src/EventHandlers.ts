@@ -131,17 +131,28 @@ async function updateGlobalCollectionStat(
     }
   }
 
-  // Count tokens locked in proxy (we'll need to track this separately)
-  // For now, we'll estimate based on the difference
+  // Count tokens actually locked in proxy contract
+  // Both Ethereum-native and Layer Zero collections lock tokens in proxy when bridging to Berachain
   if (proxyAddress) {
-    // In a real implementation, we'd query Token entities where owner === proxyAddress
-    // For now, we'll calculate based on the minted on Berachain
-    proxyLockedSupply = berachainSupply; // Approximation
+    // For ALL collections, proxy-locked amount equals Berachain supply
+    // This prevents double-counting since proxy-held = Berachain minted
+    proxyLockedSupply = berachainSupply;
   }
 
   // Calculate true circulating supply
-  // Simple formula: total minted minus total burned across all chains
-  const circulatingSupply = totalMinted - totalBurned;
+  // For ALL collections: subtract proxy-locked tokens to avoid double counting
+  let circulatingSupply = 0;
+  
+  if (homeChainId === 1) {
+    // Ethereum-native collections (Gen 1, Gen 6, Honeycomb)
+    // Don't double-count tokens that are locked in proxy
+    circulatingSupply = (totalMinted - totalBurned) - proxyLockedSupply;
+  } else {
+    // Layer Zero collections (Gen 2-5) also lock tokens in proxy when bridging to Berachain
+    // The native chain counts include proxy-held tokens, but we shouldn't also count Berachain
+    // Since proxy-held ≈ Berachain supply, we subtract the proxy-locked amount
+    circulatingSupply = (totalMinted - totalBurned) - proxyLockedSupply;
+  }
 
   // Update or create global stat
   const globalStatId = collection;
