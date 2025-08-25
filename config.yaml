@@ -79,13 +79,13 @@ contracts:
 networks:
   # Ethereum Mainnet
   - id: 1
-    start_block: 16751283  # Earliest block (Honeycomb)
+    start_block: 16751283 # Earliest block (Honeycomb)
     contracts:
       # Native HoneyJar contracts on Ethereum
       - name: HoneyJar
         address:
-          - 0xa20cf9b0874c3e46b344deaeea9c2e0c3e1db37d  # HoneyJar1
-          - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05  # HoneyJar6
+          - 0xa20cf9b0874c3e46b344deaeea9c2e0c3e1db37d # HoneyJar1
+          - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05 # HoneyJar6
       # Honeycomb on Ethereum
       - name: Honeycomb
         address:
@@ -93,16 +93,16 @@ networks:
       # Layer Zero reminted HoneyJar contracts on Ethereum
       - name: HoneyJar2Eth
         address:
-          - 0x3f4dd25ba6fb6441bfd1a869cbda6a511966456d  # HoneyJar2 L0 remint
+          - 0x3f4dd25ba6fb6441bfd1a869cbda6a511966456d # HoneyJar2 L0 remint
       - name: HoneyJar3Eth
         address:
-          - 0x49f3915a52e137e597d6bf11c73e78c68b082297  # HoneyJar3 L0 remint (was missing!)
+          - 0x49f3915a52e137e597d6bf11c73e78c68b082297 # HoneyJar3 L0 remint (was missing!)
       - name: HoneyJar4Eth
         address:
-          - 0x0b820623485dcfb1c40a70c55755160f6a42186d  # HoneyJar4 L0 remint (was missing!)
+          - 0x0b820623485dcfb1c40a70c55755160f6a42186d # HoneyJar4 L0 remint (was missing!)
       - name: HoneyJar5Eth
         address:
-          - 0x39eb35a84752b4bd3459083834af1267d276a54c  # HoneyJar5 L0 remint (was missing!)
+          - 0x39eb35a84752b4bd3459083834af1267d276a54c # HoneyJar5 L0 remint (was missing!)
 
   # Arbitrum
   - id: 42161
@@ -110,7 +110,7 @@ networks:
     contracts:
       - name: HoneyJar
         address:
-          - 0x1b2751328f41d1a0b91f3710edcd33e996591b72  # HoneyJar2
+          - 0x1b2751328f41d1a0b91f3710edcd33e996591b72 # HoneyJar2
 
   # Zora
   - id: 7777777
@@ -118,7 +118,7 @@ networks:
     contracts:
       - name: HoneyJar
         address:
-          - 0xe798c4d40bc050bc93c7f3b149a0dfe5cfc49fb0  # HoneyJar3
+          - 0xe798c4d40bc050bc93c7f3b149a0dfe5cfc49fb0 # HoneyJar3
 
   # Optimism
   - id: 10
@@ -126,7 +126,7 @@ networks:
     contracts:
       - name: HoneyJar
         address:
-          - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301  # HoneyJar4
+          - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301 # HoneyJar4
 
   # Base
   - id: 8453
@@ -134,35 +134,30 @@ networks:
     contracts:
       - name: HoneyJar
         address:
-          - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4  # HoneyJar5
+          - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4 # HoneyJar5
 
-  # Berachain Mainnet
-  - id: 80084
-    start_block: 7399624  # Block where burn tracking starts
+  # Berachain Mainnet (correct chain ID is 80084, not 80094)
+  - id: 80094
+    start_block: 866405 # Using the start block from the HoneyJar contracts
     contracts:
-      # HenloToken on Berachain Mainnet
+      # HenloToken on Berachain Mainnet for burn tracking
       - name: HenloToken
         address:
-          - 0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5  # Henlo token mainnet
-
-  # Berachain (Bartio testnet)
-  - id: 80094
-    start_block: 866405
-    contracts:
-      # HoneyJar contracts on Berachain
+          - 0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5 # Henlo token mainnet
+      # HoneyJar contracts on Berachain Mainnet
       - name: HoneyJar
         address:
-          - 0xedc5dfd6f37464cc91bbce572b6fe2c97f1bc7b3  # HoneyJar1 Bera
-          - 0x1c6c24cac266c791c4ba789c3ec91f04331725bd  # HoneyJar2 Bera
-          - 0xf1e4a550772fabfc35b28b51eb8d0b6fcd1c4878  # HoneyJar3 Bera
-          - 0xdb602ab4d6bd71c8d11542a9c8c936877a9a4f45  # HoneyJar4 Bera
-          - 0x0263728e7f59f315c17d3c180aeade027a375f17  # HoneyJar5 Bera
-          - 0xb62a9a21d98478f477e134e175fd2003c15cb83a  # HoneyJar6 Bera
-      # Honeycomb on Berachain
+          - 0xedc5dfd6f37464cc91bbce572b6fe2c97f1bc7b3 # HoneyJar1 Bera
+          - 0x1c6c24cac266c791c4ba789c3ec91f04331725bd # HoneyJar2 Bera
+          - 0xf1e4a550772fabfc35b28b51eb8d0b6fcd1c4878 # HoneyJar3 Bera
+          - 0xdb602ab4d6bd71c8d11542a9c8c936877a9a4f45 # HoneyJar4 Bera
+          - 0x0263728e7f59f315c17d3c180aeade027a375f17 # HoneyJar5 Bera
+          - 0xb62a9a21d98478f477e134e175fd2003c15cb83a # HoneyJar6 Bera
+      # Honeycomb on Berachain Mainnet
       - name: Honeycomb
         address:
-          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be  # Honeycomb Bera
-      # MoneycombVault on Berachain
+          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be # Honeycomb Bera
+      # MoneycombVault on Berachain Mainnet
       - name: MoneycombVault
         address:
           - 0x9279b2227b57f349a0ce552b25af341e735f6309
