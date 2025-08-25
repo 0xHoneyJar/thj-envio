@@ -381,10 +381,29 @@ async function updateCollectionStats(
     };
   }
 
-  // Count unique holders (simplified - in production would need more complex logic)
-  const holders = await context.Holder.getMany({
-    where: { collection: { eq: collection }, chainId: { eq: chainId }, balance: { gt: 0 } },
-  });
+  // Update unique holders count based on transfer
+  // We track this incrementally instead of querying all holders
+  let uniqueHoldersAdjustment = 0;
+  
+  // If this is a transfer TO a new holder (not from mint)
+  if (to.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
+    const toHolderId = `${collection}_${chainId}_${to.toLowerCase()}`;
+    const toHolder = await context.Holder.get(toHolderId);
+    // If this holder didn't exist or had 0 balance, increment unique holders
+    if (!toHolder || toHolder.balance === 0) {
+      uniqueHoldersAdjustment += 1;
+    }
+  }
+  
+  // If this is a transfer FROM a holder (not to burn)
+  if (from.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
+    const fromHolderId = `${collection}_${chainId}_${from.toLowerCase()}`;
+    const fromHolder = await context.Holder.get(fromHolderId);
+    // If this holder will have 0 balance after transfer, decrement unique holders
+    if (fromHolder && fromHolder.balance === 1) {
+      uniqueHoldersAdjustment -= 1;
+    }
+  }
 
   // Create updated stats object (immutable update)
   const updatedStats = {
@@ -407,7 +426,7 @@ async function updateCollectionStats(
       from.toLowerCase() === ZERO_ADDRESS.toLowerCase()
         ? timestamp
         : stats.lastMintTime,
-    uniqueHolders: holders.length,
+    uniqueHolders: Math.max(0, stats.uniqueHolders + uniqueHoldersAdjustment),
   };
 
   context.CollectionStat.set(updatedStats);
@@ -427,72 +446,14 @@ export async function updateGlobalCollectionStat(
   const homeChainId = HOME_CHAIN_IDS[generation];
   const proxyAddress = PROXY_CONTRACTS[collection]?.toLowerCase();
 
-  // Aggregate stats from all chains
-  const allChainStats = await context.CollectionStat.getMany({
-    where: { collection: { eq: collection } },
-  });
+  // For now, we'll skip aggregating from all chains
+  // This would require maintaining running totals in the global stat itself
+  // TODO: Implement incremental updates to global stats
+  return;
 
-  let totalCirculating = 0;
-  let totalMinted = 0;
-  let totalBurned = 0;
-  let homeChainSupply = 0;
-  let ethereumSupply = 0;
-  let berachainSupply = 0;
-
-  for (const stat of allChainStats) {
-    totalCirculating += stat.totalSupply;
-    totalMinted += stat.totalMinted;
-    totalBurned += stat.totalBurned;
-
-    if (stat.chainId === homeChainId) {
-      homeChainSupply = stat.totalSupply;
-    } else if (stat.chainId === 1) {
-      ethereumSupply = stat.totalSupply;
-    } else if (stat.chainId === BERACHAIN_TESTNET_ID) {
-      berachainSupply = stat.totalSupply;
-    }
-  }
-
-  // Calculate proxy locked supply (tokens held by bridge contract on Berachain)
-  let proxyLockedSupply = 0;
-  if (proxyAddress) {
-    const proxyTokens = await context.Token.getMany({
-      where: {
-        collection: { eq: collection },
-        chainId: { eq: BERACHAIN_TESTNET_ID },
-        owner: { eq: proxyAddress },
-        isBurned: { eq: false },
-      },
-    });
-    proxyLockedSupply = proxyTokens.length;
-  }
-
-  // Get unique holders across all chains
-  const allHolders = await context.Holder.getMany({
-    where: { collection: { eq: collection }, balance: { gt: 0 } },
-  });
-
-  const uniqueAddresses = new Set(allHolders.map((h: any) => h.address));
-  const uniqueHoldersTotal = uniqueAddresses.size;
-
-  // Update global stats
-  const globalStatsId = collection;
-  const globalStats: GlobalCollectionStat = {
-    id: globalStatsId,
-    collection,
-    circulatingSupply: totalCirculating - proxyLockedSupply,
-    homeChainSupply,
-    ethereumSupply,
-    berachainSupply,
-    proxyLockedSupply,
-    totalMinted,
-    totalBurned,
-    uniqueHoldersTotal,
-    lastUpdateTime: timestamp,
-    homeChainId,
-  };
-
-  context.GlobalCollectionStat.set(globalStats);
+  // Implementation removed due to getMany limitations
+  // This functionality would need to be handled differently in Envio
+  // Consider using a separate aggregation service or maintaining running totals
 }
 
 // Export individual handlers for each contract
