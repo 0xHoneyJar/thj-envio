@@ -15,7 +15,7 @@ const BERACHAIN_MAINNET_ID = 80084;
 
 // Henlo burn source addresses (Berachain mainnet)
 const HENLO_BURN_SOURCES: Record<string, string> = {
-  "0xde81b20b6801d99efaeaced48a11ba025180b8cc": "incinerator",
+  "0xde81b20b6801d99efeaeced48a11ba025180b8cc": "incinerator",
   // TODO: Add actual OverUnder contract address when available
   // TODO: Add actual BeraTrackr contract address when available
 };
