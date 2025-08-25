@@ -166,3 +166,41 @@ type UserVaultSummary {
   firstVaultTime: BigInt
   lastActivityTime: BigInt!
 }
+
+# ============================
+# HENLO BURN TRACKING MODELS
+# ============================
+
+type HenloBurn {
+  id: ID!  # tx_hash_logIndex
+  amount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  from: String!  # Address that initiated the burn
+  source: String!  # "incinerator", "overunder", "beratrackr", or "user"
+  chainId: Int!
+}
+
+type HenloBurnStats {
+  id: ID!  # chainId_source (e.g., "80084_incinerator" or "80084_total")
+  chainId: Int!
+  source: String!  # "incinerator", "overunder", "beratrackr", "user", or "total"
+  totalBurned: BigInt!
+  burnCount: Int!
+  lastBurnTime: BigInt
+  firstBurnTime: BigInt
+}
+
+type HenloGlobalBurnStats {
+  id: ID!  # "global"
+  totalBurnedAllChains: BigInt!
+  totalBurnedMainnet: BigInt!
+  totalBurnedTestnet: BigInt!
+  burnCountAllChains: Int!
+  incineratorBurns: BigInt!
+  overunderBurns: BigInt!
+  beratrackrBurns: BigInt!
+  userBurns: BigInt!
+  lastUpdateTime: BigInt!
+}

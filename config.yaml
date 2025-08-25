@@ -66,6 +66,15 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Henlo Token for burn tracking
+  - name: HenloToken
+    handler: src/EventHandlers.ts
+    events:
+      # Only track burns (transfers to zero address)
+      - event: Transfer(address indexed from, address indexed to, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
 
 networks:
   # Ethereum Mainnet
@@ -126,6 +135,15 @@ networks:
       - name: HoneyJar
         address:
           - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4  # HoneyJar5
+
+  # Berachain Mainnet
+  - id: 80084
+    start_block: 7399624  # Block where burn tracking starts
+    contracts:
+      # HenloToken on Berachain Mainnet
+      - name: HenloToken
+        address:
+          - 0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5  # Henlo token mainnet
 
   # Berachain (Bartio testnet)
   - id: 80094
