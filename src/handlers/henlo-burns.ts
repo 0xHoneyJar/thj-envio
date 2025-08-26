@@ -11,6 +11,7 @@ import {
 } from "generated";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
 const BERACHAIN_MAINNET_ID = 80084;
 
 // Henlo burn source addresses (Berachain mainnet)
@@ -22,14 +23,19 @@ const HENLO_BURN_SOURCES: Record<string, string> = {
 
 /**
  * Handles HENLO token burn events
- * Tracks burns by source (incinerator, overunder, beratrackr, user)
+ * Tracks burns to both zero address (0x0000...0000) and dead address (0x0000...dead)
+ * Categorizes burns by source (incinerator, overunder, beratrackr, user)
  */
 export const handleHenloBurn = HenloToken.Transfer.handler(
   async ({ event, context }) => {
     const { from, to, value } = event.params;
 
-    // Only track burns (transfers to zero address)
-    if (to.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
+    // Only track burns (transfers to zero address or dead address)
+    const toLower = to.toLowerCase();
+    const isZeroAddress = toLower === ZERO_ADDRESS.toLowerCase();
+    const isDeadAddress = toLower === DEAD_ADDRESS.toLowerCase();
+    
+    if (!isZeroAddress && !isDeadAddress) {
       return;
     }
 
