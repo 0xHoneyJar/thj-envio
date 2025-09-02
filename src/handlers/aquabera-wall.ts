@@ -1,6 +1,6 @@
 /*
  * Aquabera Wall Tracking Handlers
- * 
+ *
  * Tracks deposits and withdrawals to the Aquabera HENLO/BERA vault.
  * Identifies contributions from the wall contract and tracks unique builders.
  */
@@ -14,7 +14,8 @@ import {
 } from "generated";
 
 // Wall contract address that makes special contributions (Poku Trump)
-const WALL_CONTRACT_ADDRESS = "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLowerCase();
+const WALL_CONTRACT_ADDRESS =
+  "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLowerCase();
 const BERACHAIN_ID = 80094;
 
 /*
@@ -49,7 +50,7 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     // Update builder stats
     const builderId = depositor;
     let builder = await context.AquaberaBuilder.get(builderId);
-    
+
     if (!builder) {
       // New builder
       builder = {
@@ -82,7 +83,7 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     // Update global stats
     const statsId = "global";
     let stats = await context.AquaberaStats.get(statsId);
-    
+
     if (!stats) {
       // Initialize stats
       stats = {
@@ -102,7 +103,8 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     }
 
     // Calculate unique builders increment
-    const uniqueBuildersIncrement = !builder || builder.depositCount === 0 ? 1 : 0;
+    const uniqueBuildersIncrement =
+      !builder || builder.depositCount === 0 ? 1 : 0;
 
     // Update stats with immutable pattern
     const updatedStats = {
@@ -112,11 +114,11 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
       totalDeposited: stats.totalDeposited + assets,
       uniqueBuilders: stats.uniqueBuilders + uniqueBuildersIncrement,
       depositCount: stats.depositCount + 1,
-      wallContributions: isWallContribution 
-        ? stats.wallContributions + assets 
+      wallContributions: isWallContribution
+        ? stats.wallContributions + assets
         : stats.wallContributions,
-      wallDepositCount: isWallContribution 
-        ? stats.wallDepositCount + 1 
+      wallDepositCount: isWallContribution
+        ? stats.wallDepositCount + 1
         : stats.wallDepositCount,
       lastUpdateTime: timestamp,
     };
@@ -125,7 +127,7 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     // Also update chain-specific stats
     const chainStatsId = `${BERACHAIN_ID}`;
     let chainStats = await context.AquaberaStats.get(chainStatsId);
-    
+
     if (!chainStats) {
       // Initialize chain stats
       chainStats = {
@@ -152,11 +154,11 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
       totalDeposited: chainStats.totalDeposited + assets,
       uniqueBuilders: chainStats.uniqueBuilders + uniqueBuildersIncrement,
       depositCount: chainStats.depositCount + 1,
-      wallContributions: isWallContribution 
-        ? chainStats.wallContributions + assets 
+      wallContributions: isWallContribution
+        ? chainStats.wallContributions + assets
         : chainStats.wallContributions,
-      wallDepositCount: isWallContribution 
-        ? chainStats.wallDepositCount + 1 
+      wallDepositCount: isWallContribution
+        ? chainStats.wallDepositCount + 1
         : chainStats.wallDepositCount,
       lastUpdateTime: timestamp,
     };
