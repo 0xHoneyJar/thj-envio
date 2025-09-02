@@ -88,14 +88,14 @@ contracts:
   - name: AquaberaVaultDirect
     handler: src/EventHandlers.ts
     events:
-      # Track direct deposits to vault (standard ERC4626)
-      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+      # Track direct deposits to vault (Uniswap V3 style pool)
+      - event: Deposit(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
         field_selection:
           transaction_fields:
             - hash
             - from
-      # Track withdrawals from vault (standard ERC4626)
-      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+      # Track withdrawals from vault (Uniswap V3 style pool)
+      - event: Withdraw(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
         field_selection:
           transaction_fields:
             - hash

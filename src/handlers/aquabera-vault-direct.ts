@@ -17,26 +17,28 @@ const WALL_CONTRACT_ADDRESS = "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLow
 const BERACHAIN_ID = 80094;
 
 /*
- * Handle direct Deposit events
- * IMPORTANT: The 'assets' field is WBERA amount, NOT LP tokens
- * The 'shares' field is LP tokens received
+ * Handle direct Deposit events (Uniswap V3 style pool)
+ * Event: Deposit(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
+ * amount0 = WBERA amount
+ * amount1 = HENLO amount (usually 0 for single-sided deposits)
+ * shares = LP tokens minted
  */
 export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
-    const depositor = event.params.owner.toLowerCase();
     const sender = event.params.sender.toLowerCase();
+    const recipient = event.params.to.toLowerCase();
     
-    // CRITICAL: These are the actual values
-    const wberaAmount = event.params.assets; // WBERA deposited (NOT LP tokens!)
-    const lpTokensReceived = event.params.shares; // LP tokens received
+    // CRITICAL: Map the Uniswap V3 pool event parameters
+    const wberaAmount = event.params.amount0; // WBERA deposited
+    const henloAmount = event.params.amount1; // HENLO deposited (often 0)
+    const lpTokensReceived = event.params.shares; // LP tokens minted
     
-    // Check if it's a wall contribution
-    // The 'from' field is optional, so handle it safely
+    // Check if it's a wall contribution - check both sender and recipient
     const txFrom = event.transaction.from ? event.transaction.from.toLowerCase() : null;
     const isWallContribution: boolean =
       sender === WALL_CONTRACT_ADDRESS ||
-      depositor === WALL_CONTRACT_ADDRESS ||
+      recipient === WALL_CONTRACT_ADDRESS ||
       (txFrom !== null && txFrom === WALL_CONTRACT_ADDRESS);
 
     context.log.info(
@@ -51,14 +53,15 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      from: txFrom || depositor,
+      from: txFrom || sender, // Use sender if txFrom is not available
       isWallContribution: isWallContribution,
       chainId: BERACHAIN_ID,
     };
     context.AquaberaDeposit.set(deposit);
 
     // Update builder stats with WBERA amounts
-    const builderId = isWallContribution ? WALL_CONTRACT_ADDRESS : depositor;
+    // Use the actual depositor (sender) for builder tracking
+    const builderId = sender;
     let builder = await context.AquaberaBuilder.get(builderId);
     
     if (!builder) {
@@ -136,22 +139,25 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
 );
 
 /*
- * Handle Withdraw events
- * IMPORTANT: The 'assets' field is WBERA received, NOT LP tokens
- * The 'shares' field is LP tokens burned
+ * Handle Withdraw events (Uniswap V3 style pool)
+ * Event: Withdraw(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
+ * amount0 = WBERA amount withdrawn
+ * amount1 = HENLO amount withdrawn
+ * shares = LP tokens burned
  */
 export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
-    const owner = event.params.owner.toLowerCase();
-    const receiver = event.params.receiver.toLowerCase();
+    const sender = event.params.sender.toLowerCase();
+    const recipient = event.params.to.toLowerCase();
     
-    // CRITICAL: These are the actual values
-    const wberaReceived = event.params.assets; // WBERA withdrawn (NOT LP tokens!)
+    // CRITICAL: Map the Uniswap V3 pool event parameters
+    const wberaReceived = event.params.amount0; // WBERA withdrawn
+    const henloReceived = event.params.amount1; // HENLO withdrawn
     const lpTokensBurned = event.params.shares; // LP tokens burned
 
     context.log.info(
-      `Withdraw: ${wberaReceived} WBERA for ${lpTokensBurned} LP tokens to ${receiver}`
+      `Withdraw: ${wberaReceived} WBERA for ${lpTokensBurned} LP tokens to ${recipient}`
     );
 
     // Create withdrawal record with WBERA amount
@@ -162,13 +168,13 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      from: owner,
+      from: sender, // Use sender as the withdrawer
       chainId: BERACHAIN_ID,
     };
     context.AquaberaWithdrawal.set(withdrawal);
 
     // Update builder stats
-    const builderId = owner;
+    const builderId = sender;
     let builder = await context.AquaberaBuilder.get(builderId);
     
     if (builder) {
