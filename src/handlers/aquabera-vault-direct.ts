@@ -32,14 +32,15 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     const lpTokensReceived = event.params.shares; // LP tokens received
     
     // Check if it's a wall contribution
-    const txFrom = event.transaction.from.toLowerCase();
-    const isWallContribution =
+    // The 'from' field is optional, so handle it safely
+    const txFrom = event.transaction.from ? event.transaction.from.toLowerCase() : null;
+    const isWallContribution: boolean =
       sender === WALL_CONTRACT_ADDRESS ||
       depositor === WALL_CONTRACT_ADDRESS ||
-      txFrom === WALL_CONTRACT_ADDRESS;
+      (txFrom !== null && txFrom === WALL_CONTRACT_ADDRESS);
 
     context.log.info(
-      `Deposit: ${wberaAmount} WBERA for ${lpTokensReceived} LP tokens from ${txFrom}`
+      `Deposit: ${wberaAmount} WBERA for ${lpTokensReceived} LP tokens from ${txFrom || 'unknown'}`
     );
 
     // Create deposit record with WBERA amount
@@ -50,7 +51,7 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      from: txFrom,
+      from: txFrom || depositor,
       isWallContribution: isWallContribution,
       chainId: BERACHAIN_ID,
     };

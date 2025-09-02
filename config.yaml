@@ -93,11 +93,13 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+            - from
       # Track withdrawals from vault (standard ERC4626)
       - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
         field_selection:
           transaction_fields:
             - hash
+            - from
 
 networks:
   # Ethereum Mainnet
