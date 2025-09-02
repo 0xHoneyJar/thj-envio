@@ -25,8 +25,8 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const depositor = event.params.sender.toLowerCase(); // The sender is who initiated the deposit
-    const assets = event.params.amount; // BERA/WBERA amount deposited
-    const shares = event.params.shares; // LP tokens received (e.g., 17 billion = 17e18 wei)
+    const assets = event.params.amount; // BERA/WBERA amount deposited (THIS IS THE CORRECT WBERA AMOUNT)
+    const shares = event.params.shares; // LP tokens received
     const vault = event.params.vault.toLowerCase(); // The vault receiving the deposit
     const token = event.params.token.toLowerCase(); // Token being deposited (BERA or WBERA)
     const recipient = event.params.to.toLowerCase(); // Who receives the LP tokens

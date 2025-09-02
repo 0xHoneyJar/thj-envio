@@ -29,10 +29,22 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     const sender = event.params.sender.toLowerCase();
     const recipient = event.params.to.toLowerCase();
     
-    // CRITICAL: Map the Uniswap V3 pool event parameters
-    const wberaAmount = event.params.amount0; // WBERA deposited
-    const henloAmount = event.params.amount1; // HENLO deposited (often 0)
+    // IMPORTANT: Skip if this deposit came from the forwarder contract
+    // The forwarder already emits DepositForwarded which we track separately
+    const FORWARDER_ADDRESS = "0xc0c6d4178410849ec9765b4267a73f4f64241832";
+    if (sender === FORWARDER_ADDRESS) {
+      context.log.info(
+        `⏭️ Skipping deposit from forwarder (already tracked via DepositForwarded event)`
+      );
+      return; // Don't double-count forwarder deposits
+    }
+    
+    // Map the event parameters from the actual Deposit event
+    // Based on the actual events we've seen, the parameters are:
+    // Deposit(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
     const lpTokensReceived = event.params.shares; // LP tokens minted
+    const wberaAmount = event.params.amount0; // WBERA deposited (token0 in the pool)
+    const henloAmount = event.params.amount1; // HENLO deposited (token1 in the pool)
     
     // Check if it's a wall contribution - check both sender and recipient
     const txFrom = event.transaction.from ? event.transaction.from.toLowerCase() : null;
@@ -41,8 +53,16 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
       recipient === WALL_CONTRACT_ADDRESS ||
       (txFrom !== null && txFrom === WALL_CONTRACT_ADDRESS);
 
+    // Logging for debugging
     context.log.info(
-      `Deposit: ${wberaAmount} WBERA for ${lpTokensReceived} LP tokens from ${txFrom || 'unknown'}`
+      `📊 Direct Deposit Event:
+      - Sender: ${sender}
+      - To: ${recipient}
+      - Shares (LP tokens): ${lpTokensReceived}
+      - Amount0 (WBERA): ${wberaAmount} wei = ${wberaAmount / BigInt(10**18)} WBERA
+      - Amount1 (HENLO): ${henloAmount} wei
+      - TX From: ${txFrom || 'N/A'}
+      - Is Wall: ${isWallContribution}`
     );
 
     // Create deposit record with WBERA amount
@@ -151,10 +171,20 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     const sender = event.params.sender.toLowerCase();
     const recipient = event.params.to.toLowerCase();
     
-    // CRITICAL: Map the Uniswap V3 pool event parameters
-    const wberaReceived = event.params.amount0; // WBERA withdrawn
-    const henloReceived = event.params.amount1; // HENLO withdrawn
+    // Skip if this withdrawal came from the forwarder contract
+    const FORWARDER_ADDRESS = "0xc0c6d4178410849ec9765b4267a73f4f64241832";
+    if (sender === FORWARDER_ADDRESS) {
+      context.log.info(
+        `⏭️ Skipping withdrawal from forwarder (would be tracked via forwarder events if implemented)`
+      );
+      return;
+    }
+    
+    // Map the event parameters from the actual Withdraw event
+    // Withdraw(address indexed sender, address indexed to, uint256 shares, uint256 amount0, uint256 amount1)
     const lpTokensBurned = event.params.shares; // LP tokens burned
+    const wberaReceived = event.params.amount0; // WBERA withdrawn (token0)
+    const henloReceived = event.params.amount1; // HENLO withdrawn (token1)
 
     context.log.info(
       `Withdraw: ${wberaReceived} WBERA for ${lpTokensBurned} LP tokens to ${recipient}`
