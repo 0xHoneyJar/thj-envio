@@ -204,3 +204,60 @@ type HenloGlobalBurnStats {
   userBurns: BigInt!
   lastUpdateTime: BigInt!
 }
+
+# ============================
+# AQUABERA WALL TRACKING MODELS
+# ============================
+
+type AquaberaDeposit {
+  id: ID!  # tx_hash_logIndex
+  amount: BigInt!  # Amount of BERA deposited
+  shares: BigInt!  # LP tokens received
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  from: String!  # Address that made the deposit
+  isWallContribution: Boolean!  # True if from wall contract address
+  chainId: Int!
+}
+
+type AquaberaWithdrawal {
+  id: ID!  # tx_hash_logIndex
+  amount: BigInt!  # Amount of BERA withdrawn
+  shares: BigInt!  # LP tokens burned
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  from: String!  # Address that made the withdrawal
+  chainId: Int!
+}
+
+type AquaberaBuilder {
+  id: ID!  # user address
+  address: String!
+  totalDeposited: BigInt!  # Total BERA deposited
+  totalWithdrawn: BigInt!  # Total BERA withdrawn
+  netDeposited: BigInt!  # Deposited minus withdrawn
+  currentShares: BigInt!  # Current LP token balance
+  depositCount: Int!
+  withdrawalCount: Int!
+  firstDepositTime: BigInt
+  lastActivityTime: BigInt!
+  isWallContract: Boolean!  # True if this is the wall contract address
+  chainId: Int!
+}
+
+type AquaberaStats {
+  id: ID!  # "global" or "chainId" for per-chain stats
+  totalBera: BigInt!  # Total BERA in vault
+  totalShares: BigInt!  # Total LP tokens
+  totalDeposited: BigInt!  # All-time deposits
+  totalWithdrawn: BigInt!  # All-time withdrawals
+  uniqueBuilders: Int!  # Unique addresses that deposited
+  depositCount: Int!
+  withdrawalCount: Int!
+  wallContributions: BigInt!  # Total BERA from wall contract
+  wallDepositCount: Int!  # Number of wall deposits
+  lastUpdateTime: BigInt!
+  chainId: Int
+}

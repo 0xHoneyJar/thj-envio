@@ -27,6 +27,12 @@ import {
 // Import Henlo burn tracking handlers
 import { handleHenloBurn } from "./handlers/henlo-burns";
 
+// Import Aquabera wall tracking handlers
+import { 
+  handleAquaberaDeposit,
+  handleAquaberaWithdraw
+} from "./handlers/aquabera-wall";
+
 /*
  * Export all handlers for Envio to register
  * 
@@ -51,3 +57,7 @@ export { handleRewardClaimed };
 
 // Henlo burn tracking handlers
 export { handleHenloBurn };
+
+// Aquabera wall tracking handlers
+export { handleAquaberaDeposit };
+export { handleAquaberaWithdraw };

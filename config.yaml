@@ -75,6 +75,20 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Aquabera Vault for wall tracking
+  - name: AquaberaVault
+    handler: src/EventHandlers.ts
+    events:
+      # Track deposits (when users add liquidity)
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+        field_selection:
+          transaction_fields:
+            - hash
+      # Track withdrawals (when users remove liquidity)
+      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+        field_selection:
+          transaction_fields:
+            - hash
 
 networks:
   # Ethereum Mainnet
@@ -144,6 +158,10 @@ networks:
       - name: HenloToken
         address:
           - 0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5 # Henlo token mainnet
+      # AquaberaVault on Berachain Mainnet for wall tracking
+      - name: AquaberaVault
+        address:
+          - 0x04fD6a7B02E2e48caedaD7135420604de5f834f8 # Aquabera HENLO/BERA vault
       # HoneyJar contracts on Berachain Mainnet
       - name: HoneyJar
         address:
