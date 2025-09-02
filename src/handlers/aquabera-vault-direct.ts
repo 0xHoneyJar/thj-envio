@@ -1,12 +1,12 @@
 /*
- * Aquabera Wall Tracking Handlers
+ * Direct Aquabera Vault Handlers
  * 
- * Tracks deposits and withdrawals to the Aquabera HENLO/BERA vault.
- * Identifies contributions from the wall contract and tracks unique builders.
+ * Tracks direct deposits and withdrawals to/from the Aquabera vault.
+ * This includes wall contract deposits and any other direct vault interactions.
  */
 
 import {
-  AquaberaVault,
+  AquaberaVaultDirect,
   AquaberaDeposit,
   AquaberaWithdrawal,
   AquaberaBuilder,
@@ -18,18 +18,18 @@ const WALL_CONTRACT_ADDRESS = "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLow
 const BERACHAIN_ID = 80094;
 
 /*
- * Handle DepositForwarded events - when users add liquidity through the Aquabera forwarder
+ * Handle direct Deposit events - when someone deposits directly to the vault
+ * This includes wall contract deposits
  */
-export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
+export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
-    const depositor = event.params.sender.toLowerCase(); // The sender is who initiated the deposit
-    const assets = event.params.amount; // BERA/WBERA amount deposited
-    const shares = event.params.shares; // LP tokens received (e.g., 17 billion = 17e18 wei)
-    const vault = event.params.vault.toLowerCase(); // The vault receiving the deposit
-    const token = event.params.token.toLowerCase(); // Token being deposited (BERA or WBERA)
-    const recipient = event.params.to.toLowerCase(); // Who receives the LP tokens
-    const isWallContribution = depositor === WALL_CONTRACT_ADDRESS;
+    const depositor = event.params.owner.toLowerCase(); // The owner is who receives the shares
+    const sender = event.params.sender.toLowerCase(); // The sender initiated the transaction
+    const assets = event.params.assets; // BERA/WBERA amount deposited
+    const shares = event.params.shares; // LP tokens received
+    // Check both sender and owner for wall contributions (wall might be either)
+    const isWallContribution = sender === WALL_CONTRACT_ADDRESS || depositor === WALL_CONTRACT_ADDRESS;
 
     // Create deposit record
     const depositId = `${event.transaction.hash}_${event.logIndex}`;
@@ -76,6 +76,7 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
       currentShares: builder.currentShares + shares,
       depositCount: builder.depositCount + 1,
       lastActivityTime: timestamp,
+      isWallContract: builder.isWallContract || isWallContribution, // Mark as wall contract if any deposit is from wall
     };
     context.AquaberaBuilder.set(updatedBuilder);
 
@@ -122,48 +123,8 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     };
     context.AquaberaStats.set(updatedStats);
 
-    // Also update chain-specific stats
-    const chainStatsId = `${BERACHAIN_ID}`;
-    let chainStats = await context.AquaberaStats.get(chainStatsId);
-    
-    if (!chainStats) {
-      // Initialize chain stats
-      chainStats = {
-        id: chainStatsId,
-        totalBera: BigInt(0),
-        totalShares: BigInt(0),
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        uniqueBuilders: 0,
-        depositCount: 0,
-        withdrawalCount: 0,
-        wallContributions: BigInt(0),
-        wallDepositCount: 0,
-        lastUpdateTime: timestamp,
-        chainId: BERACHAIN_ID,
-      };
-    }
-
-    // Update chain stats with immutable pattern
-    const updatedChainStats = {
-      ...chainStats,
-      totalBera: chainStats.totalBera + assets,
-      totalShares: chainStats.totalShares + shares,
-      totalDeposited: chainStats.totalDeposited + assets,
-      uniqueBuilders: chainStats.uniqueBuilders + uniqueBuildersIncrement,
-      depositCount: chainStats.depositCount + 1,
-      wallContributions: isWallContribution 
-        ? chainStats.wallContributions + assets 
-        : chainStats.wallContributions,
-      wallDepositCount: isWallContribution 
-        ? chainStats.wallDepositCount + 1 
-        : chainStats.wallDepositCount,
-      lastUpdateTime: timestamp,
-    };
-    context.AquaberaStats.set(updatedChainStats);
-
     context.log.info(
-      `Aquabera deposit: ${assets} BERA from ${depositor}${
+      `Direct vault deposit: ${assets} from ${depositor}${
         isWallContribution ? " (WALL CONTRIBUTION)" : ""
       } for ${shares} shares`
     );
@@ -171,16 +132,14 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
 );
 
 /*
- * Handle Withdraw events - NOT IMPLEMENTED
- * Note: The Aquabera forwarder doesn't emit withdrawal events
- * Withdrawals would need to be tracked directly from the vault or through other means
+ * Handle direct Withdraw events - when someone withdraws directly from the vault
  */
-/*
-export const handleAquaberaWithdraw = AquaberaVault.Withdraw.handler(
+export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
-    const withdrawer = event.params.owner.toLowerCase();
-    const assets = event.params.assets; // BERA amount
+    const owner = event.params.owner.toLowerCase(); // Who owned the shares
+    const receiver = event.params.receiver.toLowerCase(); // Who receives the assets
+    const assets = event.params.assets; // BERA amount withdrawn
     const shares = event.params.shares; // LP tokens burned
 
     // Create withdrawal record
@@ -192,13 +151,13 @@ export const handleAquaberaWithdraw = AquaberaVault.Withdraw.handler(
       timestamp: timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      from: withdrawer,
+      from: owner,
       chainId: BERACHAIN_ID,
     };
     context.AquaberaWithdrawal.set(withdrawal);
 
     // Update builder stats
-    const builderId = withdrawer;
+    const builderId = owner;
     let builder = await context.AquaberaBuilder.get(builderId);
     
     if (builder) {
@@ -237,30 +196,8 @@ export const handleAquaberaWithdraw = AquaberaVault.Withdraw.handler(
       context.AquaberaStats.set(updatedStats);
     }
 
-    // Also update chain-specific stats
-    const chainStatsId = `${BERACHAIN_ID}`;
-    let chainStats = await context.AquaberaStats.get(chainStatsId);
-    
-    if (chainStats) {
-      // Update chain stats with immutable pattern
-      const updatedChainStats = {
-        ...chainStats,
-        totalBera: chainStats.totalBera > assets 
-          ? chainStats.totalBera - assets 
-          : BigInt(0),
-        totalShares: chainStats.totalShares > shares 
-          ? chainStats.totalShares - shares 
-          : BigInt(0),
-        totalWithdrawn: chainStats.totalWithdrawn + assets,
-        withdrawalCount: chainStats.withdrawalCount + 1,
-        lastUpdateTime: timestamp,
-      };
-      context.AquaberaStats.set(updatedChainStats);
-    }
-
     context.log.info(
-      `Aquabera withdrawal: ${assets} BERA to ${withdrawer} for ${shares} shares`
+      `Direct vault withdrawal: ${assets} to ${receiver} for ${shares} shares`
     );
   }
 );
-*/

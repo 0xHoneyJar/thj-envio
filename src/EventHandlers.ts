@@ -27,11 +27,17 @@ import {
 // Import Henlo burn tracking handlers
 import { handleHenloBurn } from "./handlers/henlo-burns";
 
-// Import Aquabera wall tracking handlers
+// Import Aquabera wall tracking handlers (forwarder events)
 import {
   handleAquaberaDeposit,
   // handleAquaberaWithdraw, // Not implemented - forwarder doesn't emit withdrawal events
 } from "./handlers/aquabera-wall";
+
+// Import Aquabera direct vault handlers
+import {
+  handleDirectDeposit,
+  handleDirectWithdraw,
+} from "./handlers/aquabera-vault-direct";
 
 /*
  * Export all handlers for Envio to register
@@ -58,6 +64,10 @@ export { handleRewardClaimed };
 // Henlo burn tracking handlers
 export { handleHenloBurn };
 
-// Aquabera wall tracking handlers
+// Aquabera wall tracking handlers (forwarder)
 export { handleAquaberaDeposit };
 // export { handleAquaberaWithdraw }; // Not implemented - forwarder doesn't emit withdrawal events
+
+// Aquabera direct vault handlers
+export { handleDirectDeposit };
+export { handleDirectWithdraw };
