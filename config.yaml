@@ -75,17 +75,12 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # Aquabera Vault for wall tracking
+  # Aquabera Forwarder for wall tracking
   - name: AquaberaVault
     handler: src/EventHandlers.ts
     events:
-      # Track deposits (when users add liquidity)
-      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
-        field_selection:
-          transaction_fields:
-            - hash
-      # Track withdrawals (when users remove liquidity)
-      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+      # Track deposits through the forwarder (DepositForwarded event)
+      - event: DepositForwarded(address indexed sender, address indexed vault, address indexed token, uint256 amount, uint256 shares, address to)
         field_selection:
           transaction_fields:
             - hash
@@ -161,7 +156,8 @@ networks:
       # AquaberaVault on Berachain Mainnet for wall tracking
       - name: AquaberaVault
         address:
-          - 0x04fD6a7B02E2e48caedaD7135420604de5f834f8 # Aquabera HENLO/BERA vault
+          - 0xc0c6D4178410849eC9765B4267A73F4F64241832 # Aquabera forwarder (where deposits actually happen)
+          - 0x04fD6a7B02E2e48caedaD7135420604de5f834f8 # Aquabera HENLO/BERA vault (backup, in case direct deposits)
       # HoneyJar contracts on Berachain Mainnet
       - name: HoneyJar
         address:

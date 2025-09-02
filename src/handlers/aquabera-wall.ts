@@ -13,19 +13,22 @@ import {
   AquaberaStats,
 } from "generated";
 
-// Wall contract address that makes special contributions
-const WALL_CONTRACT_ADDRESS = "0xde81b20b6801d99efaeaced48a11ba025180b8cc";
+// Wall contract address that makes special contributions (Poku Trump)
+const WALL_CONTRACT_ADDRESS = "0x05c98986Fc75D63eF973C648F22687d1a8056CD6";
 const BERACHAIN_ID = 80094;
 
 /*
- * Handle Deposit events - when users add liquidity to the vault
+ * Handle DepositForwarded events - when users add liquidity through the Aquabera forwarder
  */
-export const handleAquaberaDeposit = AquaberaVault.Deposit.handler(
+export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
-    const depositor = event.params.owner.toLowerCase();
-    const assets = event.params.assets; // BERA amount
-    const shares = event.params.shares; // LP tokens received
+    const depositor = event.params.sender.toLowerCase(); // The sender is who initiated the deposit
+    const assets = event.params.amount; // BERA/WBERA amount deposited
+    const shares = event.params.shares; // LP tokens received (e.g., 17 billion = 17e18 wei)
+    const vault = event.params.vault.toLowerCase(); // The vault receiving the deposit
+    const token = event.params.token.toLowerCase(); // Token being deposited (BERA or WBERA)
+    const recipient = event.params.to.toLowerCase(); // Who receives the LP tokens
     const isWallContribution = depositor === WALL_CONTRACT_ADDRESS.toLowerCase();
 
     // Create deposit record
@@ -168,8 +171,11 @@ export const handleAquaberaDeposit = AquaberaVault.Deposit.handler(
 );
 
 /*
- * Handle Withdraw events - when users remove liquidity from the vault
+ * Handle Withdraw events - NOT IMPLEMENTED
+ * Note: The Aquabera forwarder doesn't emit withdrawal events
+ * Withdrawals would need to be tracked directly from the vault or through other means
  */
+/*
 export const handleAquaberaWithdraw = AquaberaVault.Withdraw.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
@@ -257,3 +263,4 @@ export const handleAquaberaWithdraw = AquaberaVault.Withdraw.handler(
     );
   }
 );
+*/

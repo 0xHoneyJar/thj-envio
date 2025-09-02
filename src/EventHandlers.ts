@@ -1,6 +1,6 @@
 /*
  * THJ Indexer - Main Event Handler Entry Point
- * 
+ *
  * This file imports and registers all event handlers from modular files.
  * Each product/feature has its own handler module for better maintainability.
  */
@@ -28,14 +28,14 @@ import {
 import { handleHenloBurn } from "./handlers/henlo-burns";
 
 // Import Aquabera wall tracking handlers
-import { 
+import {
   handleAquaberaDeposit,
-  handleAquaberaWithdraw
+  // handleAquaberaWithdraw, // Not implemented - forwarder doesn't emit withdrawal events
 } from "./handlers/aquabera-wall";
 
 /*
  * Export all handlers for Envio to register
- * 
+ *
  * The handlers are already defined with their event bindings in the module files.
  * This re-export makes them available to Envio's event processing system.
  */
@@ -60,4 +60,4 @@ export { handleHenloBurn };
 
 // Aquabera wall tracking handlers
 export { handleAquaberaDeposit };
-export { handleAquaberaWithdraw };
+// export { handleAquaberaWithdraw }; // Not implemented - forwarder doesn't emit withdrawal events
