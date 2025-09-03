@@ -206,6 +206,27 @@ type HenloGlobalBurnStats {
 }
 
 # ============================
+# HENLO HOLDER TRACKING MODELS
+# ============================
+
+type HenloHolder {
+  id: ID!  # address (lowercase)
+  address: String!  # Holder address (lowercase)
+  balance: BigInt!  # Current balance
+  firstTransferTime: BigInt  # First time they received HENLO
+  lastActivityTime: BigInt!  # Last transfer activity
+  chainId: Int!
+}
+
+type HenloHolderStats {
+  id: ID!  # chainId (e.g., "80084")
+  chainId: Int!
+  uniqueHolders: Int!  # Count of addresses with balance > 0
+  totalSupply: BigInt!  # Sum of all holder balances
+  lastUpdateTime: BigInt!
+}
+
+# ============================
 # AQUABERA WALL TRACKING MODELS
 # ============================
 

@@ -24,7 +24,7 @@ import {
   handleRewardClaimed,
 } from "./handlers/moneycomb-vault";
 
-// Import Henlo burn tracking handlers
+// Import Henlo token handlers (burns + holder tracking)
 import { handleHenloBurn } from "./handlers/henlo-burns";
 
 // Import Aquabera wall tracking handlers (forwarder events)
@@ -61,7 +61,7 @@ export { handleHJBurned };
 export { handleSharesMinted };
 export { handleRewardClaimed };
 
-// Henlo burn tracking handlers
+// Henlo token handlers (burns + holder tracking)
 export { handleHenloBurn };
 
 // Aquabera wall tracking handlers (forwarder)
