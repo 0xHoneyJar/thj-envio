@@ -161,7 +161,7 @@ networks:
         address:
           - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4 # HoneyJar5
 
-  # Berachain Mainnet
+  # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
     start_block: 866405 # Using the start block from the HoneyJar contracts
     contracts:
