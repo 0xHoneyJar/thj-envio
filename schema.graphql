@@ -202,6 +202,7 @@ type HenloGlobalBurnStats {
   overunderBurns: BigInt!
   beratrackrBurns: BigInt!
   userBurns: BigInt!
+  uniqueBurners: Int!  # Count of unique addresses that have burned at least once (all chains)
   lastUpdateTime: BigInt!
 }
 
@@ -224,6 +225,17 @@ type HenloHolderStats {
   uniqueHolders: Int!  # Count of addresses with balance > 0
   totalSupply: BigInt!  # Sum of all holder balances
   lastUpdateTime: BigInt!
+}
+
+# ============================
+# UNIQUE BURNERS MATERIALIZATION
+# ============================
+
+type HenloBurner {
+  id: ID!            # address (lowercase)
+  address: String!   # duplicate of id for convenience
+  firstBurnTime: BigInt
+  chainId: Int!
 }
 
 # ============================

@@ -100,7 +100,7 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
     const isZeroAddress = toLower === zeroAddress;
     const isDeadAddress = toLower === deadAddress;
     
-    if (isZeroAddress || isDeadAddress) {
+  if (isZeroAddress || isDeadAddress) {
       // Determine burn source
       const source = HENLO_BURN_SOURCES[fromLower] || "user";
 
@@ -118,6 +118,42 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
       };
 
       context.HenloBurn.set(burn);
+
+      // Materialize unique burners and increment global unique count on first burn
+      const existingBurner = await context.HenloBurner.get(fromLower);
+      if (!existingBurner) {
+        const burner = {
+          id: fromLower,
+          address: fromLower,
+          firstBurnTime: timestamp,
+          chainId,
+        };
+        context.HenloBurner.set(burner);
+
+        // Increment global uniqueBurners counter
+        let g = await context.HenloGlobalBurnStats.get("global");
+        if (!g) {
+          g = {
+            id: "global",
+            totalBurnedAllChains: BigInt(0),
+            totalBurnedMainnet: BigInt(0),
+            totalBurnedTestnet: BigInt(0),
+            burnCountAllChains: 0,
+            incineratorBurns: BigInt(0),
+            overunderBurns: BigInt(0),
+            beratrackrBurns: BigInt(0),
+            userBurns: BigInt(0),
+            uniqueBurners: 0,
+            lastUpdateTime: timestamp,
+          };
+        }
+        const gUpdated = {
+          ...g,
+          uniqueBurners: (g.uniqueBurners ?? 0) + 1,
+          lastUpdateTime: timestamp,
+        };
+        context.HenloGlobalBurnStats.set(gUpdated);
+      }
 
       // Update chain-specific burn stats
       await updateChainBurnStats(context, chainId, source, value, timestamp);
@@ -214,6 +250,7 @@ async function updateGlobalBurnStats(
       overunderBurns: BigInt(0),
       beratrackrBurns: BigInt(0),
       userBurns: BigInt(0),
+      uniqueBurners: 0,
       lastUpdateTime: timestamp,
     };
   }
@@ -246,6 +283,8 @@ async function updateGlobalBurnStats(
       source !== "incinerator" && source !== "overunder" && source !== "beratrackr"
         ? globalStats.userBurns + amount
         : globalStats.userBurns,
+    // Preserve uniqueBurners as-is here; it is incremented only when a new burner appears
+    uniqueBurners: globalStats.uniqueBurners ?? 0,
     burnCountAllChains: globalStats.burnCountAllChains + 1,
     lastUpdateTime: timestamp,
   };
