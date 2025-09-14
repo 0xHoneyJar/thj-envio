@@ -195,6 +195,30 @@ networks:
         address:
           - 0x9279b2227b57f349a0ce552b25af341e735f6309
 
+      # Crayons Factory (deploys ERC721 Base collections)
+      - name: CrayonsFactory
+        address:
+          - 0xF1c7d49B39a5aCa29ead398ad9A7024ed6837F87
+        handler: src/EventHandlers.ts
+        events:
+          - event: Factory__NewERC721Base(address indexed owner, address erc721Base)
+            field_selection:
+              transaction_fields:
+                - hash
+
+      # Crayons ERC721 Collections (Transfer indexing)
+      - name: CrayonsCollection
+        handler: src/EventHandlers.ts
+        events:
+          - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+            field_selection:
+              transaction_fields:
+                - hash
+        # TODO: Populate with active Crayons collection addresses as they are deployed.
+        # These can be generated from the CrayonsFactory events or maintained statically for now.
+        address:
+          - 0x0000000000000000000000000000000000000000 # placeholder; replace with real collection addresses
+
 # Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true
 preload_handlers: true

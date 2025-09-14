@@ -33,6 +33,9 @@ import {
   // handleAquaberaWithdraw, // Not implemented - forwarder doesn't emit withdrawal events
 } from "./handlers/aquabera-wall";
 
+// Crayons factory + collections (skeleton)
+import { handleCrayonsFactoryNewBase } from "./handlers/crayons";
+import { handleCrayonsErc721Transfer } from "./handlers/crayons-collections";
 // Import Aquabera direct vault handlers
 import {
   handleDirectDeposit,
@@ -71,3 +74,7 @@ export { handleAquaberaDeposit };
 // Aquabera direct vault handlers
 export { handleDirectDeposit };
 export { handleDirectWithdraw };
+
+// Crayons handlers
+export { handleCrayonsFactoryNewBase };
+export { handleCrayonsErc721Transfer };
