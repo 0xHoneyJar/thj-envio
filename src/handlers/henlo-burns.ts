@@ -37,10 +37,12 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
     const { from, to, value } = event.params;
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
-    
+
     // Normalize addresses to lowercase
     const fromLower = from.toLowerCase();
     const toLower = to.toLowerCase();
+    const transactionFromLower = event.transaction.from?.toLowerCase();
+    const transactionToLower = event.transaction.to?.toLowerCase();
     const zeroAddress = ZERO_ADDRESS.toLowerCase();
     const deadAddress = DEAD_ADDRESS.toLowerCase();
 
@@ -106,8 +108,22 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
     const isDeadAddress = toLower === deadAddress;
     
   if (isZeroAddress || isDeadAddress) {
-      // Determine burn source
-      const source = HENLO_BURN_SOURCES[fromLower] || "user";
+      // Determine burn source by checking both token holder and calling contract
+      const sourceMatchAddress =
+        (fromLower && HENLO_BURN_SOURCES[fromLower] ? fromLower : undefined) ??
+        (transactionToLower && HENLO_BURN_SOURCES[transactionToLower]
+          ? transactionToLower
+          : undefined);
+      const source = sourceMatchAddress
+        ? HENLO_BURN_SOURCES[sourceMatchAddress]
+        : "user";
+
+      // Identify the unique wallet that initiated the burn
+      const burnerAddress =
+        source !== "user"
+          ? transactionFromLower ?? fromLower
+          : fromLower;
+      const burnerId = burnerAddress;
 
       // Create burn record
       const burnId = `${event.transaction.hash}_${event.logIndex}`;
@@ -117,7 +133,7 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
         timestamp,
         blockNumber: BigInt(event.block.number),
         transactionHash: event.transaction.hash,
-        from: fromLower,
+        from: burnerAddress,
         source,
         chainId,
       };
@@ -125,12 +141,12 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
       context.HenloBurn.set(burn);
 
       // Track unique burners at global, chain, and source scope
-      const existingBurner = await context.HenloBurner.get(fromLower);
+      const existingBurner = await context.HenloBurner.get(burnerId);
       const isNewGlobalBurner = !existingBurner;
       if (isNewGlobalBurner) {
         const burner = {
-          id: fromLower,
-          address: fromLower,
+          id: burnerId,
+          address: burnerAddress,
           firstBurnTime: timestamp,
           chainId,
         };
@@ -139,7 +155,7 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
 
       const extendedContext = context as any;
 
-      const chainBurnerId = `${chainId}_${fromLower}`;
+      const chainBurnerId = `${chainId}_${burnerId}`;
       const chainBurnerStore = extendedContext?.HenloChainBurner;
       let isNewChainBurner = false;
       if (chainBurnerStore) {
@@ -149,14 +165,14 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
           const chainBurner = {
             id: chainBurnerId,
             chainId,
-            address: fromLower,
+            address: burnerAddress,
             firstBurnTime: timestamp,
           };
           chainBurnerStore.set(chainBurner);
         }
       }
 
-      const sourceBurnerId = `${chainId}_${source}_${fromLower}`;
+      const sourceBurnerId = `${chainId}_${source}_${burnerId}`;
       const sourceBurnerStore = extendedContext?.HenloSourceBurner;
       let isNewSourceBurner = false;
       if (sourceBurnerStore) {
@@ -167,7 +183,7 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
             id: sourceBurnerId,
             chainId,
             source,
-            address: fromLower,
+            address: burnerAddress,
             firstBurnTime: timestamp,
           };
           sourceBurnerStore.set(sourceBurner);

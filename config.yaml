@@ -75,6 +75,8 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+            - from
+            - to
   # Aquabera Forwarder for wall tracking
   - name: AquaberaVault
     handler: src/EventHandlers.ts
