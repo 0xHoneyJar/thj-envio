@@ -16,6 +16,11 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
 const BERACHAIN_MAINNET_ID = 80084;
 
+type ExtendedHenloBurnStats = HenloBurnStats & { uniqueBurners?: number };
+type ExtendedHenloGlobalBurnStats = HenloGlobalBurnStats & {
+  incineratorUniqueBurners?: number;
+};
+
 // Henlo burn source addresses (Berachain mainnet)
 const HENLO_BURN_SOURCES: Record<string, string> = {
   "0xde81b20b6801d99efeaeced48a11ba025180b8cc": "incinerator",
@@ -119,9 +124,10 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
 
       context.HenloBurn.set(burn);
 
-      // Materialize unique burners and increment global unique count on first burn
+      // Track unique burners at global, chain, and source scope
       const existingBurner = await context.HenloBurner.get(fromLower);
-      if (!existingBurner) {
+      const isNewGlobalBurner = !existingBurner;
+      if (isNewGlobalBurner) {
         const burner = {
           id: fromLower,
           address: fromLower,
@@ -129,11 +135,51 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
           chainId,
         };
         context.HenloBurner.set(burner);
+      }
 
-        // Increment global uniqueBurners counter
-        let g = await context.HenloGlobalBurnStats.get("global");
-        if (!g) {
-          g = {
+      const extendedContext = context as any;
+
+      const chainBurnerId = `${chainId}_${fromLower}`;
+      const chainBurnerStore = extendedContext?.HenloChainBurner;
+      let isNewChainBurner = false;
+      if (chainBurnerStore) {
+        const existingChainBurner = await chainBurnerStore.get(chainBurnerId);
+        isNewChainBurner = !existingChainBurner;
+        if (isNewChainBurner) {
+          const chainBurner = {
+            id: chainBurnerId,
+            chainId,
+            address: fromLower,
+            firstBurnTime: timestamp,
+          };
+          chainBurnerStore.set(chainBurner);
+        }
+      }
+
+      const sourceBurnerId = `${chainId}_${source}_${fromLower}`;
+      const sourceBurnerStore = extendedContext?.HenloSourceBurner;
+      let isNewSourceBurner = false;
+      if (sourceBurnerStore) {
+        const existingSourceBurner = await sourceBurnerStore.get(sourceBurnerId);
+        isNewSourceBurner = !existingSourceBurner;
+        if (isNewSourceBurner) {
+          const sourceBurner = {
+            id: sourceBurnerId,
+            chainId,
+            source,
+            address: fromLower,
+            firstBurnTime: timestamp,
+          };
+          sourceBurnerStore.set(sourceBurner);
+        }
+      }
+
+      if (isNewGlobalBurner || (isNewSourceBurner && source === "incinerator")) {
+        let globalStats = (await context.HenloGlobalBurnStats.get(
+          "global"
+        )) as ExtendedHenloGlobalBurnStats | undefined;
+        if (!globalStats) {
+          globalStats = {
             id: "global",
             totalBurnedAllChains: BigInt(0),
             totalBurnedMainnet: BigInt(0),
@@ -144,19 +190,37 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
             beratrackrBurns: BigInt(0),
             userBurns: BigInt(0),
             uniqueBurners: 0,
+            incineratorUniqueBurners: 0,
             lastUpdateTime: timestamp,
-          };
+          } as ExtendedHenloGlobalBurnStats;
         }
-        const gUpdated = {
-          ...g,
-          uniqueBurners: (g.uniqueBurners ?? 0) + 1,
+
+        const updatedGlobalUniqueStats: ExtendedHenloGlobalBurnStats = {
+          ...globalStats,
+          uniqueBurners:
+            (globalStats.uniqueBurners ?? 0) + (isNewGlobalBurner ? 1 : 0),
+          incineratorUniqueBurners:
+            (globalStats.incineratorUniqueBurners ?? 0) +
+            (source === "incinerator" && isNewSourceBurner ? 1 : 0),
           lastUpdateTime: timestamp,
         };
-        context.HenloGlobalBurnStats.set(gUpdated);
+        context.HenloGlobalBurnStats.set(
+          updatedGlobalUniqueStats as HenloGlobalBurnStats
+        );
       }
 
-      // Update chain-specific burn stats
-      await updateChainBurnStats(context, chainId, source, value, timestamp);
+      // Update chain-specific burn stats with unique burner increments
+      const sourceUniqueIncrement = isNewSourceBurner ? 1 : 0;
+      const totalUniqueIncrement = isNewChainBurner ? 1 : 0;
+      await updateChainBurnStats(
+        context,
+        chainId,
+        source,
+        value,
+        timestamp,
+        sourceUniqueIncrement,
+        totalUniqueIncrement
+      );
 
       // Update global burn stats
       await updateGlobalBurnStats(context, chainId, source, value, timestamp);
@@ -172,11 +236,15 @@ async function updateChainBurnStats(
   chainId: number,
   source: string,
   amount: bigint,
-  timestamp: bigint
+  timestamp: bigint,
+  sourceUniqueIncrement: number,
+  totalUniqueIncrement: number
 ) {
   // Update source-specific stats
   const statsId = `${chainId}_${source}`;
-  let stats = await context.HenloBurnStats.get(statsId);
+  let stats = (await context.HenloBurnStats.get(statsId)) as
+    | ExtendedHenloBurnStats
+    | undefined;
 
   if (!stats) {
     stats = {
@@ -185,24 +253,28 @@ async function updateChainBurnStats(
       source,
       totalBurned: BigInt(0),
       burnCount: 0,
+      uniqueBurners: 0,
       lastBurnTime: timestamp,
       firstBurnTime: timestamp,
-    };
+    } as ExtendedHenloBurnStats;
   }
 
   // Create updated stats object (immutable update)
-  const updatedStats = {
+  const updatedStats: ExtendedHenloBurnStats = {
     ...stats,
     totalBurned: stats.totalBurned + amount,
     burnCount: stats.burnCount + 1,
+    uniqueBurners: (stats.uniqueBurners ?? 0) + sourceUniqueIncrement,
     lastBurnTime: timestamp,
   };
 
-  context.HenloBurnStats.set(updatedStats);
+  context.HenloBurnStats.set(updatedStats as HenloBurnStats);
 
   // Update total stats for this chain
   const totalStatsId = `${chainId}_total`;
-  let totalStats = await context.HenloBurnStats.get(totalStatsId);
+  let totalStats = (await context.HenloBurnStats.get(totalStatsId)) as
+    | ExtendedHenloBurnStats
+    | undefined;
 
   if (!totalStats) {
     totalStats = {
@@ -211,20 +283,22 @@ async function updateChainBurnStats(
       source: "total",
       totalBurned: BigInt(0),
       burnCount: 0,
+      uniqueBurners: 0,
       lastBurnTime: timestamp,
       firstBurnTime: timestamp,
-    };
+    } as ExtendedHenloBurnStats;
   }
 
   // Create updated total stats object (immutable update)
-  const updatedTotalStats = {
+  const updatedTotalStats: ExtendedHenloBurnStats = {
     ...totalStats,
     totalBurned: totalStats.totalBurned + amount,
     burnCount: totalStats.burnCount + 1,
+    uniqueBurners: (totalStats.uniqueBurners ?? 0) + totalUniqueIncrement,
     lastBurnTime: timestamp,
   };
 
-  context.HenloBurnStats.set(updatedTotalStats);
+  context.HenloBurnStats.set(updatedTotalStats as HenloBurnStats);
 }
 
 /**
@@ -237,7 +311,9 @@ async function updateGlobalBurnStats(
   amount: bigint,
   timestamp: bigint
 ) {
-  let globalStats = await context.HenloGlobalBurnStats.get("global");
+  let globalStats = (await context.HenloGlobalBurnStats.get(
+    "global"
+  )) as ExtendedHenloGlobalBurnStats | undefined;
 
   if (!globalStats) {
     globalStats = {
@@ -251,12 +327,13 @@ async function updateGlobalBurnStats(
       beratrackrBurns: BigInt(0),
       userBurns: BigInt(0),
       uniqueBurners: 0,
+      incineratorUniqueBurners: 0,
       lastUpdateTime: timestamp,
-    };
+    } as ExtendedHenloGlobalBurnStats;
   }
 
   // Create updated global stats object (immutable update)
-  const updatedGlobalStats = {
+  const updatedGlobalStats: ExtendedHenloGlobalBurnStats = {
     ...globalStats,
     totalBurnedAllChains: globalStats.totalBurnedAllChains + amount,
     totalBurnedMainnet:
@@ -285,11 +362,12 @@ async function updateGlobalBurnStats(
         : globalStats.userBurns,
     // Preserve uniqueBurners as-is here; it is incremented only when a new burner appears
     uniqueBurners: globalStats.uniqueBurners ?? 0,
+    incineratorUniqueBurners: globalStats.incineratorUniqueBurners ?? 0,
     burnCountAllChains: globalStats.burnCountAllChains + 1,
     lastUpdateTime: timestamp,
   };
 
-  context.HenloGlobalBurnStats.set(updatedGlobalStats);
+  context.HenloGlobalBurnStats.set(updatedGlobalStats as HenloGlobalBurnStats);
 }
 
 /**

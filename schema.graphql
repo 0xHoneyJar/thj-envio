@@ -188,6 +188,7 @@ type HenloBurnStats {
   source: String!  # "incinerator", "overunder", "beratrackr", "user", or "total"
   totalBurned: BigInt!
   burnCount: Int!
+  uniqueBurners: Int!  # Count of unique addresses for this source on this chain
   lastBurnTime: BigInt
   firstBurnTime: BigInt
 }
@@ -203,6 +204,7 @@ type HenloGlobalBurnStats {
   beratrackrBurns: BigInt!
   userBurns: BigInt!
   uniqueBurners: Int!  # Count of unique addresses that have burned at least once (all chains)
+  incineratorUniqueBurners: Int!  # Unique addresses that have burned via the incinerator (all chains)
   lastUpdateTime: BigInt!
 }
 
@@ -236,6 +238,21 @@ type HenloBurner {
   address: String!   # duplicate of id for convenience
   firstBurnTime: BigInt
   chainId: Int!
+}
+
+type HenloSourceBurner {
+  id: ID!            # chainId_source_address (e.g., "80084_incinerator_0x...")
+  chainId: Int!
+  source: String!
+  address: String!
+  firstBurnTime: BigInt
+}
+
+type HenloChainBurner {
+  id: ID!            # chainId_address
+  chainId: Int!
+  address: String!
+  firstBurnTime: BigInt
 }
 
 # ============================
