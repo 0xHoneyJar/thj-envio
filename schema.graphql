@@ -10,6 +10,17 @@ type Transfer {
   chainId: Int!
 }
 
+type MintEvent {
+  id: ID!
+  collectionKey: String!
+  tokenId: BigInt!
+  minter: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
 type HoneyJar_Approval {
   id: ID!
   owner: String!

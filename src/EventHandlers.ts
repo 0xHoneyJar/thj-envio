@@ -41,6 +41,8 @@ import {
   handleDirectDeposit,
   handleDirectWithdraw,
 } from "./handlers/aquabera-vault-direct";
+// General mint tracking
+import { handleGeneralMintTransfer } from "./handlers/mints";
 
 /*
  * Export all handlers for Envio to register
@@ -78,3 +80,6 @@ export { handleDirectWithdraw };
 // Crayons handlers
 export { handleCrayonsFactoryNewBase };
 export { handleCrayonsErc721Transfer };
+
+// General mint handlers
+export { handleGeneralMintTransfer };
