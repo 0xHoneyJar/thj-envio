@@ -148,11 +148,12 @@ contracts:
   - name: BgtToken
     handler: src/EventHandlers.ts
     events:
-      - event: QueueBoost(address indexed account, bytes pubkey, uint128 amount)
+      - event: QueueBoost(address indexed account, bytes indexed pubkey, uint128 amount)
         field_selection:
           transaction_fields:
             - hash
             - from
+            - input
 
 networks:
   # Ethereum Mainnet
@@ -263,6 +264,7 @@ networks:
       - name: CandiesMarket1155
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F
+          - 0xeca03517c5195f1edd634da6d690d6c72407c40c
       - name: FatBera
         address:
           - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
