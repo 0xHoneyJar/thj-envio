@@ -43,6 +43,12 @@ import {
 } from "./handlers/aquabera-vault-direct";
 // General mint tracking
 import { handleGeneralMintTransfer } from "./handlers/mints";
+import {
+  handleCandiesMintSingle,
+  handleCandiesMintBatch,
+} from "./handlers/mints1155";
+import { handleFatBeraDeposit } from "./handlers/fatbera";
+import { handleBgtQueueBoost } from "./handlers/bgt";
 
 /*
  * Export all handlers for Envio to register
@@ -83,3 +89,7 @@ export { handleCrayonsErc721Transfer };
 
 // General mint handlers
 export { handleGeneralMintTransfer };
+export { handleCandiesMintSingle };
+export { handleCandiesMintBatch };
+export { handleFatBeraDeposit };
+export { handleBgtQueueBoost };

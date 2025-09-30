@@ -126,6 +126,33 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  - name: CandiesMarket1155
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: FatBera
+    handler: src/EventHandlers.ts
+    events:
+      - event: Deposit(address indexed from, address indexed to, uint256 amount, uint256 shares)
+        field_selection:
+          transaction_fields:
+            - hash
+            - from
+  - name: BgtToken
+    handler: src/EventHandlers.ts
+    events:
+      - event: QueueBoost(address indexed account, bytes pubkey, uint128 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+            - from
 
 networks:
   # Ethereum Mainnet
@@ -233,6 +260,15 @@ networks:
       - name: GeneralMints
         address:
           - 0x048327A187b944ddac61c6e202BfccD20d17c008
+      - name: CandiesMarket1155
+        address:
+          - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F
+      - name: FatBera
+        address:
+          - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
+      - name: BgtToken
+        address:
+          - 0x656b95E550C07a9ffe548Bd4085c72418Ceb1dBa
 
 # Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true

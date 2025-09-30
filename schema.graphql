@@ -21,6 +21,45 @@ type MintEvent {
   chainId: Int!
 }
 
+type Erc1155MintEvent {
+  id: ID!
+  collectionKey: String!
+  tokenId: BigInt!
+  value: BigInt!
+  minter: String!
+  operator: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+type FatBeraDeposit {
+  id: ID!
+  collectionKey: String!
+  depositor: String!
+  recipient: String!
+  amount: BigInt!
+  shares: BigInt!
+  transactionFrom: String
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+type BgtBoostEvent {
+  id: ID!
+  account: String!
+  validatorPubkey: String!
+  amount: BigInt!
+  transactionFrom: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
 type HoneyJar_Approval {
   id: ID!
   owner: String!
