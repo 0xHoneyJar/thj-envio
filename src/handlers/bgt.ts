@@ -4,13 +4,38 @@
  * Captures QueueBoost events emitted when users delegate BGT to validators.
  */
 
-import { Interface } from "ethers";
+import { Interface, hexlify } from "ethers";
 
 import { BgtToken, BgtBoostEvent } from "generated";
 
 const QUEUE_BOOST_INTERFACE = new Interface([
+  "function queueBoost(bytes pubkey, uint128 amount)",
   "function queue_boost(bytes pubkey, uint128 amount)",
 ]);
+
+const normalizePubkey = (raw: unknown): string | undefined => {
+  if (typeof raw === "string") {
+    return raw.toLowerCase();
+  }
+
+  if (raw instanceof Uint8Array) {
+    try {
+      return hexlify(raw).toLowerCase();
+    } catch (_err) {
+      return undefined;
+    }
+  }
+
+  if (Array.isArray(raw)) {
+    try {
+      return hexlify(Uint8Array.from(raw as number[])).toLowerCase();
+    } catch (_err) {
+      return undefined;
+    }
+  }
+
+  return undefined;
+};
 
 export const handleBgtQueueBoost = BgtToken.QueueBoost.handler(
   async ({ event, context }) => {
@@ -27,15 +52,20 @@ export const handleBgtQueueBoost = BgtToken.QueueBoost.handler(
       : accountLower;
 
     const inputData = event.transaction.input;
-    if (inputData) {
+    if (inputData && inputData !== "0x") {
       try {
-        const decoded = QUEUE_BOOST_INTERFACE.decodeFunctionData(
-          "queue_boost",
-          inputData
-        );
-        const decodedPubkey = (decoded as any)?.pubkey ?? decoded[0];
-        if (typeof decodedPubkey === "string") {
-          validatorPubkey = decodedPubkey.toLowerCase();
+        const parsed = QUEUE_BOOST_INTERFACE.parseTransaction({
+          data: inputData,
+        });
+
+        if (parsed) {
+          const decodedPubkey = normalizePubkey(
+            (parsed.args as any)?.pubkey ?? parsed.args?.[0]
+          );
+
+          if (decodedPubkey) {
+            validatorPubkey = decodedPubkey;
+          }
         }
       } catch (error) {
         context.log.warn(
