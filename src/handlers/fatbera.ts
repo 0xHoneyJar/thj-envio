@@ -7,6 +7,8 @@
 
 import { FatBera, FatBeraDeposit } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 const COLLECTION_KEY = "fatbera_deposit";
 
 export const handleFatBeraDeposit = FatBera.Deposit.handler(
@@ -23,20 +25,42 @@ export const handleFatBeraDeposit = FatBera.Deposit.handler(
       ? event.transaction.from.toLowerCase()
       : undefined;
 
+    const id = `${event.transaction.hash}_${event.logIndex}`;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+
     const deposit: FatBeraDeposit = {
-      id: `${event.transaction.hash}_${event.logIndex}`,
+      id,
       collectionKey: COLLECTION_KEY,
       depositor,
       recipient,
       amount,
       shares,
       transactionFrom,
-      timestamp: BigInt(event.block.timestamp),
+      timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      chainId: event.chainId,
+      chainId,
     };
 
     context.FatBeraDeposit.set(deposit);
+
+    recordAction(context, {
+      id,
+      actionType: "deposit",
+      actor: depositor,
+      primaryCollection: COLLECTION_KEY,
+      timestamp,
+      chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: amount,
+      numeric2: shares,
+      context: {
+        recipient,
+        transactionFrom,
+        contract: event.srcAddress.toLowerCase(),
+      },
+    });
   }
 );

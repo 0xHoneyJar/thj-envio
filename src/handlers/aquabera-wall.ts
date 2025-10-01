@@ -13,6 +13,8 @@ import {
   AquaberaStats,
 } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 // Wall contract address that makes special contributions (Poku Trump)
 const WALL_CONTRACT_ADDRESS =
   "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLowerCase();
@@ -169,6 +171,26 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
         isWallContribution ? " (WALL CONTRIBUTION)" : ""
       } for ${shares} shares`
     );
+
+    recordAction(context, {
+      id: depositId,
+      actionType: "deposit",
+      actor: depositor,
+      primaryCollection: "henlo_build",
+      timestamp,
+      chainId: event.chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: assets,
+      numeric2: shares,
+      context: {
+        vault,
+        token,
+        recipient,
+        isWallContribution,
+        forwarder: event.srcAddress.toLowerCase(),
+      },
+    });
   }
 );
 

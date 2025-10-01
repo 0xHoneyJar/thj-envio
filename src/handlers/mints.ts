@@ -7,6 +7,8 @@
 
 import { GeneralMints, MintEvent } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 import { ZERO_ADDRESS } from "./constants";
 import { MINT_COLLECTION_KEYS } from "./mints/constants";
 
@@ -26,17 +28,36 @@ export const handleGeneralMintTransfer = GeneralMints.Transfer.handler(
       MINT_COLLECTION_KEYS[contractAddress] ?? contractAddress;
 
     const id = `${event.transaction.hash}_${event.logIndex}`;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+    const minter = to.toLowerCase();
     const mintEvent: MintEvent = {
       id,
       collectionKey,
       tokenId: BigInt(tokenId.toString()),
-      minter: to.toLowerCase(),
-      timestamp: BigInt(event.block.timestamp),
+      minter,
+      timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      chainId: event.chainId,
+      chainId,
     };
 
     context.MintEvent.set(mintEvent);
+
+    recordAction(context, {
+      id,
+      actionType: "mint",
+      actor: minter,
+      primaryCollection: collectionKey,
+      timestamp,
+      chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: 1n,
+      context: {
+        tokenId: tokenId.toString(),
+        contract: contractAddress,
+      },
+    });
   }
 );

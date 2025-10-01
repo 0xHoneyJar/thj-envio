@@ -8,6 +8,8 @@ import { Interface, hexlify } from "ethers";
 
 import { BgtToken, BgtBoostEvent } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 const QUEUE_BOOST_INTERFACE = new Interface([
   "function queueBoost(bytes pubkey, uint128 amount)",
   "function queue_boost(bytes pubkey, uint128 amount)",
@@ -76,18 +78,39 @@ export const handleBgtQueueBoost = BgtToken.QueueBoost.handler(
       }
     }
 
+    const id = `${event.transaction.hash}_${event.logIndex}`;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+
     const boostEvent: BgtBoostEvent = {
-      id: `${event.transaction.hash}_${event.logIndex}`,
+      id,
       account: accountLower,
       validatorPubkey,
       amount,
       transactionFrom,
-      timestamp: BigInt(event.block.timestamp),
+      timestamp,
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
-      chainId: event.chainId,
+      chainId,
     };
 
     context.BgtBoostEvent.set(boostEvent);
+
+    recordAction(context, {
+      id,
+      actionType: "delegate",
+      actor: transactionFrom,
+      primaryCollection: "thj_delegate",
+      timestamp,
+      chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: amount,
+      context: {
+        account: accountLower,
+        validatorPubkey,
+        contract: event.srcAddress.toLowerCase(),
+      },
+    });
   }
 );

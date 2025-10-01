@@ -1,3 +1,16 @@
+type Action {
+  id: ID!
+  actionType: String!
+  actor: String!
+  primaryCollection: String
+  timestamp: BigInt!
+  chainId: Int!
+  txHash: String!
+  numeric1: BigInt
+  numeric2: BigInt
+  context: String
+}
+
 type Transfer {
   id: ID!
   tokenId: BigInt!

@@ -12,6 +12,8 @@ import {
   HenloToken,
 } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
 const BERACHAIN_MAINNET_ID = 80084;
@@ -139,6 +141,26 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
       };
 
       context.HenloBurn.set(burn);
+
+      recordAction(context, {
+        id: burnId,
+        actionType: "burn",
+        actor: burnerAddress ?? fromLower,
+        primaryCollection: "henlo_incinerator",
+        timestamp,
+        chainId,
+        txHash: event.transaction.hash,
+        logIndex: event.logIndex,
+        numeric1: value,
+        context: {
+          from: fromLower,
+          transactionFrom: transactionFromLower,
+          transactionTo: transactionToLower,
+          source,
+          rawTo: toLower,
+          token: event.srcAddress.toLowerCase(),
+        },
+      });
 
       // Track unique burners at global, chain, and source scope
       const existingBurner = await context.HenloBurner.get(burnerId);

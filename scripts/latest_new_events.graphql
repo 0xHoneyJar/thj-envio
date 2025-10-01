@@ -1,7 +1,10 @@
 # Multi-block sanity check for the newly tracked sources.
 query LatestNewEvents {
   candiesMints: Erc1155MintEvent(
-    where: { collectionKey: { _eq: "mibera_drugs" } }
+    where: {
+      collectionKey: { _eq: "mibera_drugs" }
+      chainId: { _eq: 80094 }
+    }
     order_by: { timestamp: desc }
     limit: 3
   ) {
@@ -11,6 +14,52 @@ query LatestNewEvents {
     value
     minter
     operator
+    timestamp
+    blockNumber
+    transactionHash
+  }
+
+  miberaVmMints: MintEvent(
+    where: {
+      collectionKey: { _eq: "mibera_vm" }
+      chainId: { _eq: 80094 }
+    }
+    order_by: { timestamp: desc }
+    limit: 3
+  ) {
+    id
+    collectionKey
+    tokenId
+    minter
+    timestamp
+    blockNumber
+    transactionHash
+  }
+
+  henloBurns: HenloBurn(
+    where: { chainId: { _eq: 80094 } }
+    order_by: { timestamp: desc }
+    limit: 3
+  ) {
+    id
+    amount
+    source
+    from
+    timestamp
+    blockNumber
+    transactionHash
+  }
+
+  aquaberaLiquidity: AquaberaDeposit(
+    where: { chainId: { _eq: 80094 } }
+    order_by: { timestamp: desc }
+    limit: 3
+  ) {
+    id
+    amount
+    shares
+    from
+    isWallContribution
     timestamp
     blockNumber
     transactionHash
@@ -37,6 +86,7 @@ query LatestNewEvents {
       validatorPubkey: {
         _eq: "0xa0c673180d97213c1c35fe3bf4e684dd3534baab235a106d1f71b9c8a37e4d37a056d47546964fd075501dff7f76aeaf"
       }
+      chainId: { _eq: 80094 }
     }
     order_by: { timestamp: desc }
     limit: 3

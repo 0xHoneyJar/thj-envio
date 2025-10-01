@@ -13,6 +13,8 @@ import {
   AquaberaStats,
 } from "generated";
 
+import { recordAction } from "../lib/actions";
+
 const WALL_CONTRACT_ADDRESS = "0x05c98986Fc75D63eF973C648F22687d1a8056CD6".toLowerCase();
 const BERACHAIN_ID = 80094;
 
@@ -66,8 +68,11 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     );
 
     // Create deposit record with WBERA amount
+    const id = `${event.transaction.hash}_${event.logIndex}`;
+    const chainId = event.chainId;
+
     const deposit: AquaberaDeposit = {
-      id: `${event.transaction.hash}_${event.logIndex}`,
+      id,
       amount: wberaAmount, // Store WBERA amount, not LP tokens
       shares: lpTokensReceived,
       timestamp: timestamp,
@@ -155,6 +160,27 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     context.log.info(
       `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
     );
+
+    recordAction(context, {
+      id,
+      actionType: "deposit",
+      actor: sender,
+      primaryCollection: "henlo_build",
+      timestamp,
+      chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: wberaAmount,
+      numeric2: lpTokensReceived,
+      context: {
+        vault: event.srcAddress.toLowerCase(),
+        recipient,
+        henloAmount: henloAmount.toString(),
+        isWallContribution,
+        txFrom,
+        forwarder: false,
+      },
+    });
   }
 );
 
@@ -191,8 +217,11 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     );
 
     // Create withdrawal record with WBERA amount
+    const id = `${event.transaction.hash}_${event.logIndex}`;
+    const chainId = event.chainId;
+
     const withdrawal: AquaberaWithdrawal = {
-      id: `${event.transaction.hash}_${event.logIndex}`,
+      id,
       amount: wberaReceived, // Store WBERA amount, not LP tokens
       shares: lpTokensBurned,
       timestamp: timestamp,
@@ -246,5 +275,23 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
         `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
       );
     }
+
+    recordAction(context, {
+      id,
+      actionType: "withdraw",
+      actor: sender,
+      primaryCollection: "henlo_build",
+      timestamp,
+      chainId,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: wberaReceived,
+      numeric2: lpTokensBurned,
+      context: {
+        vault: event.srcAddress.toLowerCase(),
+        recipient,
+        henloReceived: henloReceived.toString(),
+      },
+    });
   }
 );
