@@ -118,6 +118,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Static ERC721 collections for holder tracking
+  - name: TrackedErc721
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
   # General ERC721 mint tracking (mint events only)
   - name: GeneralMints
     handler: src/EventHandlers.ts
@@ -257,10 +265,15 @@ networks:
       # Crayons ERC721 Collections (Transfer indexing)
       - name: CrayonsCollection
         address: []
+      # Static tracked ERC721 collections
+      - name: TrackedErc721
+        address:
+          - 0x6666397DFe9a8c469BF65dc744CB1C733416c420 # mibera holders
       # General ERC721 Mint tracking (quest/missions)
       - name: GeneralMints
         address:
           - 0x048327A187b944ddac61c6e202BfccD20d17c008
+          - 0x230945E0Ed56EF4dE871a6c0695De265DE23D8D8 # mibera_gif
       - name: CandiesMarket1155
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F

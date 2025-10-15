@@ -132,6 +132,15 @@ type Holder {
   chainId: Int!
 }
 
+type TrackedHolder {
+  id: ID!
+  contract: String!
+  collectionKey: String!
+  chainId: Int!
+  address: String!
+  tokenCount: Int!
+}
+
 type CollectionStat {
   id: ID!
   collection: String!

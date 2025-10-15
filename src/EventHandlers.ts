@@ -36,6 +36,7 @@ import {
 // Crayons factory + collections (skeleton)
 import { handleCrayonsFactoryNewBase } from "./handlers/crayons";
 import { handleCrayonsErc721Transfer } from "./handlers/crayons-collections";
+import { handleTrackedErc721Transfer } from "./handlers/tracked-erc721";
 // Import Aquabera direct vault handlers
 import {
   handleDirectDeposit,
@@ -86,6 +87,7 @@ export { handleDirectWithdraw };
 // Crayons handlers
 export { handleCrayonsFactoryNewBase };
 export { handleCrayonsErc721Transfer };
+export { handleTrackedErc721Transfer };
 
 // General mint handlers
 export { handleGeneralMintTransfer };
