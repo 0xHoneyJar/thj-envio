@@ -269,6 +269,17 @@ networks:
       - name: TrackedErc721
         address:
           - 0x6666397DFe9a8c469BF65dc744CB1C733416c420 # mibera holders
+          - 0x4B08a069381EfbB9f08C73D6B2e975C9BE3c4684 # tarot
+          - 0x86Db98cf1b81E833447b12a077ac28c36b75c8E1 # miparcels
+          - 0x8D4972bd5D2df474e71da6676a365fB549853991 # miladies
+          - 0x144B27b1A267eE71989664b3907030Da84cc4754 # mireveal_1_1
+          - 0x72DB992E18a1bf38111B1936DD723E82D0D96313 # mireveal_2_2
+          - 0x3A00301B713be83EC54B7B4Fb0f86397d087E6d3 # mireveal_3_3
+          - 0x419F25C4f9A9c730AAcf58b8401B5b3e566Fe886 # mireveal_4_20
+          - 0x81A27117bd894942BA6737402fB9e57e942C6058 # mireveal_5_5
+          - 0xaaB7b4502251aE393D0590bAB3e208E2d58F4813 # mireveal_6_6
+          - 0xc64126EA8dC7626c16daA2A29D375C33fcaa4C7c # mireveal_7_7
+          - 0x24F4047d372139de8DACbe79e2fC576291Ec3ffc # mireveal_8_8
       # General ERC721 Mint tracking (quest/missions)
       - name: GeneralMints
         address:
