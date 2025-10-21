@@ -3,6 +3,7 @@ import type {
   HandlerContext,
   BadgeHolder as BadgeHolderEntity,
   BadgeBalance as BadgeBalanceEntity,
+  BadgeAmount as BadgeAmountEntity,
 } from "generated";
 
 import { ZERO_ADDRESS } from "./constants";
@@ -19,8 +20,7 @@ interface BalanceAdjustmentArgs {
   chainId: number;
 }
 
-const makeHolderId = (chainId: number, address: string) =>
-  `${chainId}-${address}`;
+const makeHolderId = (address: string) => address;
 
 const makeBalanceId = (
   chainId: number,
@@ -28,6 +28,34 @@ const makeBalanceId = (
   contract: string,
   tokenId: bigint
 ) => `${chainId}-${address}-${contract}-${tokenId.toString()}`;
+
+const makeBadgeAmountId = (address: string, tokenId: bigint) =>
+  `${address}-${tokenId.toString()}`;
+
+const cloneHoldings = (
+  rawHoldings: unknown,
+): Record<string, string> => {
+  if (!rawHoldings || typeof rawHoldings !== "object") {
+    return {};
+  }
+
+  const entries = Object.entries(
+    rawHoldings as Record<string, unknown>,
+  );
+
+  const result: Record<string, string> = {};
+  for (const [key, value] of entries) {
+    if (typeof value === "string") {
+      result[key] = value;
+    } else if (typeof value === "number") {
+      result[key] = Math.trunc(value).toString();
+    } else if (typeof value === "bigint") {
+      result[key] = value.toString();
+    }
+  }
+
+  return result;
+};
 
 async function adjustBadgeBalances({
   context,
@@ -48,13 +76,14 @@ async function adjustBadgeBalances({
   }
 
   const normalizedContract = contractAddress.toLowerCase();
-  const holderId = makeHolderId(chainId, normalizedAddress);
+  const holderId = makeHolderId(normalizedAddress);
   const balanceId = makeBalanceId(
     chainId,
     normalizedAddress,
     normalizedContract,
     tokenId
   );
+  const badgeAmountId = makeBadgeAmountId(holderId, tokenId);
 
   const existingBalance = await context.BadgeBalance.get(balanceId);
   const currentBalance = existingBalance?.amount ?? 0n;
@@ -74,31 +103,28 @@ async function adjustBadgeBalances({
     nextBalance = currentBalance - removeAmount;
   }
 
-  if (nextBalance <= 0n) {
-    if (existingBalance) {
-      context.BadgeBalance.deleteUnsafe(balanceId);
-    }
-  } else {
-    const balance: BadgeBalanceEntity = {
-      id: balanceId,
-      holder_id: holderId,
-      contract: normalizedContract,
-      tokenId,
-      chainId,
-      amount: nextBalance,
-      updatedAt: timestamp,
-    };
-
-    context.BadgeBalance.set(balance);
-  }
-
   if (appliedDelta === 0n) {
     return;
   }
 
+  const tokenKey = tokenId.toString();
   const existingHolder = await context.BadgeHolder.get(holderId);
-  const holderAddressField =
-    existingHolder?.address ?? normalizedAddress;
+  const holderAddressField = existingHolder?.address ?? normalizedAddress;
+  const currentHoldings = cloneHoldings(existingHolder?.holdings);
+  const previousHoldingAmount = BigInt(
+    currentHoldings[tokenKey] ?? "0",
+  );
+  let nextHoldingAmount = previousHoldingAmount + appliedDelta;
+  if (nextHoldingAmount < 0n) {
+    nextHoldingAmount = 0n;
+  }
+
+  if (nextHoldingAmount === 0n) {
+    delete currentHoldings[tokenKey];
+  } else {
+    currentHoldings[tokenKey] = nextHoldingAmount.toString();
+  }
+
   const currentTotal = existingHolder?.totalBadges ?? 0n;
   let nextTotal = currentTotal + appliedDelta;
 
@@ -111,10 +137,47 @@ async function adjustBadgeBalances({
     address: holderAddressField,
     chainId,
     totalBadges: nextTotal,
+    totalAmount: nextTotal,
+    holdings: currentHoldings,
     updatedAt: timestamp,
   };
 
   context.BadgeHolder.set(holder);
+
+  const existingBadgeAmount = await context.BadgeAmount.get(badgeAmountId);
+  if (nextHoldingAmount === 0n) {
+    if (existingBadgeAmount) {
+      context.BadgeAmount.deleteUnsafe(badgeAmountId);
+    }
+  } else {
+    const badgeAmount: BadgeAmountEntity = {
+      id: badgeAmountId,
+      holder_id: holderId,
+      badgeId: tokenKey,
+      amount: nextHoldingAmount,
+      updatedAt: timestamp,
+    };
+    context.BadgeAmount.set(badgeAmount);
+  }
+
+  if (nextBalance <= 0n) {
+    if (existingBalance) {
+      context.BadgeBalance.deleteUnsafe(balanceId);
+    }
+    return;
+  }
+
+  const balance: BadgeBalanceEntity = {
+    id: balanceId,
+    holder_id: holderId,
+    contract: normalizedContract,
+    tokenId,
+    chainId,
+    amount: nextBalance,
+    updatedAt: timestamp,
+  };
+
+  context.BadgeBalance.set(balance);
 }
 
 export const handleCubBadgesTransferSingle =

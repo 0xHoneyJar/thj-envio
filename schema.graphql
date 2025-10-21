@@ -52,8 +52,19 @@ type BadgeHolder {
   address: String!
   chainId: Int!
   totalBadges: BigInt!
+  totalAmount: BigInt!
+  holdings: Json!
   updatedAt: BigInt!
   badgeBalances: [BadgeBalance!]! @derivedFrom(field: "holder")
+  badgesHeld: [BadgeAmount!]! @derivedFrom(field: "holder")
+}
+
+type BadgeAmount {
+  id: ID!
+  holder: BadgeHolder!
+  badgeId: String!
+  amount: BigInt!
+  updatedAt: BigInt!
 }
 
 type BadgeBalance {
