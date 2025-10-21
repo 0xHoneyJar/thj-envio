@@ -7,6 +7,7 @@ import type {
 } from "generated";
 
 import { ZERO_ADDRESS } from "./constants";
+import { recordAction } from "../lib/actions";
 
 const ZERO = ZERO_ADDRESS.toLowerCase();
 
@@ -18,6 +19,10 @@ interface BalanceAdjustmentArgs {
   amountDelta: bigint;
   timestamp: bigint;
   chainId: number;
+  txHash: string;
+  logIndex: number;
+  direction: "in" | "out";
+  batchIndex?: number;
 }
 
 const makeHolderId = (address: string) => address;
@@ -29,8 +34,14 @@ const makeBalanceId = (
   tokenId: bigint
 ) => `${chainId}-${address}-${contract}-${tokenId.toString()}`;
 
-const makeBadgeAmountId = (address: string, tokenId: bigint) =>
-  `${address}-${tokenId.toString()}`;
+const makeBadgeAmountId = (
+  holderId: string,
+  contract: string,
+  tokenId: bigint,
+) => `${holderId}-${contract}-${tokenId.toString()}`;
+
+const makeHoldingsKey = (contract: string, tokenId: bigint): string =>
+  `${contract}-${tokenId.toString()}`;
 
 const cloneHoldings = (
   rawHoldings: unknown,
@@ -65,6 +76,10 @@ async function adjustBadgeBalances({
   amountDelta,
   timestamp,
   chainId,
+  txHash,
+  logIndex,
+  direction,
+  batchIndex,
 }: BalanceAdjustmentArgs): Promise<void> {
   if (amountDelta === 0n) {
     return;
@@ -83,7 +98,12 @@ async function adjustBadgeBalances({
     normalizedContract,
     tokenId
   );
-  const badgeAmountId = makeBadgeAmountId(holderId, tokenId);
+  const badgeAmountId = makeBadgeAmountId(
+    holderId,
+    normalizedContract,
+    tokenId
+  );
+  const legacyBadgeAmountId = `${holderId}-${tokenId.toString()}`;
 
   const existingBalance = await context.BadgeBalance.get(balanceId);
   const currentBalance = existingBalance?.amount ?? 0n;
@@ -107,22 +127,27 @@ async function adjustBadgeBalances({
     return;
   }
 
-  const tokenKey = tokenId.toString();
+  const holdingsKey = makeHoldingsKey(normalizedContract, tokenId);
+  const legacyKey = tokenId.toString();
   const existingHolder = await context.BadgeHolder.get(holderId);
   const holderAddressField = existingHolder?.address ?? normalizedAddress;
   const currentHoldings = cloneHoldings(existingHolder?.holdings);
-  const previousHoldingAmount = BigInt(
-    currentHoldings[tokenKey] ?? "0",
-  );
+  const resolvedHoldingRaw =
+    currentHoldings[holdingsKey] ?? currentHoldings[legacyKey] ?? "0";
+  const previousHoldingAmount = BigInt(resolvedHoldingRaw);
   let nextHoldingAmount = previousHoldingAmount + appliedDelta;
   if (nextHoldingAmount < 0n) {
     nextHoldingAmount = 0n;
   }
 
   if (nextHoldingAmount === 0n) {
-    delete currentHoldings[tokenKey];
+    delete currentHoldings[holdingsKey];
+    delete currentHoldings[legacyKey];
   } else {
-    currentHoldings[tokenKey] = nextHoldingAmount.toString();
+    currentHoldings[holdingsKey] = nextHoldingAmount.toString();
+    if (legacyKey in currentHoldings && legacyKey !== holdingsKey) {
+      delete currentHoldings[legacyKey];
+    }
   }
 
   const currentTotal = existingHolder?.totalBadges ?? 0n;
@@ -131,6 +156,34 @@ async function adjustBadgeBalances({
   if (nextTotal < 0n) {
     nextTotal = 0n;
   }
+
+  const actionSuffixParts = [
+    direction,
+    tokenId.toString(),
+    batchIndex !== undefined ? batchIndex.toString() : undefined,
+  ].filter((part): part is string => part !== undefined);
+  const actionId = `${txHash}_${logIndex}_${actionSuffixParts.join("_")}`;
+  const tokenCount = nextHoldingAmount < 0n ? 0n : nextHoldingAmount;
+
+  recordAction(context, {
+    id: actionId,
+    actionType: "hold1155",
+    actor: normalizedAddress,
+    primaryCollection: normalizedContract,
+    timestamp,
+    chainId,
+    txHash,
+    logIndex,
+    numeric1: tokenCount,
+    context: {
+      contract: normalizedContract,
+      tokenId: tokenId.toString(),
+      amount: tokenCount.toString(),
+      direction,
+      holdingsKey,
+      batchIndex,
+    },
+  });
 
   const holder: BadgeHolderEntity = {
     id: holderId,
@@ -144,20 +197,38 @@ async function adjustBadgeBalances({
 
   context.BadgeHolder.set(holder);
 
-  const existingBadgeAmount = await context.BadgeAmount.get(badgeAmountId);
+  const existingBadgeAmount =
+    (await context.BadgeAmount.get(badgeAmountId)) ??
+    (await context.BadgeAmount.get(legacyBadgeAmountId));
   if (nextHoldingAmount === 0n) {
     if (existingBadgeAmount) {
-      context.BadgeAmount.deleteUnsafe(badgeAmountId);
+      context.BadgeAmount.deleteUnsafe(existingBadgeAmount.id);
+    }
+    if (
+      legacyBadgeAmountId !== existingBadgeAmount?.id &&
+      legacyBadgeAmountId !== badgeAmountId
+    ) {
+      const legacyRecord = await context.BadgeAmount.get(legacyBadgeAmountId);
+      if (legacyRecord) {
+        context.BadgeAmount.deleteUnsafe(legacyBadgeAmountId);
+      }
     }
   } else {
     const badgeAmount: BadgeAmountEntity = {
       id: badgeAmountId,
       holder_id: holderId,
-      badgeId: tokenKey,
+      badgeId: holdingsKey,
       amount: nextHoldingAmount,
       updatedAt: timestamp,
     };
     context.BadgeAmount.set(badgeAmount);
+
+    if (legacyBadgeAmountId !== badgeAmountId) {
+      const legacyRecord = await context.BadgeAmount.get(legacyBadgeAmountId);
+      if (legacyRecord) {
+        context.BadgeAmount.deleteUnsafe(legacyBadgeAmountId);
+      }
+    }
   }
 
   if (nextBalance <= 0n) {
@@ -188,6 +259,8 @@ export const handleCubBadgesTransferSingle =
     const contractAddress = event.srcAddress.toLowerCase();
     const tokenId = BigInt(id.toString());
     const quantity = BigInt(value.toString());
+    const txHash = event.transaction.hash;
+    const logIndex = Number(event.logIndex);
 
     if (quantity === 0n) {
       return;
@@ -201,6 +274,9 @@ export const handleCubBadgesTransferSingle =
       amountDelta: -quantity,
       timestamp,
       chainId,
+      txHash,
+      logIndex,
+      direction: "out",
     });
 
     await adjustBadgeBalances({
@@ -211,6 +287,9 @@ export const handleCubBadgesTransferSingle =
       amountDelta: quantity,
       timestamp,
       chainId,
+      txHash,
+      logIndex,
+      direction: "in",
     });
   });
 
@@ -220,6 +299,8 @@ export const handleCubBadgesTransferBatch =
     const chainId = event.chainId;
     const timestamp = BigInt(event.block.timestamp);
     const contractAddress = event.srcAddress.toLowerCase();
+    const txHash = event.transaction.hash;
+    const baseLogIndex = Number(event.logIndex);
 
     const idsArray = Array.from(ids);
     const valuesArray = Array.from(values);
@@ -248,6 +329,10 @@ export const handleCubBadgesTransferBatch =
         amountDelta: -quantity,
         timestamp,
         chainId,
+        txHash,
+        logIndex: baseLogIndex,
+        direction: "out",
+        batchIndex: index,
       });
 
       await adjustBadgeBalances({
@@ -258,6 +343,10 @@ export const handleCubBadgesTransferBatch =
         amountDelta: quantity,
         timestamp,
         chainId,
+        txHash,
+        logIndex: baseLogIndex,
+        direction: "in",
+        batchIndex: index,
       });
     }
   });
