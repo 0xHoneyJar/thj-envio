@@ -145,6 +145,19 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  - name: CubBadges1155
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
+            - from
+      - event: TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)
+        field_selection:
+          transaction_fields:
+            - hash
+            - from
   - name: FatBera
     handler: src/EventHandlers.ts
     events:
@@ -289,6 +302,9 @@ networks:
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F
           - 0xeca03517c5195f1edd634da6d690d6c72407c40c
+      - name: CubBadges1155
+        address:
+          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be
       - name: FatBera
         address:
           - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4

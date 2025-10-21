@@ -50,6 +50,10 @@ import {
 } from "./handlers/mints1155";
 import { handleFatBeraDeposit } from "./handlers/fatbera";
 import { handleBgtQueueBoost } from "./handlers/bgt";
+import {
+  handleCubBadgesTransferSingle,
+  handleCubBadgesTransferBatch,
+} from "./handlers/badges1155";
 
 /*
  * Export all handlers for Envio to register
@@ -95,3 +99,5 @@ export { handleCandiesMintSingle };
 export { handleCandiesMintBatch };
 export { handleFatBeraDeposit };
 export { handleBgtQueueBoost };
+export { handleCubBadgesTransferSingle };
+export { handleCubBadgesTransferBatch };

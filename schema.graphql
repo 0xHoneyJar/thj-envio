@@ -47,6 +47,25 @@ type Erc1155MintEvent {
   chainId: Int!
 }
 
+type BadgeHolder {
+  id: ID!
+  address: String!
+  chainId: Int!
+  totalBadges: BigInt!
+  updatedAt: BigInt!
+  badgeBalances: [BadgeBalance!]! @derivedFrom(field: "holder")
+}
+
+type BadgeBalance {
+  id: ID!
+  holder: BadgeHolder!
+  contract: String!
+  tokenId: BigInt!
+  chainId: Int!
+  amount: BigInt!
+  updatedAt: BigInt!
+}
+
 type FatBeraDeposit {
   id: ID!
   collectionKey: String!
