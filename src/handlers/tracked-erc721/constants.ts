@@ -1,6 +1,6 @@
 export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
   "0x6666397dfe9a8c469bf65dc744cb1c733416c420": "mibera",
-  "0x4b08a069381efbb9f08c73d6b2e975c9be3c4684": "tarot",
+  "0x4b08a069381efbb9f08c73d6b2e975c9be3c4684": "mibera_tarot",
   "0x86db98cf1b81e833447b12a077ac28c36b75c8e1": "miparcels",
   "0x8d4972bd5d2df474e71da6676a365fb549853991": "miladies",
   "0x144b27b1a267ee71989664b3907030da84cc4754": "mireveal_1_1",

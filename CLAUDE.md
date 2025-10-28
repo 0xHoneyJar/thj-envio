@@ -275,6 +275,59 @@ field_selection:
 ### Issue: Entity not found after creation
 **Solution**: Ensure IDs are consistent and use string type
 
+## 📊 Indexed Action Field Semantics
+
+### numeric1 (Primary Quantity)
+
+Maps to the primary quantity/amount for each action type:
+
+| Action Type | numeric1 Meaning | Example |
+|-------------|------------------|---------|
+| mint | Always 1 (ERC721) | 1n |
+| mint1155 | Quantity minted | 3n (minted 3 tokens) |
+| swap | Input token amount | 1000000n |
+| deposit | Deposited amount | 500000n |
+| burn | Burned amount | 100n |
+| stake | Staked amount | 250n |
+| delegate | Delegated amount | 1000000000000000000n (1 BGT) |
+
+### numeric2 (Secondary Metric)
+
+Optional secondary value (less commonly used):
+
+| Action Type | numeric2 Meaning | Example |
+|-------------|------------------|---------|
+| swap | Output amount | 2000000n |
+| deposit | USD value | 15000n (cents) |
+
+### Quest Integration
+
+CubQuests verification goals reference these fields:
+
+```typescript
+// Count separate transactions
+goal: {
+  type: "event_count",
+  minimum: 3,
+}
+
+// Sum total quantity minted (numeric1)
+goal: {
+  type: "quantity_sum",
+  field: "numeric1",
+  minimum: 3,
+}
+
+// Sum total amount burned (numeric1, large wei values)
+goal: {
+  type: "quantity_sum",
+  field: "numeric1",
+  minimum: 50000000000000000000000,  // 10000 HENLO
+}
+```
+
+**Always use consistent field semantics across handlers** to ensure quest verification works correctly.
+
 ## 📈 THJ-Specific Patterns
 
 ### Burn Source Tracking
