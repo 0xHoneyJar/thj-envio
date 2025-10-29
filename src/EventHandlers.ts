@@ -55,6 +55,19 @@ import {
   handleCubBadgesTransferBatch,
 } from "./handlers/badges1155";
 
+// Trading system handlers
+// TODO: Fix TypeScript errors in trade handlers before uncommenting
+// import {
+//   handleMiberaTradeProposed,
+//   handleMiberaTradeAccepted,
+//   handleMiberaTradeCancelled,
+// } from "./handlers/mibera-trades";
+// import {
+//   handleCandiesTradeProposed,
+//   handleCandiesTradeAccepted,
+//   handleCandiesTradeCancelled,
+// } from "./handlers/cargo-trades";
+
 /*
  * Export all handlers for Envio to register
  *
@@ -101,3 +114,12 @@ export { handleFatBeraDeposit };
 export { handleBgtQueueBoost };
 export { handleCubBadgesTransferSingle };
 export { handleCubBadgesTransferBatch };
+
+// Trading system handlers
+// TODO: Fix TypeScript errors in trade handlers before uncommenting
+// export { handleMiberaTradeProposed };
+// export { handleMiberaTradeAccepted };
+// export { handleMiberaTradeCancelled };
+// export { handleCandiesTradeProposed };
+// export { handleCandiesTradeAccepted };
+// export { handleCandiesTradeCancelled };

@@ -166,11 +166,12 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     };
     context.AquaberaStats.set(updatedChainStats);
 
-    context.log.info(
-      `Aquabera deposit: ${assets} BERA from ${depositor}${
-        isWallContribution ? " (WALL CONTRIBUTION)" : ""
-      } for ${shares} shares`
-    );
+    // Removed verbose logging - uncomment for debugging if needed
+    // context.log.info(
+    //   `Aquabera deposit: ${assets} BERA from ${depositor}${
+    //     isWallContribution ? " (WALL CONTRIBUTION)" : ""
+    //   } for ${shares} shares`
+    // );
 
     recordAction(context, {
       id: depositId,

@@ -413,3 +413,59 @@ type AquaberaStats {
   lastUpdateTime: BigInt!
   chainId: Int
 }
+
+# ============================================================================
+# TRADING SYSTEM
+# ============================================================================
+
+# Mibera NFT Trade (ERC-721 trades)
+type MiberaTrade {
+  id: ID!  # tx_hash_logIndex for proposals, tx_hash_offeredTokenId for accept/cancel
+  offeredTokenId: BigInt!
+  requestedTokenId: BigInt!
+  proposer: String!
+  acceptor: String  # Null until accepted
+  status: String!  # 'active', 'completed', 'cancelled', 'expired'
+  proposedAt: BigInt!
+  completedAt: BigInt  # Null until completed or cancelled
+  expiresAt: BigInt!  # proposedAt + 15 minutes
+  txHash: String!
+  blockNumber: BigInt!
+  chainId: Int!
+}
+
+# Cargo/Candies Trade (ERC-1155 trades)
+type CandiesTrade {
+  id: ID!  # tx_hash_logIndex
+  tradeId: BigInt!  # Sequential ID from smart contract
+  offeredTokenId: BigInt!
+  offeredAmount: BigInt!
+  requestedTokenId: BigInt!
+  requestedAmount: BigInt!
+  proposer: String!
+  requestedFrom: String!  # Target user for this trade
+  acceptor: String  # Null until accepted
+  status: String!  # 'active', 'completed', 'cancelled', 'expired'
+  proposedAt: BigInt!
+  completedAt: BigInt  # Null until completed or cancelled
+  expiresAt: BigInt!  # proposedAt + 15 minutes
+  txHash: String!
+  blockNumber: BigInt!
+  chainId: Int!
+}
+
+# Trade statistics
+type TradeStats {
+  id: ID!  # "global" for all-time stats
+  totalMiberaTrades: Int!
+  completedMiberaTrades: Int!
+  cancelledMiberaTrades: Int!
+  expiredMiberaTrades: Int!
+  totalCandiesTrades: Int!
+  completedCandiesTrades: Int!
+  cancelledCandiesTrades: Int!
+  expiredCandiesTrades: Int!
+  uniqueTraders: Int!  # Count of unique addresses that have traded
+  lastTradeTime: BigInt
+  chainId: Int
+}

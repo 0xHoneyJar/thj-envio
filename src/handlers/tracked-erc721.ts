@@ -14,10 +14,31 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
       TRACKED_ERC721_COLLECTION_KEYS[contractAddress] ?? contractAddress;
     const from = event.params.from.toLowerCase();
     const to = event.params.to.toLowerCase();
+    const tokenId = event.params.tokenId;
     const chainId = event.chainId;
     const txHash = event.transaction.hash;
     const logIndex = Number(event.logIndex);
     const timestamp = BigInt(event.block.timestamp);
+
+    // If this is a mint (from zero address), also create a mint action
+    if (from === ZERO) {
+      const mintActionId = `${txHash}_${logIndex}`;
+      recordAction(context, {
+        id: mintActionId,
+        actionType: "mint",
+        actor: to,
+        primaryCollection: collectionKey.toLowerCase(),
+        timestamp,
+        chainId,
+        txHash,
+        logIndex,
+        numeric1: 1n,
+        context: {
+          tokenId: tokenId.toString(),
+          contract: contractAddress,
+        },
+      });
+    }
 
     await adjustHolder({
       context,

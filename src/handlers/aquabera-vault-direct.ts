@@ -35,9 +35,7 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     // The forwarder already emits DepositForwarded which we track separately
     const FORWARDER_ADDRESS = "0xc0c6d4178410849ec9765b4267a73f4f64241832";
     if (sender === FORWARDER_ADDRESS) {
-      context.log.info(
-        `⏭️ Skipping deposit from forwarder (already tracked via DepositForwarded event)`
-      );
+      // Silently skip - no logging needed
       return; // Don't double-count forwarder deposits
     }
     
@@ -55,17 +53,17 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
       recipient === WALL_CONTRACT_ADDRESS ||
       (txFrom !== null && txFrom === WALL_CONTRACT_ADDRESS);
 
-    // Logging for debugging
-    context.log.info(
-      `📊 Direct Deposit Event:
-      - Sender: ${sender}
-      - To: ${recipient}
-      - Shares (LP tokens): ${lpTokensReceived}
-      - Amount0 (WBERA): ${wberaAmount} wei = ${wberaAmount / BigInt(10**18)} WBERA
-      - Amount1 (HENLO): ${henloAmount} wei
-      - TX From: ${txFrom || 'N/A'}
-      - Is Wall: ${isWallContribution}`
-    );
+    // Verbose logging removed - uncomment for debugging if needed
+    // context.log.info(
+    //   `📊 Direct Deposit Event:
+    //   - Sender: ${sender}
+    //   - To: ${recipient}
+    //   - Shares (LP tokens): ${lpTokensReceived}
+    //   - Amount0 (WBERA): ${wberaAmount} wei = ${wberaAmount / BigInt(10**18)} WBERA
+    //   - Amount1 (HENLO): ${henloAmount} wei
+    //   - TX From: ${txFrom || 'N/A'}
+    //   - Is Wall: ${isWallContribution}`
+    // );
 
     // Create deposit record with WBERA amount
     const id = `${event.transaction.hash}_${event.logIndex}`;
@@ -157,9 +155,10 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     };
     context.AquaberaStats.set(updatedStats);
 
-    context.log.info(
-      `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
-    );
+    // Verbose logging removed - uncomment for debugging if needed
+    // context.log.info(
+    //   `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
+    // );
 
     recordAction(context, {
       id,
@@ -200,9 +199,7 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     // Skip if this withdrawal came from the forwarder contract
     const FORWARDER_ADDRESS = "0xc0c6d4178410849ec9765b4267a73f4f64241832";
     if (sender === FORWARDER_ADDRESS) {
-      context.log.info(
-        `⏭️ Skipping withdrawal from forwarder (would be tracked via forwarder events if implemented)`
-      );
+      // Silently skip - no logging needed
       return;
     }
     
@@ -212,9 +209,10 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     const wberaReceived = event.params.amount0; // WBERA withdrawn (token0)
     const henloReceived = event.params.amount1; // HENLO withdrawn (token1)
 
-    context.log.info(
-      `Withdraw: ${wberaReceived} WBERA for ${lpTokensBurned} LP tokens to ${recipient}`
-    );
+    // Verbose logging removed - uncomment for debugging if needed
+    // context.log.info(
+    //   `Withdraw: ${wberaReceived} WBERA for ${lpTokensBurned} LP tokens to ${recipient}`
+    // );
 
     // Create withdrawal record with WBERA amount
     const id = `${event.transaction.hash}_${event.logIndex}`;
@@ -270,10 +268,11 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
         lastUpdateTime: timestamp,
       };
       context.AquaberaStats.set(updatedStats);
-      
-      context.log.info(
-        `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
-      );
+
+      // Verbose logging removed - uncomment for debugging if needed
+      // context.log.info(
+      //   `Updated stats - Total WBERA: ${updatedStats.totalBera}, Total LP: ${updatedStats.totalShares}`
+      // );
     }
 
     recordAction(context, {

@@ -158,6 +158,39 @@ contracts:
           transaction_fields:
             - hash
             - from
+  # MiberaTrade - ERC721 NFT trading contract
+  # MiberaTrade - Commented out until handlers are implemented
+  # - name: MiberaTrade
+  #   handler: src/EventHandlers.ts
+  #   events:
+  #     - event: TradeProposed(address indexed proposer, uint256 indexed offeredTokenId, uint256 indexed requestedTokenId, uint256 timestamp)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
+  #     - event: TradeAccepted(address indexed acceptor, uint256 indexed offeredTokenId, uint256 indexed requestedTokenId, address originalProposer)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
+  #     - event: TradeCancelled(address indexed canceller, uint256 indexed offeredTokenId, uint256 indexed requestedTokenId)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
+  # CandiesTrade - ERC1155 Cargo/Drug trading contract - Commented out until handlers are implemented
+  # - name: CandiesTrade
+  #   handler: src/EventHandlers.ts
+  #   events:
+  #     - event: TradeProposed(address indexed proposer, uint256 indexed tradeId, uint256 offeredTokenId, uint256 offeredAmount, uint256 requestedTokenId, uint256 requestedAmount, address indexed requestedFrom, uint256 timestamp)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
+  #     - event: TradeAccepted(address indexed acceptor, uint256 indexed tradeId, uint256 offeredTokenId, uint256 offeredAmount, uint256 requestedTokenId, uint256 requestedAmount, address originalProposer)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
+  #     - event: TradeCancelled(address indexed canceller, uint256 indexed tradeId, uint256 offeredTokenId, uint256 offeredAmount, uint256 requestedTokenId, uint256 requestedAmount)
+  #       field_selection:
+  #         transaction_fields:
+  #           - hash
   - name: FatBera
     handler: src/EventHandlers.ts
     events:
@@ -298,11 +331,19 @@ networks:
         address:
           - 0x048327A187b944ddac61c6e202BfccD20d17c008
           - 0x230945E0Ed56EF4dE871a6c0695De265DE23D8D8 # mibera_gif
-          - 0x4B08a069381EfbB9f08C73D6B2e975C9BE3c4684 # mibera_tarot
+          # NOTE: mibera_tarot handled by TrackedErc721 (which now creates mint actions too)
       - name: CandiesMarket1155
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F
           - 0xeca03517c5195f1edd634da6d690d6c72407c40c
+      # MiberaTrade and CandiesTrade contracts commented out until handlers are implemented
+      # - name: MiberaTrade
+      #   address:
+      #     - 0x90485B61C9dA51A3c79fca1277899d9CD5D350c2 # NFT trading contract
+      # - name: CandiesTrade
+      #   address: []
+      #     # TODO: Add address after deployment
+      #     # Contract will be deployed from /mibera-contracts/honey-road
       - name: CubBadges1155
         address:
           - 0x574617ab9788e614b3eb3f7bd61334720d9e1aac # Cub Universal Badges (mainnet)
