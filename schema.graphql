@@ -47,6 +47,16 @@ type Erc1155MintEvent {
   chainId: Int!
 }
 
+type CandiesInventory {
+  id: ID!  # contract_tokenId (e.g., "0x80283fbf2b8e50f6ddf9bfc4a90a8336bc90e38f_1")
+  contract: String!
+  tokenId: BigInt!
+  currentSupply: BigInt!  # Cumulative mints
+  mintCount: Int!  # Number of mint transactions
+  lastMintTime: BigInt
+  chainId: Int!
+}
+
 type BadgeHolder {
   id: ID!
   address: String!

@@ -2,7 +2,7 @@
  * ERC1155 mint tracking for Candies Market collections.
  */
 
-import { CandiesMarket1155, Erc1155MintEvent } from "generated";
+import { CandiesMarket1155, Erc1155MintEvent, CandiesInventory } from "generated";
 
 import { ZERO_ADDRESS } from "./constants";
 import { MINT_COLLECTION_KEYS } from "./mints/constants";
@@ -48,6 +48,24 @@ export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
     };
 
     context.Erc1155MintEvent.set(mintEvent);
+
+    // Update CandiesInventory tracking
+    const inventoryId = `${contractAddress}_${tokenId}`;
+    const existingInventory = await context.CandiesInventory.get(inventoryId);
+
+    const inventoryUpdate: CandiesInventory = {
+      id: inventoryId,
+      contract: contractAddress,
+      tokenId,
+      currentSupply: existingInventory
+        ? existingInventory.currentSupply + quantity
+        : quantity,
+      mintCount: existingInventory ? existingInventory.mintCount + 1 : 1,
+      lastMintTime: timestamp,
+      chainId,
+    };
+
+    context.CandiesInventory.set(inventoryUpdate);
 
     recordAction(context, {
       id: mintId,
@@ -119,6 +137,24 @@ export const handleCandiesMintBatch = CandiesMarket1155.TransferBatch.handler(
       };
 
       context.Erc1155MintEvent.set(mintEvent);
+
+      // Update CandiesInventory tracking
+      const inventoryId = `${contractAddress}_${tokenId}`;
+      const existingInventory = await context.CandiesInventory.get(inventoryId);
+
+      const inventoryUpdate: CandiesInventory = {
+        id: inventoryId,
+        contract: contractAddress,
+        tokenId,
+        currentSupply: existingInventory
+          ? existingInventory.currentSupply + quantity
+          : quantity,
+        mintCount: existingInventory ? existingInventory.mintCount + 1 : 1,
+        lastMintTime: timestamp,
+        chainId,
+      };
+
+      context.CandiesInventory.set(inventoryUpdate);
 
       recordAction(context, {
         id: mintId,
