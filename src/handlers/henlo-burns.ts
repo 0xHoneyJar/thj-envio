@@ -108,8 +108,13 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
     // Handle burn tracking (only for burns)
     const isZeroAddress = toLower === zeroAddress;
     const isDeadAddress = toLower === deadAddress;
-    
-  if (isZeroAddress || isDeadAddress) {
+
+    // Early return for non-burn transfers to skip expensive burn tracking
+    if (!isZeroAddress && !isDeadAddress) {
+      return;
+    }
+
+    // Burn tracking logic (only executes for actual burns)
       // Determine burn source by checking both token holder and calling contract
       const sourceMatchAddress =
         (fromLower && HENLO_BURN_SOURCES[fromLower] ? fromLower : undefined) ??
@@ -163,7 +168,17 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
       });
 
       // Track unique burners at global, chain, and source scope
-      const existingBurner = await context.HenloBurner.get(burnerId);
+      // Use Promise.all to batch burner lookups
+      const extendedContext = context as any;
+      const chainBurnerId = `${chainId}_${burnerId}`;
+      const sourceBurnerId = `${chainId}_${source}_${burnerId}`;
+
+      const [existingBurner, existingChainBurner, existingSourceBurner] = await Promise.all([
+        context.HenloBurner.get(burnerId),
+        extendedContext?.HenloChainBurner?.get(chainBurnerId),
+        extendedContext?.HenloSourceBurner?.get(sourceBurnerId),
+      ]);
+
       const isNewGlobalBurner = !existingBurner;
       if (isNewGlobalBurner) {
         const burner = {
@@ -175,41 +190,29 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
         context.HenloBurner.set(burner);
       }
 
-      const extendedContext = context as any;
-
-      const chainBurnerId = `${chainId}_${burnerId}`;
       const chainBurnerStore = extendedContext?.HenloChainBurner;
-      let isNewChainBurner = false;
-      if (chainBurnerStore) {
-        const existingChainBurner = await chainBurnerStore.get(chainBurnerId);
-        isNewChainBurner = !existingChainBurner;
-        if (isNewChainBurner) {
-          const chainBurner = {
-            id: chainBurnerId,
-            chainId,
-            address: burnerAddress,
-            firstBurnTime: timestamp,
-          };
-          chainBurnerStore.set(chainBurner);
-        }
+      const isNewChainBurner = !existingChainBurner;
+      if (isNewChainBurner && chainBurnerStore) {
+        const chainBurner = {
+          id: chainBurnerId,
+          chainId,
+          address: burnerAddress,
+          firstBurnTime: timestamp,
+        };
+        chainBurnerStore.set(chainBurner);
       }
 
-      const sourceBurnerId = `${chainId}_${source}_${burnerId}`;
       const sourceBurnerStore = extendedContext?.HenloSourceBurner;
-      let isNewSourceBurner = false;
-      if (sourceBurnerStore) {
-        const existingSourceBurner = await sourceBurnerStore.get(sourceBurnerId);
-        isNewSourceBurner = !existingSourceBurner;
-        if (isNewSourceBurner) {
-          const sourceBurner = {
-            id: sourceBurnerId,
-            chainId,
-            source,
-            address: burnerAddress,
-            firstBurnTime: timestamp,
-          };
-          sourceBurnerStore.set(sourceBurner);
-        }
+      const isNewSourceBurner = !existingSourceBurner;
+      if (isNewSourceBurner && sourceBurnerStore) {
+        const sourceBurner = {
+          id: sourceBurnerId,
+          chainId,
+          source,
+          address: burnerAddress,
+          firstBurnTime: timestamp,
+        };
+        sourceBurnerStore.set(sourceBurner);
       }
 
       if (isNewGlobalBurner || (isNewSourceBurner && source === "incinerator")) {
@@ -262,7 +265,6 @@ export const handleHenloBurn = HenloToken.Transfer.handler(
 
       // Update global burn stats
       await updateGlobalBurnStats(context, chainId, source, value, timestamp);
-    }
   }
 );
 
@@ -278,64 +280,57 @@ async function updateChainBurnStats(
   sourceUniqueIncrement: number,
   totalUniqueIncrement: number
 ) {
-  // Update source-specific stats
+  // Use Promise.all to batch stat queries
   const statsId = `${chainId}_${source}`;
-  let stats = (await context.HenloBurnStats.get(statsId)) as
-    | ExtendedHenloBurnStats
-    | undefined;
-
-  if (!stats) {
-    stats = {
-      id: statsId,
-      chainId,
-      source,
-      totalBurned: BigInt(0),
-      burnCount: 0,
-      uniqueBurners: 0,
-      lastBurnTime: timestamp,
-      firstBurnTime: timestamp,
-    } as ExtendedHenloBurnStats;
-  }
-
-  // Create updated stats object (immutable update)
-  const updatedStats: ExtendedHenloBurnStats = {
-    ...stats,
-    totalBurned: stats.totalBurned + amount,
-    burnCount: stats.burnCount + 1,
-    uniqueBurners: (stats.uniqueBurners ?? 0) + sourceUniqueIncrement,
-    lastBurnTime: timestamp,
-  };
-
-  context.HenloBurnStats.set(updatedStats as HenloBurnStats);
-
-  // Update total stats for this chain
   const totalStatsId = `${chainId}_total`;
-  let totalStats = (await context.HenloBurnStats.get(totalStatsId)) as
-    | ExtendedHenloBurnStats
-    | undefined;
 
-  if (!totalStats) {
-    totalStats = {
-      id: totalStatsId,
-      chainId,
-      source: "total",
-      totalBurned: BigInt(0),
-      burnCount: 0,
-      uniqueBurners: 0,
-      lastBurnTime: timestamp,
-      firstBurnTime: timestamp,
-    } as ExtendedHenloBurnStats;
-  }
+  const [stats, totalStats] = await Promise.all([
+    context.HenloBurnStats.get(statsId) as Promise<ExtendedHenloBurnStats | undefined>,
+    context.HenloBurnStats.get(totalStatsId) as Promise<ExtendedHenloBurnStats | undefined>,
+  ]);
 
-  // Create updated total stats object (immutable update)
-  const updatedTotalStats: ExtendedHenloBurnStats = {
-    ...totalStats,
-    totalBurned: totalStats.totalBurned + amount,
-    burnCount: totalStats.burnCount + 1,
-    uniqueBurners: (totalStats.uniqueBurners ?? 0) + totalUniqueIncrement,
+  // Create or update source-specific stats
+  const statsToUpdate = stats || {
+    id: statsId,
+    chainId,
+    source,
+    totalBurned: BigInt(0),
+    burnCount: 0,
+    uniqueBurners: 0,
+    lastBurnTime: timestamp,
+    firstBurnTime: timestamp,
+  } as ExtendedHenloBurnStats;
+
+  const updatedStats: ExtendedHenloBurnStats = {
+    ...statsToUpdate,
+    totalBurned: statsToUpdate.totalBurned + amount,
+    burnCount: statsToUpdate.burnCount + 1,
+    uniqueBurners: (statsToUpdate.uniqueBurners ?? 0) + sourceUniqueIncrement,
     lastBurnTime: timestamp,
   };
 
+  // Create or update total stats
+  const totalStatsToUpdate = totalStats || {
+    id: totalStatsId,
+    chainId,
+    source: "total",
+    totalBurned: BigInt(0),
+    burnCount: 0,
+    uniqueBurners: 0,
+    lastBurnTime: timestamp,
+    firstBurnTime: timestamp,
+  } as ExtendedHenloBurnStats;
+
+  const updatedTotalStats: ExtendedHenloBurnStats = {
+    ...totalStatsToUpdate,
+    totalBurned: totalStatsToUpdate.totalBurned + amount,
+    burnCount: totalStatsToUpdate.burnCount + 1,
+    uniqueBurners: (totalStatsToUpdate.uniqueBurners ?? 0) + totalUniqueIncrement,
+    lastBurnTime: timestamp,
+  };
+
+  // Set both stats
+  context.HenloBurnStats.set(updatedStats as HenloBurnStats);
   context.HenloBurnStats.set(updatedTotalStats as HenloBurnStats);
 }
 

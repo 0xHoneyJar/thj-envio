@@ -49,119 +49,112 @@ export const handleAquaberaDeposit = AquaberaVault.DepositForwarded.handler(
     };
     context.AquaberaDeposit.set(deposit);
 
-    // Update builder stats
+    // Batch all entity queries for parallel execution
     const builderId = depositor;
-    let builder = await context.AquaberaBuilder.get(builderId);
+    const statsId = "global";
+    const chainStatsId = `${BERACHAIN_ID}`;
 
-    if (!builder) {
-      // New builder
-      builder = {
-        id: builderId,
-        address: depositor,
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        netDeposited: BigInt(0),
-        currentShares: BigInt(0),
-        depositCount: 0,
-        withdrawalCount: 0,
-        firstDepositTime: timestamp,
-        lastActivityTime: timestamp,
-        isWallContract: isWallContribution,
-        chainId: BERACHAIN_ID,
-      };
-    }
+    const [builder, stats, chainStats] = await Promise.all([
+      context.AquaberaBuilder.get(builderId),
+      context.AquaberaStats.get(statsId),
+      context.AquaberaStats.get(chainStatsId),
+    ]);
+
+    // Prepare builder (create if doesn't exist)
+    const builderToUpdate = builder || {
+      id: builderId,
+      address: depositor,
+      totalDeposited: BigInt(0),
+      totalWithdrawn: BigInt(0),
+      netDeposited: BigInt(0),
+      currentShares: BigInt(0),
+      depositCount: 0,
+      withdrawalCount: 0,
+      firstDepositTime: timestamp,
+      lastActivityTime: timestamp,
+      isWallContract: isWallContribution,
+      chainId: BERACHAIN_ID,
+    };
 
     // Update builder stats with immutable pattern
     const updatedBuilder = {
-      ...builder,
-      totalDeposited: builder.totalDeposited + assets,
-      netDeposited: builder.netDeposited + assets,
-      currentShares: builder.currentShares + shares,
-      depositCount: builder.depositCount + 1,
+      ...builderToUpdate,
+      totalDeposited: builderToUpdate.totalDeposited + assets,
+      netDeposited: builderToUpdate.netDeposited + assets,
+      currentShares: builderToUpdate.currentShares + shares,
+      depositCount: builderToUpdate.depositCount + 1,
       lastActivityTime: timestamp,
     };
     context.AquaberaBuilder.set(updatedBuilder);
 
-    // Update global stats
-    const statsId = "global";
-    let stats = await context.AquaberaStats.get(statsId);
-
-    if (!stats) {
-      // Initialize stats
-      stats = {
-        id: statsId,
-        totalBera: BigInt(0),
-        totalShares: BigInt(0),
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        uniqueBuilders: 0,
-        depositCount: 0,
-        withdrawalCount: 0,
-        wallContributions: BigInt(0),
-        wallDepositCount: 0,
-        lastUpdateTime: timestamp,
-        chainId: BERACHAIN_ID,
-      };
-    }
+    // Prepare global stats (create if doesn't exist)
+    const statsToUpdate = stats || {
+      id: statsId,
+      totalBera: BigInt(0),
+      totalShares: BigInt(0),
+      totalDeposited: BigInt(0),
+      totalWithdrawn: BigInt(0),
+      uniqueBuilders: 0,
+      depositCount: 0,
+      withdrawalCount: 0,
+      wallContributions: BigInt(0),
+      wallDepositCount: 0,
+      lastUpdateTime: timestamp,
+      chainId: BERACHAIN_ID,
+    };
 
     // Calculate unique builders increment
     const uniqueBuildersIncrement =
       !builder || builder.depositCount === 0 ? 1 : 0;
 
-    // Update stats with immutable pattern
+    // Update global stats with immutable pattern
     const updatedStats = {
-      ...stats,
-      totalBera: stats.totalBera + assets,
-      totalShares: stats.totalShares + shares,
-      totalDeposited: stats.totalDeposited + assets,
-      uniqueBuilders: stats.uniqueBuilders + uniqueBuildersIncrement,
-      depositCount: stats.depositCount + 1,
+      ...statsToUpdate,
+      totalBera: statsToUpdate.totalBera + assets,
+      totalShares: statsToUpdate.totalShares + shares,
+      totalDeposited: statsToUpdate.totalDeposited + assets,
+      uniqueBuilders: statsToUpdate.uniqueBuilders + uniqueBuildersIncrement,
+      depositCount: statsToUpdate.depositCount + 1,
       wallContributions: isWallContribution
-        ? stats.wallContributions + assets
-        : stats.wallContributions,
+        ? statsToUpdate.wallContributions + assets
+        : statsToUpdate.wallContributions,
       wallDepositCount: isWallContribution
-        ? stats.wallDepositCount + 1
-        : stats.wallDepositCount,
+        ? statsToUpdate.wallDepositCount + 1
+        : statsToUpdate.wallDepositCount,
       lastUpdateTime: timestamp,
     };
     context.AquaberaStats.set(updatedStats);
 
-    // Also update chain-specific stats
-    const chainStatsId = `${BERACHAIN_ID}`;
-    let chainStats = await context.AquaberaStats.get(chainStatsId);
-
-    if (!chainStats) {
-      // Initialize chain stats
-      chainStats = {
-        id: chainStatsId,
-        totalBera: BigInt(0),
-        totalShares: BigInt(0),
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        uniqueBuilders: 0,
-        depositCount: 0,
-        withdrawalCount: 0,
-        wallContributions: BigInt(0),
-        wallDepositCount: 0,
-        lastUpdateTime: timestamp,
-        chainId: BERACHAIN_ID,
-      };
-    }
+    // Prepare chain stats (create if doesn't exist)
+    const chainStatsToUpdate = chainStats || {
+      id: chainStatsId,
+      totalBera: BigInt(0),
+      totalShares: BigInt(0),
+      totalDeposited: BigInt(0),
+      totalWithdrawn: BigInt(0),
+      uniqueBuilders: 0,
+      depositCount: 0,
+      withdrawalCount: 0,
+      wallContributions: BigInt(0),
+      wallDepositCount: 0,
+      lastUpdateTime: timestamp,
+      chainId: BERACHAIN_ID,
+    };
 
     // Update chain stats with immutable pattern
     const updatedChainStats = {
-      ...chainStats,
-      totalBera: chainStats.totalBera + assets,
-      totalShares: chainStats.totalShares + shares,
-      totalDeposited: chainStats.totalDeposited + assets,
-      uniqueBuilders: chainStats.uniqueBuilders + uniqueBuildersIncrement,
-      depositCount: chainStats.depositCount + 1,
+      ...chainStatsToUpdate,
+      totalBera: chainStatsToUpdate.totalBera + assets,
+      totalShares: chainStatsToUpdate.totalShares + shares,
+      totalDeposited: chainStatsToUpdate.totalDeposited + assets,
+      uniqueBuilders: chainStatsToUpdate.uniqueBuilders + uniqueBuildersIncrement,
+      depositCount: chainStatsToUpdate.depositCount + 1,
       wallContributions: isWallContribution
-        ? chainStats.wallContributions + assets
-        : chainStats.wallContributions,
+        ? chainStatsToUpdate.wallContributions + assets
+        : chainStatsToUpdate.wallContributions,
       wallDepositCount: isWallContribution
-        ? chainStats.wallDepositCount + 1
-        : chainStats.wallDepositCount,
+        ? chainStatsToUpdate.wallDepositCount + 1
+        : chainStatsToUpdate.wallDepositCount,
       lastUpdateTime: timestamp,
     };
     context.AquaberaStats.set(updatedChainStats);

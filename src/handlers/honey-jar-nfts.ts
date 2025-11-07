@@ -84,19 +84,45 @@ export async function handleTransfer(
     chainId
   );
 
-  // Update holder balances
-  await updateHolderBalances(
+  // Load holders once to avoid duplicate queries
+  const fromLower = from.toLowerCase();
+  const toLower = to.toLowerCase();
+  const fromHolderId = `${collection}_${chainId}_${fromLower}`;
+  const toHolderId = `${collection}_${chainId}_${toLower}`;
+
+  let fromHolder = fromLower !== ZERO_ADDRESS.toLowerCase()
+    ? await context.Holder.get(fromHolderId)
+    : null;
+  let toHolder = toLower !== ZERO_ADDRESS.toLowerCase()
+    ? await context.Holder.get(toHolderId)
+    : null;
+
+  // Update holder balances (returns updated holders)
+  const updatedHolders = await updateHolderBalances(
     context,
     collection,
-    from,
-    to,
+    fromHolder,
+    toHolder,
+    fromHolderId,
+    toHolderId,
+    fromLower,
+    toLower,
     generation,
     timestamp,
     chainId
   );
 
-  // Update collection statistics
-  await updateCollectionStats(context, collection, from, to, timestamp, chainId);
+  // Update collection statistics (uses updated holders)
+  await updateCollectionStats(
+    context,
+    collection,
+    fromLower,
+    toLower,
+    updatedHolders.fromHolder,
+    updatedHolders.toHolder,
+    timestamp,
+    chainId
+  );
 
   // Update global collection statistics
   await updateGlobalCollectionStat(context, collection, timestamp);
@@ -191,25 +217,27 @@ async function updateTokenOwnership(
 
 /**
  * Updates holder balance records
+ * Now accepts pre-loaded holders to avoid duplicate queries
  */
 async function updateHolderBalances(
   context: any,
   collection: string,
-  from: string,
-  to: string,
+  fromHolder: any | null,
+  toHolder: any | null,
+  fromHolderId: string,
+  toHolderId: string,
+  fromLower: string,
+  toLower: string,
   generation: number,
   timestamp: bigint,
   chainId: number
-) {
-  const fromLower = from.toLowerCase();
-  const toLower = to.toLowerCase();
+): Promise<{ fromHolder: any | null; toHolder: any | null }> {
+  const isMint = fromLower === ZERO_ADDRESS.toLowerCase();
+  const isBurn = toLower === ZERO_ADDRESS.toLowerCase();
 
   // Update 'from' holder (if not zero address)
-  if (fromLower !== ZERO_ADDRESS.toLowerCase()) {
-    const fromHolderId = `${collection}_${chainId}_${fromLower}`;
-    let fromHolder = await context.Holder.get(fromHolderId);
-
-    if (fromHolder && fromHolder.balance > 0) {
+  if (!isMint && fromHolder) {
+    if (fromHolder.balance > 0) {
       // Create updated holder object (immutable update)
       const updatedFromHolder = {
         ...fromHolder,
@@ -217,6 +245,7 @@ async function updateHolderBalances(
         lastActivityTime: timestamp,
       };
       context.Holder.set(updatedFromHolder);
+      fromHolder = updatedFromHolder; // Update reference for caller
     }
 
     // Update user balance
@@ -232,10 +261,7 @@ async function updateHolderBalances(
   }
 
   // Update 'to' holder (if not zero address)
-  if (toLower !== ZERO_ADDRESS.toLowerCase()) {
-    const toHolderId = `${collection}_${chainId}_${toLower}`;
-    let toHolder = await context.Holder.get(toHolderId);
-
+  if (!isBurn) {
     if (!toHolder) {
       toHolder = {
         id: toHolderId,
@@ -243,7 +269,7 @@ async function updateHolderBalances(
         balance: 0,
         totalMinted: 0,
         lastActivityTime: timestamp,
-        firstMintTime: fromLower === ZERO_ADDRESS.toLowerCase() ? timestamp : undefined,
+        firstMintTime: isMint ? timestamp : undefined,
         collection,
         chainId,
       };
@@ -254,17 +280,12 @@ async function updateHolderBalances(
       ...toHolder,
       balance: toHolder.balance + 1,
       lastActivityTime: timestamp,
-      totalMinted:
-        fromLower === ZERO_ADDRESS.toLowerCase()
-          ? toHolder.totalMinted + 1
-          : toHolder.totalMinted,
-      firstMintTime:
-        fromLower === ZERO_ADDRESS.toLowerCase() && !toHolder.firstMintTime
-          ? timestamp
-          : toHolder.firstMintTime,
+      totalMinted: isMint ? toHolder.totalMinted + 1 : toHolder.totalMinted,
+      firstMintTime: isMint && !toHolder.firstMintTime ? timestamp : toHolder.firstMintTime,
     };
 
     context.Holder.set(updatedToHolder);
+    toHolder = updatedToHolder; // Update reference for caller
 
     // Update user balance
     await updateUserBalance(
@@ -273,10 +294,12 @@ async function updateHolderBalances(
       generation,
       chainId,
       1,
-      fromLower === ZERO_ADDRESS.toLowerCase(),
+      isMint,
       timestamp
     );
   }
+
+  return { fromHolder, toHolder };
 }
 
 /**
@@ -356,12 +379,15 @@ async function updateUserBalance(
 
 /**
  * Updates collection statistics
+ * Now accepts pre-loaded holders to avoid duplicate queries
  */
 async function updateCollectionStats(
   context: any,
   collection: string,
-  from: string,
-  to: string,
+  fromLower: string,
+  toLower: string,
+  fromHolder: any | null,
+  toHolder: any | null,
   timestamp: bigint,
   chainId: number
 ) {
@@ -381,51 +407,32 @@ async function updateCollectionStats(
     };
   }
 
+  const isMint = fromLower === ZERO_ADDRESS.toLowerCase();
+  const isBurn = toLower === ZERO_ADDRESS.toLowerCase();
+
   // Update unique holders count based on transfer
-  // We track this incrementally instead of querying all holders
+  // We track this incrementally using the pre-loaded holders
   let uniqueHoldersAdjustment = 0;
-  
-  // If this is a transfer TO a new holder (not from mint)
-  if (to.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
-    const toHolderId = `${collection}_${chainId}_${to.toLowerCase()}`;
-    const toHolder = await context.Holder.get(toHolderId);
-    // If this holder didn't exist or had 0 balance, increment unique holders
-    if (!toHolder || toHolder.balance === 0) {
-      uniqueHoldersAdjustment += 1;
-    }
+
+  // If this is a transfer TO a new holder
+  // Note: toHolder.balance is BEFORE the transfer, so balance === 0 means new holder
+  if (!isBurn && toHolder && toHolder.balance === 0) {
+    uniqueHoldersAdjustment += 1;
   }
-  
-  // If this is a transfer FROM a holder (not to burn)
-  if (from.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
-    const fromHolderId = `${collection}_${chainId}_${from.toLowerCase()}`;
-    const fromHolder = await context.Holder.get(fromHolderId);
-    // If this holder will have 0 balance after transfer, decrement unique holders
-    if (fromHolder && fromHolder.balance === 1) {
-      uniqueHoldersAdjustment -= 1;
-    }
+
+  // If this is a transfer FROM a holder that will become empty
+  // Note: fromHolder.balance is BEFORE the transfer, so balance === 1 means will be empty
+  if (!isMint && fromHolder && fromHolder.balance === 1) {
+    uniqueHoldersAdjustment -= 1;
   }
 
   // Create updated stats object (immutable update)
   const updatedStats = {
     ...stats,
-    totalSupply:
-      from.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-        ? stats.totalSupply + 1
-        : to.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-        ? stats.totalSupply - 1
-        : stats.totalSupply,
-    totalMinted:
-      from.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-        ? stats.totalMinted + 1
-        : stats.totalMinted,
-    totalBurned:
-      to.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-        ? stats.totalBurned + 1
-        : stats.totalBurned,
-    lastMintTime:
-      from.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-        ? timestamp
-        : stats.lastMintTime,
+    totalSupply: isMint ? stats.totalSupply + 1 : isBurn ? stats.totalSupply - 1 : stats.totalSupply,
+    totalMinted: isMint ? stats.totalMinted + 1 : stats.totalMinted,
+    totalBurned: isBurn ? stats.totalBurned + 1 : stats.totalBurned,
+    lastMintTime: isMint ? timestamp : stats.lastMintTime,
     uniqueHolders: Math.max(0, stats.uniqueHolders + uniqueHoldersAdjustment),
   };
 

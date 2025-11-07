@@ -82,75 +82,73 @@ export const handleDirectDeposit = AquaberaVaultDirect.Deposit.handler(
     };
     context.AquaberaDeposit.set(deposit);
 
-    // Update builder stats with WBERA amounts
-    // Use the actual depositor (sender) for builder tracking
+    // Batch queries for parallel execution
     const builderId = sender;
-    let builder = await context.AquaberaBuilder.get(builderId);
-    
-    if (!builder) {
-      builder = {
-        id: builderId,
-        address: builderId,
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        netDeposited: BigInt(0),
-        currentShares: BigInt(0),
-        depositCount: 0,
-        withdrawalCount: 0,
-        firstDepositTime: timestamp,
-        lastActivityTime: timestamp,
-        isWallContract: builderId === WALL_CONTRACT_ADDRESS,
-        chainId: BERACHAIN_ID,
-      };
-    }
+    const statsId = "global";
+
+    const [builder, stats] = await Promise.all([
+      context.AquaberaBuilder.get(builderId),
+      context.AquaberaStats.get(statsId),
+    ]);
+
+    // Prepare builder (create if doesn't exist)
+    const builderToUpdate = builder || {
+      id: builderId,
+      address: builderId,
+      totalDeposited: BigInt(0),
+      totalWithdrawn: BigInt(0),
+      netDeposited: BigInt(0),
+      currentShares: BigInt(0),
+      depositCount: 0,
+      withdrawalCount: 0,
+      firstDepositTime: timestamp,
+      lastActivityTime: timestamp,
+      isWallContract: builderId === WALL_CONTRACT_ADDRESS,
+      chainId: BERACHAIN_ID,
+    };
 
     const updatedBuilder = {
-      ...builder,
-      totalDeposited: builder.totalDeposited + wberaAmount, // Track WBERA
-      netDeposited: builder.netDeposited + wberaAmount,
-      currentShares: builder.currentShares + lpTokensReceived, // Track LP tokens separately
-      depositCount: builder.depositCount + 1,
+      ...builderToUpdate,
+      totalDeposited: builderToUpdate.totalDeposited + wberaAmount, // Track WBERA
+      netDeposited: builderToUpdate.netDeposited + wberaAmount,
+      currentShares: builderToUpdate.currentShares + lpTokensReceived, // Track LP tokens separately
+      depositCount: builderToUpdate.depositCount + 1,
       lastActivityTime: timestamp,
-      isWallContract: builder.isWallContract || (builderId === WALL_CONTRACT_ADDRESS),
+      isWallContract: builderToUpdate.isWallContract || (builderId === WALL_CONTRACT_ADDRESS),
     };
     context.AquaberaBuilder.set(updatedBuilder);
 
-    // Update global stats with WBERA amounts
-    const statsId = "global";
-    let stats = await context.AquaberaStats.get(statsId);
-    
-    if (!stats) {
-      stats = {
-        id: statsId,
-        totalBera: BigInt(0), // This tracks WBERA, not LP tokens
-        totalShares: BigInt(0), // This tracks LP tokens
-        totalDeposited: BigInt(0),
-        totalWithdrawn: BigInt(0),
-        uniqueBuilders: 0,
-        depositCount: 0,
-        withdrawalCount: 0,
-        wallContributions: BigInt(0),
-        wallDepositCount: 0,
-        lastUpdateTime: timestamp,
-        chainId: BERACHAIN_ID,
-      };
-    }
+    // Prepare global stats (create if doesn't exist)
+    const statsToUpdate = stats || {
+      id: statsId,
+      totalBera: BigInt(0), // This tracks WBERA, not LP tokens
+      totalShares: BigInt(0), // This tracks LP tokens
+      totalDeposited: BigInt(0),
+      totalWithdrawn: BigInt(0),
+      uniqueBuilders: 0,
+      depositCount: 0,
+      withdrawalCount: 0,
+      wallContributions: BigInt(0),
+      wallDepositCount: 0,
+      lastUpdateTime: timestamp,
+      chainId: BERACHAIN_ID,
+    };
 
     const uniqueBuildersIncrement = !builder || builder.depositCount === 0 ? 1 : 0;
 
     const updatedStats = {
-      ...stats,
-      totalBera: stats.totalBera + wberaAmount, // Add WBERA amount
-      totalShares: stats.totalShares + lpTokensReceived, // Track LP tokens separately
-      totalDeposited: stats.totalDeposited + wberaAmount,
-      uniqueBuilders: stats.uniqueBuilders + uniqueBuildersIncrement,
-      depositCount: stats.depositCount + 1,
+      ...statsToUpdate,
+      totalBera: statsToUpdate.totalBera + wberaAmount, // Add WBERA amount
+      totalShares: statsToUpdate.totalShares + lpTokensReceived, // Track LP tokens separately
+      totalDeposited: statsToUpdate.totalDeposited + wberaAmount,
+      uniqueBuilders: statsToUpdate.uniqueBuilders + uniqueBuildersIncrement,
+      depositCount: statsToUpdate.depositCount + 1,
       wallContributions: isWallContribution
-        ? stats.wallContributions + wberaAmount
-        : stats.wallContributions,
+        ? statsToUpdate.wallContributions + wberaAmount
+        : statsToUpdate.wallContributions,
       wallDepositCount: isWallContribution
-        ? stats.wallDepositCount + 1
-        : stats.wallDepositCount,
+        ? statsToUpdate.wallDepositCount + 1
+        : statsToUpdate.wallDepositCount,
       lastUpdateTime: timestamp,
     };
     context.AquaberaStats.set(updatedStats);
@@ -230,10 +228,16 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     };
     context.AquaberaWithdrawal.set(withdrawal);
 
-    // Update builder stats
+    // Batch queries for parallel execution
     const builderId = sender;
-    let builder = await context.AquaberaBuilder.get(builderId);
-    
+    const statsId = "global";
+
+    const [builder, stats] = await Promise.all([
+      context.AquaberaBuilder.get(builderId),
+      context.AquaberaStats.get(statsId),
+    ]);
+
+    // Update builder stats if exists
     if (builder) {
       const updatedBuilder = {
         ...builder,
@@ -251,8 +255,6 @@ export const handleDirectWithdraw = AquaberaVaultDirect.Withdraw.handler(
     }
 
     // Update global stats - subtract WBERA withdrawn
-    const statsId = "global";
-    let stats = await context.AquaberaStats.get(statsId);
     
     if (stats) {
       const updatedStats = {
