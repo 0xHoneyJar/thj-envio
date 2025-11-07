@@ -32,6 +32,7 @@ type MintEvent {
   blockNumber: BigInt!
   transactionHash: String!
   chainId: Int!
+  encodedTraits: String  # VM-specific: encoded trait data from Minted event
 }
 
 type Erc1155MintEvent {

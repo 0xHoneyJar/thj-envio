@@ -40,6 +40,7 @@ export const handleGeneralMintTransfer = GeneralMints.Transfer.handler(
       blockNumber: BigInt(event.block.number),
       transactionHash: event.transaction.hash,
       chainId,
+      encodedTraits: undefined, // Will be populated by VM Minted handler if applicable
     };
 
     context.MintEvent.set(mintEvent);

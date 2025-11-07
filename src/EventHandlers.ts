@@ -44,6 +44,7 @@ import {
 } from "./handlers/aquabera-vault-direct";
 // General mint tracking
 import { handleGeneralMintTransfer } from "./handlers/mints";
+import { handleVmMinted } from "./handlers/vm-minted";
 import {
   handleCandiesMintSingle,
   handleCandiesMintBatch,
@@ -108,6 +109,7 @@ export { handleTrackedErc721Transfer };
 
 // General mint handlers
 export { handleGeneralMintTransfer };
+export { handleVmMinted };
 export { handleCandiesMintSingle };
 export { handleCandiesMintBatch };
 export { handleFatBeraDeposit };

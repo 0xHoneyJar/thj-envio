@@ -134,6 +134,11 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+      # VM-specific: Capture encoded trait data from Minted event
+      - event: Minted(address indexed user, uint256 tokenId, string traits)
+        field_selection:
+          transaction_fields:
+            - hash
   - name: CandiesMarket1155
     handler: src/EventHandlers.ts
     events:
