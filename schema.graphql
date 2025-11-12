@@ -480,3 +480,47 @@ type TradeStats {
   lastTradeTime: BigInt
   chainId: Int
 }
+
+# ============================================================================
+# SET & FORGETTI VAULT SYSTEM
+# ============================================================================
+
+# User's active position in a Set & Forgetti vault (stateful tracking)
+type SFPosition {
+  id: ID!                     # {chainId}_{user}_{vault}
+  user: String!               # User address (lowercase)
+  vault: String!              # SFVault address (lowercase)
+  multiRewards: String!       # MultiRewards address (lowercase)
+  kitchenToken: String!       # Underlying kitchen token address (lowercase)
+  strategy: String!           # BeradromeStrategy address (lowercase)
+  kitchenTokenSymbol: String! # Token symbol (e.g., "HLKD1B")
+  stakedShares: BigInt!       # Current staked vault shares in MultiRewards
+  totalDeposited: BigInt!     # Lifetime kitchen tokens deposited into vault
+  totalWithdrawn: BigInt!     # Lifetime kitchen tokens withdrawn from vault
+  totalClaimed: BigInt!       # Lifetime HENLO rewards claimed
+  firstDepositAt: BigInt!     # Timestamp of first deposit
+  lastActivityAt: BigInt!     # Timestamp of most recent activity
+  chainId: Int!
+}
+
+# Vault-level aggregated statistics (income tracking per pot)
+type SFVaultStats {
+  id: ID!                     # {chainId}_{vault}
+  vault: String!              # SFVault address (lowercase)
+  kitchenToken: String!       # Underlying kitchen token address (lowercase)
+  kitchenTokenSymbol: String! # Token symbol (e.g., "HLKD1B")
+  strategy: String!           # BeradromeStrategy address (lowercase)
+  totalDeposited: BigInt!     # All-time kitchen tokens deposited
+  totalWithdrawn: BigInt!     # All-time kitchen tokens withdrawn
+  totalStaked: BigInt!        # All-time vault shares staked
+  totalUnstaked: BigInt!      # All-time vault shares unstaked
+  totalClaimed: BigInt!       # All-time HENLO rewards claimed (income metric!)
+  uniqueDepositors: Int!      # Count of unique users who have deposited
+  activePositions: Int!       # Current count of positions with stakedShares > 0
+  depositCount: Int!          # Total number of deposit transactions
+  withdrawalCount: Int!       # Total number of withdrawal transactions
+  claimCount: Int!            # Total number of claim transactions
+  firstDepositAt: BigInt      # Timestamp of first vault deposit
+  lastActivityAt: BigInt!     # Timestamp of most recent activity
+  chainId: Int!
+}

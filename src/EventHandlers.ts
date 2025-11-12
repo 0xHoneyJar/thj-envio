@@ -56,6 +56,15 @@ import {
   handleCubBadgesTransferBatch,
 } from "./handlers/badges1155";
 
+// Set & Forgetti vault handlers
+import {
+  handleSFVaultDeposit,
+  handleSFVaultWithdraw,
+  handleSFMultiRewardsStaked,
+  handleSFMultiRewardsWithdrawn,
+  handleSFMultiRewardsRewardPaid,
+} from "./handlers/sf-vaults";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -116,6 +125,13 @@ export { handleFatBeraDeposit };
 export { handleBgtQueueBoost };
 export { handleCubBadgesTransferSingle };
 export { handleCubBadgesTransferBatch };
+
+// Set & Forgetti vault handlers
+export { handleSFVaultDeposit };
+export { handleSFVaultWithdraw };
+export { handleSFMultiRewardsStaked };
+export { handleSFMultiRewardsWithdrawn };
+export { handleSFMultiRewardsRewardPaid };
 
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
