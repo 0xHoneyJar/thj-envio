@@ -118,7 +118,9 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       kitchenToken: config.kitchenToken,
       strategy: config.strategy,
       kitchenTokenSymbol: config.kitchenTokenSymbol,
+      vaultShares: BigInt(0),
       stakedShares: BigInt(0),
+      totalShares: BigInt(0),
       totalDeposited: BigInt(0),
       totalWithdrawn: BigInt(0),
       totalClaimed: BigInt(0),
@@ -127,8 +129,14 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       chainId: BERACHAIN_ID,
     };
 
+    // When depositing, shares go to vault (not staked yet)
+    const newVaultShares = positionToUpdate.vaultShares + shares;
+    const newTotalShares = newVaultShares + positionToUpdate.stakedShares;
+
     const updatedPosition = {
       ...positionToUpdate,
+      vaultShares: newVaultShares,
+      totalShares: newTotalShares,
       totalDeposited: positionToUpdate.totalDeposited + assets,
       lastActivityAt: timestamp,
       // Only update firstDepositAt for new positions
@@ -159,6 +167,10 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       chainId: BERACHAIN_ID,
     };
 
+    // Check if this deposit creates a new active position
+    const previousTotalShares = position ? (position.vaultShares + position.stakedShares) : BigInt(0);
+    const isNewActivePosition = previousTotalShares === BigInt(0) && newTotalShares > BigInt(0);
+
     const updatedStats = {
       ...statsToUpdate,
       totalDeposited: statsToUpdate.totalDeposited + assets,
@@ -166,6 +178,8 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       lastActivityAt: timestamp,
       // Increment unique depositors if this is a new position
       uniqueDepositors: statsToUpdate.uniqueDepositors + (isNewPosition ? 1 : 0),
+      // Increment active positions if totalShares went from 0 to non-zero
+      activePositions: statsToUpdate.activePositions + (isNewActivePosition ? 1 : 0),
     };
 
     context.SFVaultStats.set(updatedStats);
@@ -222,8 +236,20 @@ export const handleSFVaultWithdraw = SFVaultERC4626.Withdraw.handler(
 
     // Update position if it exists
     if (position) {
+      // When withdrawing, shares are burned from vault balance
+      let newVaultShares = position.vaultShares - shares;
+
+      // Ensure vaultShares doesn't go negative
+      if (newVaultShares < BigInt(0)) {
+        newVaultShares = BigInt(0);
+      }
+
+      const newTotalShares = newVaultShares + position.stakedShares;
+
       const updatedPosition = {
         ...position,
+        vaultShares: newVaultShares,
+        totalShares: newTotalShares,
         totalWithdrawn: position.totalWithdrawn + assets,
         lastActivityAt: timestamp,
       };
@@ -231,11 +257,18 @@ export const handleSFVaultWithdraw = SFVaultERC4626.Withdraw.handler(
     }
 
     // Update vault stats
-    if (stats) {
+    if (stats && position) {
+      // Check if this withdrawal closes the position (totalShares -> 0)
+      const previousTotalShares = position.totalShares;
+      const newTotalShares = (position.vaultShares - shares) + position.stakedShares;
+      const closedPosition = previousTotalShares > BigInt(0) && newTotalShares === BigInt(0);
+
       const updatedStats = {
         ...stats,
         totalWithdrawn: stats.totalWithdrawn + assets,
         withdrawalCount: stats.withdrawalCount + 1,
+        // Decrement active positions if totalShares went to 0
+        activePositions: stats.activePositions - (closedPosition ? 1 : 0),
         lastActivityAt: timestamp,
       };
       context.SFVaultStats.set(updatedStats);
@@ -296,21 +329,34 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
       const previousStakedShares = position.stakedShares;
       const newStakedShares = position.stakedShares + amount;
 
+      // When staking, shares move from vault to staked
+      let newVaultShares = position.vaultShares - amount;
+
+      // Ensure vaultShares doesn't go negative
+      if (newVaultShares < BigInt(0)) {
+        newVaultShares = BigInt(0);
+      }
+
+      // totalShares remains the same (just moving between buckets)
+      const newTotalShares = newVaultShares + newStakedShares;
+
       const updatedPosition = {
         ...position,
+        vaultShares: newVaultShares,
         stakedShares: newStakedShares,
+        totalShares: newTotalShares,
         lastActivityAt: timestamp,
       };
       context.SFPosition.set(updatedPosition);
 
       // Update active positions count in stats
       if (stats) {
-        // If position went from 0 to non-zero, increment active count
-        const activePositionsIncrement = (previousStakedShares === BigInt(0) && newStakedShares > BigInt(0)) ? 1 : 0;
+        // Active position = totalShares > 0 (regardless of staked vs unstaked)
+        // Note: We don't update activePositions here since staking doesn't change totalShares
+        // (shares just move from vault to staked). Deposit/withdraw handle this.
 
         const updatedStats = {
           ...stats,
-          activePositions: stats.activePositions + activePositionsIncrement,
           totalStaked: stats.totalStaked + amount,
           lastActivityAt: timestamp,
         };
@@ -376,21 +422,29 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
         newStakedShares = BigInt(0);
       }
 
+      // When unstaking, shares move from staked to vault
+      const newVaultShares = position.vaultShares + amount;
+
+      // totalShares remains the same (just moving between buckets)
+      const newTotalShares = newVaultShares + newStakedShares;
+
       const updatedPosition = {
         ...position,
+        vaultShares: newVaultShares,
         stakedShares: newStakedShares,
+        totalShares: newTotalShares,
         lastActivityAt: timestamp,
       };
       context.SFPosition.set(updatedPosition);
 
       // Update active positions count in stats
       if (stats) {
-        // If position went from non-zero to 0, decrement active count
-        const activePositionsDecrement = (previousStakedShares > BigInt(0) && newStakedShares === BigInt(0)) ? 1 : 0;
+        // Active position = totalShares > 0 (regardless of staked vs unstaked)
+        // Note: We don't update activePositions here since unstaking doesn't change totalShares
+        // (shares just move from staked to vault). Deposit/withdraw handle this.
 
         const updatedStats = {
           ...stats,
-          activePositions: stats.activePositions - activePositionsDecrement,
           totalUnstaked: stats.totalUnstaked + amount,
           lastActivityAt: timestamp,
         };

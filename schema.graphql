@@ -494,7 +494,9 @@ type SFPosition {
   kitchenToken: String!       # Underlying kitchen token address (lowercase)
   strategy: String!           # BeradromeStrategy address (lowercase)
   kitchenTokenSymbol: String! # Token symbol (e.g., "HLKD1B")
+  vaultShares: BigInt!        # Current vault shares in user's wallet (not staked)
   stakedShares: BigInt!       # Current staked vault shares in MultiRewards
+  totalShares: BigInt!        # Total shares owned (vaultShares + stakedShares)
   totalDeposited: BigInt!     # Lifetime kitchen tokens deposited into vault
   totalWithdrawn: BigInt!     # Lifetime kitchen tokens withdrawn from vault
   totalClaimed: BigInt!       # Lifetime HENLO rewards claimed
