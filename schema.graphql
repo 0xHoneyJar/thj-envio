@@ -526,3 +526,36 @@ type SFVaultStats {
   lastActivityAt: BigInt!     # Timestamp of most recent activity
   chainId: Int!
 }
+
+# ============================
+# MIBERA STAKING TRACKING
+# ============================
+
+type MiberaStakedToken {
+  id: ID!  # stakingContract_tokenId (e.g., "paddlefi_123")
+  stakingContract: String!  # "paddlefi" or "jiko"
+  contractAddress: String!  # 0x242b... or 0x8778... (lowercase)
+  tokenId: BigInt!
+  owner: String!  # current holder address (lowercase)
+  isStaked: Boolean!  # true if currently staked, false if withdrawn
+  depositedAt: BigInt!
+  depositTxHash: String!
+  depositBlockNumber: BigInt!
+  withdrawnAt: BigInt  # null if still staked
+  withdrawTxHash: String
+  withdrawBlockNumber: BigInt
+  chainId: Int!
+}
+
+type MiberaStaker {
+  id: ID!  # stakingContract_address (e.g., "paddlefi_0x123...")
+  stakingContract: String!  # "paddlefi" or "jiko"
+  contractAddress: String!  # 0x242b... or 0x8778... (lowercase)
+  address: String!  # user address (lowercase)
+  currentStakedCount: Int!  # Number of tokens currently staked
+  totalDeposits: Int!  # All-time deposits
+  totalWithdrawals: Int!  # All-time withdrawals
+  firstDepositTime: BigInt
+  lastActivityTime: BigInt!
+  chainId: Int!
+}

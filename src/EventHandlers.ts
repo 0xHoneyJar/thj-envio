@@ -78,6 +78,9 @@ import {
 //   handleCandiesTradeCancelled,
 // } from "./handlers/cargo-trades";
 
+// Mibera staking tracking (PaddleFi & Jiko)
+import { handleMiberaStakingTransfer } from "./handlers/mibera-staking";
+
 /*
  * Export all handlers for Envio to register
  *
@@ -141,3 +144,6 @@ export { handleSFMultiRewardsRewardPaid };
 // export { handleCandiesTradeProposed };
 // export { handleCandiesTradeAccepted };
 // export { handleCandiesTradeCancelled };
+
+// Mibera staking handlers
+export { handleMiberaStakingTransfer };
