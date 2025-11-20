@@ -1,11 +1,20 @@
 import { TrackedErc721 } from "generated";
-import type { HandlerContext, TrackedHolder as TrackedHolderEntity } from "generated";
+import type {
+  HandlerContext,
+  TrackedHolder as TrackedHolderEntity,
+  MiberaStakedToken as MiberaStakedTokenEntity,
+  MiberaStaker as MiberaStakerEntity,
+} from "generated";
 
 import { ZERO_ADDRESS } from "./constants";
 import { TRACKED_ERC721_COLLECTION_KEYS } from "./tracked-erc721/constants";
+import { STAKING_CONTRACT_KEYS } from "./mibera-staking/constants";
 import { recordAction } from "../lib/actions";
 
 const ZERO = ZERO_ADDRESS.toLowerCase();
+
+// Mibera NFT contract address (lowercase)
+const MIBERA_CONTRACT = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
 
 export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
   async ({ event, context }) => {
@@ -19,6 +28,7 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
     const txHash = event.transaction.hash;
     const logIndex = Number(event.logIndex);
     const timestamp = BigInt(event.block.timestamp);
+    const blockNumber = BigInt(event.block.number);
 
     // If this is a mint (from zero address), also create a mint action
     if (from === ZERO) {
@@ -40,6 +50,46 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
       });
     }
 
+    // Check for Mibera staking transfers
+    const isMibera = contractAddress === MIBERA_CONTRACT;
+    const depositContractKey = STAKING_CONTRACT_KEYS[to];
+    const withdrawContractKey = STAKING_CONTRACT_KEYS[from];
+
+    // Handle Mibera staking deposit (user → staking contract)
+    if (isMibera && depositContractKey && from !== ZERO) {
+      await handleMiberaStakeDeposit({
+        context,
+        stakingContract: depositContractKey,
+        stakingContractAddress: to,
+        userAddress: from,
+        tokenId,
+        chainId,
+        txHash,
+        blockNumber,
+        timestamp,
+      });
+      // Don't adjust holder counts - user still owns the NFT (it's staked)
+      return;
+    }
+
+    // Handle Mibera staking withdrawal (staking contract → user)
+    if (isMibera && withdrawContractKey && to !== ZERO) {
+      await handleMiberaStakeWithdrawal({
+        context,
+        stakingContract: withdrawContractKey,
+        stakingContractAddress: from,
+        userAddress: to,
+        tokenId,
+        chainId,
+        txHash,
+        blockNumber,
+        timestamp,
+      });
+      // Don't adjust holder counts - they were never decremented on deposit
+      return;
+    }
+
+    // Normal transfer handling
     await adjustHolder({
       context,
       contractAddress,
@@ -146,4 +196,116 @@ async function adjustHolder({
   };
 
   context.TrackedHolder.set(holder);
+}
+
+// Mibera staking helper types and functions
+
+interface MiberaStakeArgs {
+  context: HandlerContext;
+  stakingContract: string;
+  stakingContractAddress: string;
+  userAddress: string;
+  tokenId: bigint;
+  chainId: number;
+  txHash: string;
+  blockNumber: bigint;
+  timestamp: bigint;
+}
+
+async function handleMiberaStakeDeposit({
+  context,
+  stakingContract,
+  stakingContractAddress,
+  userAddress,
+  tokenId,
+  chainId,
+  txHash,
+  blockNumber,
+  timestamp,
+}: MiberaStakeArgs) {
+  // Create staked token record
+  const stakedTokenId = `${stakingContract}_${tokenId}`;
+  const stakedToken: MiberaStakedTokenEntity = {
+    id: stakedTokenId,
+    stakingContract,
+    contractAddress: stakingContractAddress,
+    tokenId,
+    owner: userAddress,
+    isStaked: true,
+    depositedAt: timestamp,
+    depositTxHash: txHash,
+    depositBlockNumber: blockNumber,
+    withdrawnAt: undefined,
+    withdrawTxHash: undefined,
+    withdrawBlockNumber: undefined,
+    chainId,
+  };
+  context.MiberaStakedToken.set(stakedToken);
+
+  // Update staker stats
+  const stakerId = `${stakingContract}_${userAddress}`;
+  const existingStaker = await context.MiberaStaker.get(stakerId);
+
+  const staker: MiberaStakerEntity = existingStaker
+    ? {
+        ...existingStaker,
+        currentStakedCount: existingStaker.currentStakedCount + 1,
+        totalDeposits: existingStaker.totalDeposits + 1,
+        lastActivityTime: timestamp,
+      }
+    : {
+        id: stakerId,
+        stakingContract,
+        contractAddress: stakingContractAddress,
+        address: userAddress,
+        currentStakedCount: 1,
+        totalDeposits: 1,
+        totalWithdrawals: 0,
+        firstDepositTime: timestamp,
+        lastActivityTime: timestamp,
+        chainId,
+      };
+
+  context.MiberaStaker.set(staker);
+}
+
+async function handleMiberaStakeWithdrawal({
+  context,
+  stakingContract,
+  stakingContractAddress,
+  userAddress,
+  tokenId,
+  chainId,
+  txHash,
+  blockNumber,
+  timestamp,
+}: MiberaStakeArgs) {
+  // Update staked token record
+  const stakedTokenId = `${stakingContract}_${tokenId}`;
+  const existingStakedToken = await context.MiberaStakedToken.get(stakedTokenId);
+
+  if (existingStakedToken) {
+    const updatedStakedToken: MiberaStakedTokenEntity = {
+      ...existingStakedToken,
+      isStaked: false,
+      withdrawnAt: timestamp,
+      withdrawTxHash: txHash,
+      withdrawBlockNumber: blockNumber,
+    };
+    context.MiberaStakedToken.set(updatedStakedToken);
+  }
+
+  // Update staker stats
+  const stakerId = `${stakingContract}_${userAddress}`;
+  const existingStaker = await context.MiberaStaker.get(stakerId);
+
+  if (existingStaker) {
+    const updatedStaker: MiberaStakerEntity = {
+      ...existingStaker,
+      currentStakedCount: Math.max(0, existingStaker.currentStakedCount - 1),
+      totalWithdrawals: existingStaker.totalWithdrawals + 1,
+      lastActivityTime: timestamp,
+    };
+    context.MiberaStaker.set(updatedStaker);
+  }
 }

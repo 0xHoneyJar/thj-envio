@@ -79,8 +79,8 @@ import {
 //   handleCandiesTradeCancelled,
 // } from "./handlers/cargo-trades";
 
-// Mibera staking tracking (PaddleFi & Jiko)
-import { handleMiberaStakingTransfer } from "./handlers/mibera-staking";
+// Mibera staking tracking - REMOVED: Now handled by TrackedErc721 handler
+// import { handleMiberaStakingTransfer } from "./handlers/mibera-staking";
 
 /*
  * Export all handlers for Envio to register
@@ -147,5 +147,5 @@ export { handleSFMultiRewardsRewardPaid };
 // export { handleCandiesTradeAccepted };
 // export { handleCandiesTradeCancelled };
 
-// Mibera staking handlers
-export { handleMiberaStakingTransfer };
+// Mibera staking handlers - REMOVED: Now handled by TrackedErc721 handler
+// export { handleMiberaStakingTransfer };
