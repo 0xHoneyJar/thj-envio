@@ -417,8 +417,8 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       // Update strategy/multiRewards to current active one
       strategy: strategyAddress,
       multiRewards: multiRewardsAddress,
-      // Only update firstDepositAt for new positions
-      firstDepositAt: isNewPosition ? timestamp : positionToUpdate.firstDepositAt,
+      // Set firstDepositAt on first deposit, or backfill if null
+      firstDepositAt: positionToUpdate.firstDepositAt || timestamp,
     };
 
     context.SFPosition.set(updatedPosition);
