@@ -14,6 +14,9 @@ importers:
       ethers:
         specifier: ^6.15.0
         version: 6.15.0
+      viem:
+        specifier: ^2.21.0
+        version: 2.21.0(typescript@5.2.2)
     devDependencies:
       '@types/chai':
         specifier: ^4.3.11

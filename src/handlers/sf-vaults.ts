@@ -111,7 +111,7 @@ export const getMultiRewardsAddress = experimental_createEffect(
     cache: true,
   },
   async ({ input, context }) => {
-    const rpcUrl = process.env.RPC_URL || "https://rpc.berachain.com";
+    const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
     const client = createPublicClient({
       chain: berachain,
       transport: http(rpcUrl),
