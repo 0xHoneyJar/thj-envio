@@ -231,6 +231,10 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+      - event: StrategyUpdated(address indexed oldStrategy, address indexed newStrategy)
+        field_selection:
+          transaction_fields:
+            - hash
   # Set & Forgetti MultiRewards - Staking and reward distribution
   - name: SFMultiRewards
     handler: src/EventHandlers.ts

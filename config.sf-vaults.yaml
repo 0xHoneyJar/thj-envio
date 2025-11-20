@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Minimal config for testing SF Vaults only
+name: thj-indexer-sf-vaults
+contracts:
+  # Set & Forgetti Vaults - ERC4626 vaults
+  - name: SFVaultERC4626
+    handler: src/SFVaultHandlers.ts
+    events:
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: StrategyUpdated(address indexed oldStrategy, address indexed newStrategy)
+        field_selection:
+          transaction_fields:
+            - hash
+  # Set & Forgetti MultiRewards - Staking and reward distribution
+  - name: SFMultiRewards
+    handler: src/SFVaultHandlers.ts
+    events:
+      - event: Staked(address indexed user, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Withdrawn(address indexed user, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: RewardPaid(address indexed user, address indexed rewardsToken, uint256 reward)
+        field_selection:
+          transaction_fields:
+            - hash
+
+networks:
+  # Berachain Mainnet only
+  - id: 80094
+    start_block: 12134222  # SF vaults deployment block
+    contracts:
+      # Set & Forgetti Vaults (ERC4626)
+      - name: SFVaultERC4626
+        address:
+          - 0xdDb0fec6e0F94b41eeDf526A9d612D125Ecf2E46 # HLKD1B Vault
+          - 0xF25B842040fBE1837a7267B406b0e68435Fc2C85 # HLKD690M Vault
+          - 0xA6965F4681052cC586180c22e128fb874BD9CFAd # HLKD420M Vault
+          - 0xB7330861d2e92fB1a3b3987ff47Ae8EEcDdb8254 # HLKD330M Vault
+          - 0x92B6C5709819Ac4aa208F0586e18998D4d255A11 # HLKD100M Vault
+      # Set & Forgetti MultiRewards (Staking)
+      - name: SFMultiRewards
+        address:
+          - 0xEd72F22587d1C93C97e83646F1f086525bD846A4 # HLKD1B MultiRewards
+          - 0x08A7A026C184278d7A14Bd7Da9A7B26594900223 # HLKD690M MultiRewards
+          - 0x0c1928130465DDc7EBEa199b273Da0B38B31EfFB # HLKD420M MultiRewards
+          - 0x5B330C1aFB81Cc9B4a8c71252aE0FBB9F3068FB7 # HLKD330M MultiRewards
+          - 0xBcA0546B61cD5F3855981B6D5aFbDA32372d931B # HLKD100M MultiRewards
+
+unordered_multichain_mode: false
+preload_handlers: true

@@ -60,6 +60,7 @@ import {
 import {
   handleSFVaultDeposit,
   handleSFVaultWithdraw,
+  handleSFVaultStrategyUpdated,
   handleSFMultiRewardsStaked,
   handleSFMultiRewardsWithdrawn,
   handleSFMultiRewardsRewardPaid,
@@ -132,6 +133,7 @@ export { handleCubBadgesTransferBatch };
 // Set & Forgetti vault handlers
 export { handleSFVaultDeposit };
 export { handleSFVaultWithdraw };
+export { handleSFVaultStrategyUpdated };
 export { handleSFMultiRewardsStaked };
 export { handleSFMultiRewardsWithdrawn };
 export { handleSFMultiRewardsRewardPaid };

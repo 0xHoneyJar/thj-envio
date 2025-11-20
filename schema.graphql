@@ -527,6 +527,21 @@ type SFVaultStats {
   chainId: Int!
 }
 
+# Tracks vault strategy versions (for handling strategy migrations)
+# Allows historical tracking so old MultiRewards can still be indexed
+type SFVaultStrategy {
+  id: ID!                     # {chainId}_{vault}_{strategy}
+  vault: String!              # SFVault address (lowercase)
+  strategy: String!           # Strategy address (lowercase)
+  multiRewards: String!       # MultiRewards address (lowercase)
+  kitchenToken: String!       # Underlying kitchen token address (lowercase)
+  kitchenTokenSymbol: String! # Token symbol (e.g., "HLKD1B")
+  activeFrom: BigInt!         # Block timestamp when this strategy became active
+  activeTo: BigInt            # Block timestamp when replaced (null if current)
+  isActive: Boolean!          # True if this is the current strategy
+  chainId: Int!
+}
+
 # ============================
 # MIBERA STAKING TRACKING
 # ============================

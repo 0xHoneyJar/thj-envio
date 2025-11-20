@@ -3,6 +3,7 @@
  *
  * Tracks ERC4626 vault deposits/withdrawals and MultiRewards staking/claiming
  * Maintains stateful position tracking and vault-level statistics
+ * Supports dynamic strategy migrations with historical tracking
  */
 
 import {
@@ -10,15 +11,39 @@ import {
   SFMultiRewards,
   SFPosition,
   SFVaultStats,
+  SFVaultStrategy,
 } from "generated";
 
+import { experimental_createEffect, S } from "envio";
+import { createPublicClient, http, parseAbi, defineChain } from "viem";
+
 import { recordAction } from "../lib/actions";
+
+// Define Berachain since it may not be in viem/chains yet
+const berachain = defineChain({
+  id: 80094,
+  name: "Berachain",
+  nativeCurrency: {
+    decimals: 18,
+    name: "BERA",
+    symbol: "BERA",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.berachain.com"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Berascan", url: "https://berascan.com" },
+  },
+});
 
 const BERACHAIN_ID = 80094;
 
 /**
  * Vault Configuration Mapping
- * Maps vault addresses to their associated kitchen token, MultiRewards contract, and metadata
+ * Maps vault addresses to their initial (first) strategy, MultiRewards contract, and metadata
+ * These are the original deployments - subsequent strategies are tracked via StrategyUpdated events
  */
 interface VaultConfig {
   vault: string;
@@ -71,12 +96,254 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   },
 };
 
-// Reverse mapping: MultiRewards -> Vault
-const MULTI_REWARDS_TO_VAULT: Record<string, string> = Object.fromEntries(
-  Object.values(VAULT_CONFIGS).map((config) => [
-    config.multiRewards,
-    config.vault,
-  ])
+/**
+ * Effect to query multiRewardsAddress from a strategy contract at a specific block
+ * Used when handling StrategyUpdated events to get the new MultiRewards address
+ */
+export const getMultiRewardsAddress = experimental_createEffect(
+  {
+    name: "getMultiRewardsAddress",
+    input: {
+      strategyAddress: S.string,
+      blockNumber: S.bigint,
+    },
+    output: S.string,
+    cache: true,
+  },
+  async ({ input, context }) => {
+    const rpcUrl = process.env.RPC_URL || "https://rpc.berachain.com";
+    const client = createPublicClient({
+      chain: berachain,
+      transport: http(rpcUrl),
+    });
+
+    try {
+      const multiRewards = await client.readContract({
+        address: input.strategyAddress as `0x${string}`,
+        abi: parseAbi(["function multiRewardsAddress() view returns (address)"]),
+        functionName: "multiRewardsAddress",
+        blockNumber: input.blockNumber,
+      });
+
+      return (multiRewards as string).toLowerCase();
+    } catch (error) {
+      context.log.error(`Failed to get multiRewardsAddress for strategy ${input.strategyAddress} at block ${input.blockNumber}: ${error}`);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Helper function to get vault info from a MultiRewards address
+ * Searches through SFVaultStrategy records and falls back to hardcoded configs
+ */
+async function getVaultFromMultiRewards(
+  context: any,
+  multiRewardsAddress: string
+): Promise<{ vault: string; config: VaultConfig } | null> {
+  // First check hardcoded configs (for initial MultiRewards)
+  for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
+    if (config.multiRewards === multiRewardsAddress) {
+      return { vault: vaultAddr, config };
+    }
+  }
+
+  // Then search SFVaultStrategy records for dynamically registered MultiRewards
+  const strategies = await context.SFVaultStrategy.getWhere.multiRewards.eq(multiRewardsAddress);
+
+  if (strategies && strategies.length > 0) {
+    const strategyRecord = strategies[0];
+    const baseConfig = VAULT_CONFIGS[strategyRecord.vault];
+    if (baseConfig) {
+      return {
+        vault: strategyRecord.vault,
+        config: {
+          ...baseConfig,
+          strategy: strategyRecord.strategy,
+          multiRewards: strategyRecord.multiRewards,
+        },
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Helper function to ensure initial strategy record exists for a vault
+ * Called on first deposit to bootstrap the SFVaultStrategy table
+ */
+async function ensureInitialStrategy(
+  context: any,
+  vaultAddress: string,
+): Promise<void> {
+  const config = VAULT_CONFIGS[vaultAddress];
+  if (!config) return;
+
+  const strategyId = `${BERACHAIN_ID}_${vaultAddress}_${config.strategy}`;
+  const existing = await context.SFVaultStrategy.get(strategyId);
+
+  if (!existing) {
+    context.SFVaultStrategy.set({
+      id: strategyId,
+      vault: vaultAddress,
+      strategy: config.strategy,
+      multiRewards: config.multiRewards,
+      kitchenToken: config.kitchenToken,
+      kitchenTokenSymbol: config.kitchenTokenSymbol,
+      activeFrom: BigInt(0), // Active from the beginning
+      activeTo: undefined,
+      isActive: true,
+      chainId: BERACHAIN_ID,
+    });
+  }
+}
+
+/**
+ * Helper function to get the current active strategy for a vault
+ */
+async function getActiveStrategy(
+  context: any,
+  vaultAddress: string
+): Promise<{ strategy: string; multiRewards: string } | null> {
+  const config = VAULT_CONFIGS[vaultAddress];
+  if (!config) return null;
+
+  // Query for active strategy
+  const strategies = await context.SFVaultStrategy.getWhere.vault.eq(vaultAddress);
+
+  if (strategies && strategies.length > 0) {
+    // Find the active one
+    for (const strategy of strategies) {
+      if (strategy.isActive) {
+        return {
+          strategy: strategy.strategy,
+          multiRewards: strategy.multiRewards,
+        };
+      }
+    }
+  }
+
+  // Fall back to hardcoded config
+  return {
+    strategy: config.strategy,
+    multiRewards: config.multiRewards,
+  };
+}
+
+/**
+ * Register new MultiRewards contracts dynamically when strategy is updated
+ */
+SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
+  const newStrategy = event.params.newStrategy.toLowerCase();
+
+  // Query the new strategy's multiRewardsAddress at this block
+  // Note: contractRegister doesn't have access to context.effect, so we make direct RPC call
+  const rpcUrl = process.env.RPC_URL || "https://rpc.berachain.com";
+  const client = createPublicClient({
+    chain: berachain,
+    transport: http(rpcUrl),
+  });
+
+  try {
+    const multiRewards = await client.readContract({
+      address: newStrategy as `0x${string}`,
+      abi: parseAbi(["function multiRewardsAddress() view returns (address)"]),
+      functionName: "multiRewardsAddress",
+      blockNumber: BigInt(event.block.number),
+    });
+
+    const newMultiRewards = (multiRewards as string).toLowerCase();
+
+    // Register the new MultiRewards contract for indexing
+    context.addSFMultiRewards(newMultiRewards);
+  } catch (error) {
+    context.log.error(`Failed to get multiRewardsAddress for strategy ${newStrategy}: ${error}`);
+  }
+});
+
+/**
+ * Handle StrategyUpdated events
+ * Event: StrategyUpdated(address indexed oldStrategy, address indexed newStrategy)
+ */
+export const handleSFVaultStrategyUpdated = SFVaultERC4626.StrategyUpdated.handler(
+  async ({ event, context }) => {
+    const vaultAddress = event.srcAddress.toLowerCase();
+    const oldStrategy = event.params.oldStrategy.toLowerCase();
+    const newStrategy = event.params.newStrategy.toLowerCase();
+    const timestamp = BigInt(event.block.timestamp);
+
+    const config = VAULT_CONFIGS[vaultAddress];
+    if (!config) {
+      context.log.warn(`Unknown vault address: ${vaultAddress}`);
+      return;
+    }
+
+    // Query the new strategy's multiRewardsAddress at this block
+    const newMultiRewards = await context.effect(getMultiRewardsAddress, {
+      strategyAddress: newStrategy,
+      blockNumber: BigInt(event.block.number),
+    });
+
+    // Mark old strategy as inactive
+    const oldStrategyId = `${BERACHAIN_ID}_${vaultAddress}_${oldStrategy}`;
+    const oldStrategyRecord = await context.SFVaultStrategy.get(oldStrategyId);
+    if (oldStrategyRecord) {
+      context.SFVaultStrategy.set({
+        ...oldStrategyRecord,
+        activeTo: timestamp,
+        isActive: false,
+      });
+    }
+
+    // Create new strategy record
+    const newStrategyId = `${BERACHAIN_ID}_${vaultAddress}_${newStrategy}`;
+    context.SFVaultStrategy.set({
+      id: newStrategyId,
+      vault: vaultAddress,
+      strategy: newStrategy,
+      multiRewards: newMultiRewards,
+      kitchenToken: config.kitchenToken,
+      kitchenTokenSymbol: config.kitchenTokenSymbol,
+      activeFrom: timestamp,
+      activeTo: undefined,
+      isActive: true,
+      chainId: BERACHAIN_ID,
+    });
+
+    // Update vault stats with new strategy
+    const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
+    const stats = await context.SFVaultStats.get(statsId);
+    if (stats) {
+      context.SFVaultStats.set({
+        ...stats,
+        strategy: newStrategy,
+        lastActivityAt: timestamp,
+      });
+    }
+
+    context.log.info(
+      `Strategy updated for vault ${vaultAddress}: ${oldStrategy} -> ${newStrategy} (MultiRewards: ${newMultiRewards})`
+    );
+
+    // Record action for activity feed
+    recordAction(context, {
+      actionType: "sf_strategy_updated",
+      actor: vaultAddress,
+      primaryCollection: vaultAddress,
+      timestamp,
+      chainId: BERACHAIN_ID,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      context: {
+        vault: vaultAddress,
+        oldStrategy,
+        newStrategy,
+        newMultiRewards,
+        kitchenTokenSymbol: config.kitchenTokenSymbol,
+      },
+    });
+  }
 );
 
 /**
@@ -98,6 +365,14 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
     const assets = event.params.assets; // Kitchen tokens deposited
     const shares = event.params.shares; // Vault shares received
 
+    // Ensure initial strategy record exists
+    await ensureInitialStrategy(context, vaultAddress);
+
+    // Get the current active strategy for this vault
+    const activeStrategy = await getActiveStrategy(context, vaultAddress);
+    const strategyAddress = activeStrategy?.strategy || config.strategy;
+    const multiRewardsAddress = activeStrategy?.multiRewards || config.multiRewards;
+
     // Create position ID
     const positionId = `${BERACHAIN_ID}_${owner}_${vaultAddress}`;
     const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
@@ -114,9 +389,9 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       id: positionId,
       user: owner,
       vault: vaultAddress,
-      multiRewards: config.multiRewards,
+      multiRewards: multiRewardsAddress,
       kitchenToken: config.kitchenToken,
-      strategy: config.strategy,
+      strategy: strategyAddress,
       kitchenTokenSymbol: config.kitchenTokenSymbol,
       vaultShares: BigInt(0),
       stakedShares: BigInt(0),
@@ -139,6 +414,9 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       totalShares: newTotalShares,
       totalDeposited: positionToUpdate.totalDeposited + assets,
       lastActivityAt: timestamp,
+      // Update strategy/multiRewards to current active one
+      strategy: strategyAddress,
+      multiRewards: multiRewardsAddress,
       // Only update firstDepositAt for new positions
       firstDepositAt: isNewPosition ? timestamp : positionToUpdate.firstDepositAt,
     };
@@ -151,7 +429,7 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       vault: vaultAddress,
       kitchenToken: config.kitchenToken,
       kitchenTokenSymbol: config.kitchenTokenSymbol,
-      strategy: config.strategy,
+      strategy: strategyAddress,
       totalDeposited: BigInt(0),
       totalWithdrawn: BigInt(0),
       totalStaked: BigInt(0),
@@ -302,14 +580,16 @@ export const handleSFVaultWithdraw = SFVaultERC4626.Withdraw.handler(
 export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
   async ({ event, context }) => {
     const multiRewardsAddress = event.srcAddress.toLowerCase();
-    const vaultAddress = MULTI_REWARDS_TO_VAULT[multiRewardsAddress];
 
-    if (!vaultAddress) {
+    // Look up vault from MultiRewards address
+    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+
+    if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
       return;
     }
 
-    const config = VAULT_CONFIGS[vaultAddress];
+    const { vault: vaultAddress, config } = vaultInfo;
     const timestamp = BigInt(event.block.timestamp);
     const user = event.params.user.toLowerCase();
     const amount = event.params.amount; // Vault shares staked
@@ -326,7 +606,6 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
 
     // Update position
     if (position) {
-      const previousStakedShares = position.stakedShares;
       const newStakedShares = position.stakedShares + amount;
 
       // When staking, shares move from vault to staked
@@ -349,12 +628,8 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
       };
       context.SFPosition.set(updatedPosition);
 
-      // Update active positions count in stats
+      // Update stats
       if (stats) {
-        // Active position = totalShares > 0 (regardless of staked vs unstaked)
-        // Note: We don't update activePositions here since staking doesn't change totalShares
-        // (shares just move from vault to staked). Deposit/withdraw handle this.
-
         const updatedStats = {
           ...stats,
           totalStaked: stats.totalStaked + amount,
@@ -390,14 +665,16 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
 export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
   async ({ event, context }) => {
     const multiRewardsAddress = event.srcAddress.toLowerCase();
-    const vaultAddress = MULTI_REWARDS_TO_VAULT[multiRewardsAddress];
 
-    if (!vaultAddress) {
+    // Look up vault from MultiRewards address
+    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+
+    if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
       return;
     }
 
-    const config = VAULT_CONFIGS[vaultAddress];
+    const { vault: vaultAddress, config } = vaultInfo;
     const timestamp = BigInt(event.block.timestamp);
     const user = event.params.user.toLowerCase();
     const amount = event.params.amount; // Vault shares unstaked
@@ -414,7 +691,6 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
 
     // Update position
     if (position) {
-      const previousStakedShares = position.stakedShares;
       let newStakedShares = position.stakedShares - amount;
 
       // Ensure stakedShares doesn't go negative
@@ -437,12 +713,8 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
       };
       context.SFPosition.set(updatedPosition);
 
-      // Update active positions count in stats
+      // Update stats
       if (stats) {
-        // Active position = totalShares > 0 (regardless of staked vs unstaked)
-        // Note: We don't update activePositions here since unstaking doesn't change totalShares
-        // (shares just move from staked to vault). Deposit/withdraw handle this.
-
         const updatedStats = {
           ...stats,
           totalUnstaked: stats.totalUnstaked + amount,
@@ -478,14 +750,16 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
 export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
   async ({ event, context }) => {
     const multiRewardsAddress = event.srcAddress.toLowerCase();
-    const vaultAddress = MULTI_REWARDS_TO_VAULT[multiRewardsAddress];
 
-    if (!vaultAddress) {
+    // Look up vault from MultiRewards address
+    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+
+    if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
       return;
     }
 
-    const config = VAULT_CONFIGS[vaultAddress];
+    const { vault: vaultAddress, config } = vaultInfo;
     const timestamp = BigInt(event.block.timestamp);
     const user = event.params.user.toLowerCase();
     const rewardsToken = event.params.rewardsToken.toLowerCase();
