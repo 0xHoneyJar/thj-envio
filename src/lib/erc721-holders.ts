@@ -1,6 +1,6 @@
 import { ZERO_ADDRESS } from "../handlers/constants";
 import type {
-  HandlerContext,
+  handlerContext,
   Holder,
   Token,
   Transfer,
@@ -26,7 +26,7 @@ export async function processErc721Transfer({
   collectionAddress,
 }: {
   event: Erc721TransferEventLike;
-  context: HandlerContext;
+  context: handlerContext;
   collectionAddress?: string;
 }) {
   const { params, srcAddress, transaction, block, logIndex, chainId } = event;
@@ -114,7 +114,7 @@ export async function processErc721Transfer({
 }
 
 async function updateHolder(
-  context: HandlerContext,
+  context: handlerContext,
   collection: string,
   chainId: number,
   address: string,
@@ -159,7 +159,7 @@ async function updateCollectionStats({
   fromHolderBefore,
   toHolderBefore,
 }: {
-  context: HandlerContext;
+  context: handlerContext;
   collection: string;
   chainId: number;
   from: string;

@@ -1,6 +1,6 @@
 import { MiberaStaking } from "generated";
 import type {
-  HandlerContext,
+  handlerContext,
   MiberaStakedToken as MiberaStakedTokenEntity,
   MiberaStaker as MiberaStakerEntity,
 } from "generated";
@@ -64,7 +64,7 @@ export const handleMiberaStakingTransfer = MiberaStaking.Transfer.handler(
 );
 
 interface DepositArgs {
-  context: HandlerContext;
+  context: handlerContext;
   stakingContract: string;
   stakingContractAddress: string;
   userAddress: string;
@@ -133,7 +133,7 @@ async function handleDeposit({
 }
 
 interface WithdrawalArgs {
-  context: HandlerContext;
+  context: handlerContext;
   stakingContract: string;
   stakingContractAddress: string;
   userAddress: string;

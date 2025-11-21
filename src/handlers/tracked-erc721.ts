@@ -1,6 +1,6 @@
 import { TrackedErc721 } from "generated";
 import type {
-  HandlerContext,
+  handlerContext,
   TrackedHolder as TrackedHolderEntity,
   MiberaStakedToken as MiberaStakedTokenEntity,
   MiberaStaker as MiberaStakerEntity,
@@ -119,7 +119,7 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
 );
 
 interface AdjustHolderArgs {
-  context: HandlerContext;
+  context: handlerContext;
   contractAddress: string;
   collectionKey: string;
   chainId: number;
@@ -201,7 +201,7 @@ async function adjustHolder({
 // Mibera staking helper types and functions
 
 interface MiberaStakeArgs {
-  context: HandlerContext;
+  context: handlerContext;
   stakingContract: string;
   stakingContractAddress: string;
   userAddress: string;
