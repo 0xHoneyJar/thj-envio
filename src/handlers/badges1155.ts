@@ -1,6 +1,6 @@
 import { CubBadges1155 } from "generated";
 import type {
-  HandlerContext,
+  handlerContext,
   BadgeHolder as BadgeHolderEntity,
   BadgeBalance as BadgeBalanceEntity,
   BadgeAmount as BadgeAmountEntity,
@@ -12,7 +12,7 @@ import { recordAction } from "../lib/actions";
 const ZERO = ZERO_ADDRESS.toLowerCase();
 
 interface BalanceAdjustmentArgs {
-  context: HandlerContext;
+  context: handlerContext;
   holderAddress: string;
   contractAddress: string;
   tokenId: bigint;
@@ -119,7 +119,7 @@ async function adjustBadgeBalances({
       return;
     }
 
-    appliedDelta = -removeAmount;
+    appliedDelta = -removeAmount; // Both are bigint now
     nextBalance = currentBalance - removeAmount;
   }
 

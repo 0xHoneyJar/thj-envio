@@ -1,4 +1,4 @@
-import type { Action, HandlerContext } from "generated";
+import type { Action, handlerContext } from "generated";
 
 type NumericInput = bigint | number | string | null | undefined;
 
@@ -101,7 +101,7 @@ const resolveId = (
 };
 
 export const recordAction = (
-  context: Pick<HandlerContext, "Action">,
+  context: Pick<handlerContext, "Action">,
   input: NormalizedActionInput
 ): void => {
   const action: Action = {

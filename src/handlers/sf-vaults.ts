@@ -12,6 +12,7 @@ import {
   SFPosition,
   SFVaultStats,
   SFVaultStrategy,
+  SFMultiRewardsPosition,
 } from "generated";
 
 import { experimental_createEffect, S } from "envio";
@@ -639,6 +640,31 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
       }
     }
 
+    // Track per-MultiRewards position
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
+
+    const updatedMultiRewardsPosition = multiRewardsPosition ? {
+      ...multiRewardsPosition,
+      stakedShares: multiRewardsPosition.stakedShares + amount,
+      totalStaked: multiRewardsPosition.totalStaked + amount,
+      lastActivityAt: timestamp,
+    } : {
+      id: multiRewardsPositionId,
+      user,
+      vault: vaultAddress,
+      multiRewards: multiRewardsAddress,
+      stakedShares: amount,
+      totalStaked: amount,
+      totalUnstaked: BigInt(0),
+      totalClaimed: BigInt(0),
+      firstStakeAt: timestamp,
+      lastActivityAt: timestamp,
+      chainId: BERACHAIN_ID,
+    };
+
+    context.SFMultiRewardsPosition.set(updatedMultiRewardsPosition);
+
     // Record action for activity feed
     recordAction(context, {
       actionType: "sf_rewards_stake",
@@ -724,6 +750,25 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
       }
     }
 
+    // Track per-MultiRewards position
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
+
+    if (multiRewardsPosition) {
+      let newStakedShares = multiRewardsPosition.stakedShares - amount;
+      if (newStakedShares < BigInt(0)) {
+        newStakedShares = BigInt(0);
+      }
+
+      const updatedMultiRewardsPosition = {
+        ...multiRewardsPosition,
+        stakedShares: newStakedShares,
+        totalUnstaked: multiRewardsPosition.totalUnstaked + amount,
+        lastActivityAt: timestamp,
+      };
+      context.SFMultiRewardsPosition.set(updatedMultiRewardsPosition);
+    }
+
     // Record action for activity feed
     recordAction(context, {
       actionType: "sf_rewards_unstake",
@@ -794,6 +839,19 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
         lastActivityAt: timestamp,
       };
       context.SFVaultStats.set(updatedStats);
+    }
+
+    // Track per-MultiRewards position claims
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
+
+    if (multiRewardsPosition) {
+      const updatedMultiRewardsPosition = {
+        ...multiRewardsPosition,
+        totalClaimed: multiRewardsPosition.totalClaimed + reward,
+        lastActivityAt: timestamp,
+      };
+      context.SFMultiRewardsPosition.set(updatedMultiRewardsPosition);
     }
 
     // Record action for activity feed

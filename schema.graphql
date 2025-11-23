@@ -486,6 +486,15 @@ type TradeStats {
 # ============================================================================
 
 # User's active position in a Set & Forgetti vault (stateful tracking)
+# IMPORTANT FIELDS EXPLANATION:
+# - totalDeposited & totalWithdrawn: Cumulative lifetime flows of kitchen tokens
+#   * Use (totalDeposited - totalWithdrawn) to check if user has net deposits
+# - vaultShares: Current unstaked vault shares in user's wallet
+# - stakedShares: AGGREGATE of shares staked across ALL MultiRewards for this vault
+#   * This is the SUM of all SFMultiRewardsPosition.stakedShares for this user+vault
+#   * Does NOT show which MultiRewards contract holds which shares
+#   * For per-MultiRewards breakdown, query SFMultiRewardsPosition entities
+# - totalShares: Total ownership = vaultShares + stakedShares
 type SFPosition {
   id: ID!                     # {chainId}_{user}_{vault}
   user: String!               # User address (lowercase)
@@ -495,10 +504,10 @@ type SFPosition {
   strategy: String!           # BeradromeStrategy address (lowercase)
   kitchenTokenSymbol: String! # Token symbol (e.g., "HLKD1B")
   vaultShares: BigInt!        # Current vault shares in user's wallet (not staked)
-  stakedShares: BigInt!       # Current staked vault shares in MultiRewards
+  stakedShares: BigInt!       # Current staked vault shares in MultiRewards (aggregate across all generations)
   totalShares: BigInt!        # Total shares owned (vaultShares + stakedShares)
-  totalDeposited: BigInt!     # Lifetime kitchen tokens deposited into vault
-  totalWithdrawn: BigInt!     # Lifetime kitchen tokens withdrawn from vault
+  totalDeposited: BigInt!     # Lifetime kitchen tokens deposited into vault (cumulative flow)
+  totalWithdrawn: BigInt!     # Lifetime kitchen tokens withdrawn from vault (cumulative flow)
   totalClaimed: BigInt!       # Lifetime HENLO rewards claimed
   firstDepositAt: BigInt!     # Timestamp of first deposit
   lastActivityAt: BigInt!     # Timestamp of most recent activity
@@ -524,6 +533,29 @@ type SFVaultStats {
   claimCount: Int!            # Total number of claim transactions
   firstDepositAt: BigInt      # Timestamp of first vault deposit
   lastActivityAt: BigInt!     # Timestamp of most recent activity
+  chainId: Int!
+}
+
+# Tracks user staking in individual MultiRewards contracts
+# Linked to SFPosition via user+vault to show breakdown across old/new MultiRewards
+# IMPORTANT: This entity tracks PER-MULTIREWARDS positions separately
+# - When vaults migrate strategies, new MultiRewards contracts are created
+# - Users may have stakedShares > 0 in MULTIPLE MultiRewards for the same vault
+# - To identify migration opportunities:
+#   1. Query SFMultiRewardsPosition where stakedShares > 0
+#   2. Check SFVaultStrategy to see if that multiRewards has activeTo != null (inactive)
+#   3. If inactive && stakedShares > 0, user needs to migrate to the new MultiRewards
+type SFMultiRewardsPosition {
+  id: ID!                     # {chainId}_{user}_{multiRewards}
+  user: String!               # User address (lowercase)
+  vault: String!              # Vault address this MultiRewards belongs to
+  multiRewards: String!       # MultiRewards contract address (lowercase)
+  stakedShares: BigInt!       # Current shares staked in THIS specific MultiRewards contract
+  totalStaked: BigInt!        # Cumulative shares ever staked in this MultiRewards (lifetime flow)
+  totalUnstaked: BigInt!      # Cumulative shares ever unstaked from this MultiRewards (lifetime flow)
+  totalClaimed: BigInt!       # HENLO claimed from THIS MultiRewards
+  firstStakeAt: BigInt        # First stake timestamp
+  lastActivityAt: BigInt!     # Last activity timestamp
   chainId: Int!
 }
 

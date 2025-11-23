@@ -69,6 +69,9 @@ import {
 // Tracked ERC-20 token balance handler (HENLO + HENLOCKED tiers)
 import { handleTrackedErc20Transfer } from "./handlers/tracked-erc20";
 
+// HenloVault mint handler (captures HENLOCKED token initial distribution)
+import { handleHenloVaultMint } from "./handlers/henlo-vault";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -143,6 +146,9 @@ export { handleSFMultiRewardsRewardPaid };
 
 // Tracked ERC-20 token balance handler
 export { handleTrackedErc20Transfer };
+
+// HenloVault mint handler
+export { handleHenloVaultMint };
 
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting

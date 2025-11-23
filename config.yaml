@@ -251,6 +251,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # HenloVault for tracking HENLOCKED token mints
+  - name: HenloVault
+    handler: src/EventHandlers.ts
+    events:
+      - event: Mint(address indexed user, uint256 indexed strike, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
   # Tracked ERC-20 tokens for balance tracking (HENLO + HENLOCKED tiers)
   - name: TrackedErc20
     handler: src/EventHandlers.ts
@@ -423,6 +431,10 @@ networks:
           - 0x0c1928130465DDc7EBEa199b273Da0B38B31EfFB # HLKD420M MultiRewards
           - 0x5B330C1aFB81Cc9B4a8c71252aE0FBB9F3068FB7 # HLKD330M MultiRewards
           - 0xBcA0546B61cD5F3855981B6D5aFbDA32372d931B # HLKD100M MultiRewards
+      # HenloVault for tracking HENLOCKED token mints
+      - name: HenloVault
+        address:
+          - 0x42069E3BF367C403b632CF9cD5a8d61e2c0c44fC # HenloVault
       # Tracked ERC-20 tokens for balance tracking (HENLO + HENLOCKED tiers)
       - name: TrackedErc20
         address:
