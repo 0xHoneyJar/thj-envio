@@ -66,6 +66,9 @@ import {
   handleSFMultiRewardsRewardPaid,
 } from "./handlers/sf-vaults";
 
+// Tracked ERC-20 token balance handler (HENLO + HENLOCKED tiers)
+import { handleTrackedErc20Transfer } from "./handlers/tracked-erc20";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -137,6 +140,9 @@ export { handleSFVaultStrategyUpdated };
 export { handleSFMultiRewardsStaked };
 export { handleSFMultiRewardsWithdrawn };
 export { handleSFMultiRewardsRewardPaid };
+
+// Tracked ERC-20 token balance handler
+export { handleTrackedErc20Transfer };
 
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting

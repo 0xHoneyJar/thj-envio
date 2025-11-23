@@ -574,3 +574,17 @@ type MiberaStaker {
   lastActivityTime: BigInt!
   chainId: Int!
 }
+
+# ============================
+# TRACKED ERC-20 TOKEN BALANCES
+# ============================
+
+type TrackedTokenBalance {
+  id: ID!  # {address}_{tokenAddress}_{chainId}
+  address: String!  # Holder address (lowercase)
+  tokenAddress: String!  # Token contract address (lowercase)
+  tokenKey: String!  # Human-readable key (e.g., "henlo", "hlkd1b")
+  chainId: Int!
+  balance: BigInt!  # Current balance
+  lastUpdated: BigInt!
+}
