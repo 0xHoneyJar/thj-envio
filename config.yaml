@@ -66,17 +66,6 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # Henlo Token for burn tracking and holder tracking
-  - name: HenloToken
-    handler: src/EventHandlers.ts
-    events:
-      # Track ALL transfers for holder tracking and burns
-      - event: Transfer(address indexed from, address indexed to, uint256 value)
-        field_selection:
-          transaction_fields:
-            - hash
-            - from
-            - to
   # Aquabera Forwarder for wall tracking
   - name: AquaberaVault
     handler: src/EventHandlers.ts
@@ -259,7 +248,7 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # Tracked ERC-20 tokens for balance tracking (HENLO + HENLOCKED tiers)
+  # Tracked ERC-20 tokens for balance + burn tracking (HENLO + HENLOCKED tiers)
   - name: TrackedErc20
     handler: src/EventHandlers.ts
     events:
@@ -267,6 +256,8 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+            - from  # Required for burn tracking
+            - to    # Required for source detection
 
 networks:
   # Ethereum Mainnet
@@ -332,10 +323,6 @@ networks:
   - id: 80094
     start_block: 866405 # Using the start block from the HoneyJar contracts (SF vaults use 12134222 for earliest deployment)
     contracts:
-      # HenloToken on Berachain Mainnet for burn and holder tracking
-      - name: HenloToken
-        address:
-          - 0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5 # Henlo token mainnet
       # AquaberaVault forwarder on Berachain Mainnet
       - name: AquaberaVault
         address:

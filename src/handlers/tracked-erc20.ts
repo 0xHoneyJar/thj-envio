@@ -1,17 +1,17 @@
 /*
- * Tracked ERC-20 Token Balance Handler
+ * Unified ERC-20 Token Handler
  * Tracks token balances for HENLO and HENLOCKED tier tokens
- * Used for CubQuests mission verification (holdToken action)
+ * Also handles burn tracking and holder stats for HENLO token
  */
 
 import { TrackedTokenBalance, TrackedErc20 } from "generated";
-import { TRACKED_ERC20_TOKEN_KEYS } from "./tracked-erc20/constants";
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+import { TOKEN_CONFIGS } from "./tracked-erc20/token-config";
+import { isBurnTransfer, trackBurn, ZERO_ADDRESS } from "./tracked-erc20/burn-tracking";
+import { updateHolderBalances, updateHolderStats } from "./tracked-erc20/holder-stats";
 
 /**
  * Handles ERC-20 Transfer events for tracked tokens
- * Updates TrackedTokenBalance records for both sender and receiver
+ * Routes to appropriate feature handlers based on token config
  */
 export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
   async ({ event, context }) => {
@@ -20,9 +20,9 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
     const chainId = event.chainId;
     const tokenAddress = event.srcAddress.toLowerCase();
 
-    // Get token key from address
-    const tokenKey = TRACKED_ERC20_TOKEN_KEYS[tokenAddress];
-    if (!tokenKey) {
+    // Get token config from address
+    const config = TOKEN_CONFIGS[tokenAddress];
+    if (!config) {
       // Token not in our tracked list, skip
       return;
     }
@@ -32,60 +32,104 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
     const toLower = to.toLowerCase();
     const zeroAddress = ZERO_ADDRESS.toLowerCase();
 
-    // Handle sender (decrease balance) - skip if mint (from zero address)
-    if (fromLower !== zeroAddress) {
-      const fromId = `${fromLower}_${tokenAddress}_${chainId}`;
-      const fromBalance = await context.TrackedTokenBalance.get(fromId);
+    // 1. Balance tracking (ALL tokens)
+    await updateBalance(
+      context,
+      tokenAddress,
+      config.key,
+      chainId,
+      fromLower,
+      toLower,
+      value,
+      timestamp,
+      zeroAddress
+    );
 
-      if (fromBalance) {
-        const newBalance = fromBalance.balance - value;
-        const updatedFromBalance: TrackedTokenBalance = {
-          ...fromBalance,
-          balance: newBalance,
-          lastUpdated: timestamp,
-        };
-        context.TrackedTokenBalance.set(updatedFromBalance);
-      } else {
-        // Create record with negative balance (shouldn't happen in practice)
-        const newFromBalance: TrackedTokenBalance = {
-          id: fromId,
-          address: fromLower,
-          tokenAddress,
-          tokenKey,
-          chainId,
-          balance: -value,
-          lastUpdated: timestamp,
-        };
-        context.TrackedTokenBalance.set(newFromBalance);
+    // 2. Holder stats (if enabled - HENLO only)
+    if (config.holderStats) {
+      const { holderDelta, supplyDelta } = await updateHolderBalances(event, context, config);
+
+      // Update holder statistics if there were changes
+      if (holderDelta !== 0 || supplyDelta !== BigInt(0)) {
+        await updateHolderStats(context, chainId, holderDelta, supplyDelta, timestamp);
       }
     }
 
-    // Handle receiver (increase balance) - skip if burn (to zero address)
-    if (toLower !== zeroAddress) {
-      const toId = `${toLower}_${tokenAddress}_${chainId}`;
-      const toBalance = await context.TrackedTokenBalance.get(toId);
-
-      if (toBalance) {
-        const newBalance = toBalance.balance + value;
-        const updatedToBalance: TrackedTokenBalance = {
-          ...toBalance,
-          balance: newBalance,
-          lastUpdated: timestamp,
-        };
-        context.TrackedTokenBalance.set(updatedToBalance);
-      } else {
-        // Create new record for first-time holder
-        const newToBalance: TrackedTokenBalance = {
-          id: toId,
-          address: toLower,
-          tokenAddress,
-          tokenKey,
-          chainId,
-          balance: value,
-          lastUpdated: timestamp,
-        };
-        context.TrackedTokenBalance.set(newToBalance);
-      }
+    // 3. Burn tracking (if enabled + is burn)
+    if (config.burnTracking && isBurnTransfer(toLower)) {
+      await trackBurn(event, context, config, fromLower, toLower);
     }
   }
 );
+
+/**
+ * Updates TrackedTokenBalance records for sender and receiver
+ */
+async function updateBalance(
+  context: any,
+  tokenAddress: string,
+  tokenKey: string,
+  chainId: number,
+  fromLower: string,
+  toLower: string,
+  value: bigint,
+  timestamp: bigint,
+  zeroAddress: string
+) {
+  // Handle sender (decrease balance) - skip if mint (from zero address)
+  if (fromLower !== zeroAddress) {
+    const fromId = `${fromLower}_${tokenAddress}_${chainId}`;
+    const fromBalance = await context.TrackedTokenBalance.get(fromId);
+
+    if (fromBalance) {
+      const newBalance = fromBalance.balance - value;
+      const updatedFromBalance: TrackedTokenBalance = {
+        ...fromBalance,
+        balance: newBalance,
+        lastUpdated: timestamp,
+      };
+      context.TrackedTokenBalance.set(updatedFromBalance);
+    } else {
+      // Create record with negative balance (shouldn't happen in practice)
+      const newFromBalance: TrackedTokenBalance = {
+        id: fromId,
+        address: fromLower,
+        tokenAddress,
+        tokenKey,
+        chainId,
+        balance: -value,
+        lastUpdated: timestamp,
+      };
+      context.TrackedTokenBalance.set(newFromBalance);
+    }
+  }
+
+  // Handle receiver (increase balance) - skip if burn (to zero address)
+  // Note: We still track burns in TrackedTokenBalance for completeness
+  if (toLower !== zeroAddress) {
+    const toId = `${toLower}_${tokenAddress}_${chainId}`;
+    const toBalance = await context.TrackedTokenBalance.get(toId);
+
+    if (toBalance) {
+      const newBalance = toBalance.balance + value;
+      const updatedToBalance: TrackedTokenBalance = {
+        ...toBalance,
+        balance: newBalance,
+        lastUpdated: timestamp,
+      };
+      context.TrackedTokenBalance.set(updatedToBalance);
+    } else {
+      // Create new record for first-time holder
+      const newToBalance: TrackedTokenBalance = {
+        id: toId,
+        address: toLower,
+        tokenAddress,
+        tokenKey,
+        chainId,
+        balance: value,
+        lastUpdated: timestamp,
+      };
+      context.TrackedTokenBalance.set(newToBalance);
+    }
+  }
+}
