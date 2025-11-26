@@ -14,7 +14,7 @@ import { TokenConfig } from "./token-config";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
-const BERACHAIN_MAINNET_ID = 80084;
+const BERACHAIN_MAINNET_ID = 80094;
 
 type ExtendedHenloBurnStats = HenloBurnStats & { uniqueBurners?: number };
 type ExtendedHenloGlobalBurnStats = HenloGlobalBurnStats & {

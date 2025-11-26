@@ -47,17 +47,25 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
 
     // 2. Holder stats (if enabled - HENLO only)
     if (config.holderStats) {
-      const { holderDelta, supplyDelta } = await updateHolderBalances(event, context, config);
+      try {
+        const { holderDelta, supplyDelta } = await updateHolderBalances(event, context, config);
 
-      // Update holder statistics if there were changes
-      if (holderDelta !== 0 || supplyDelta !== BigInt(0)) {
-        await updateHolderStats(context, chainId, holderDelta, supplyDelta, timestamp);
+        // Update holder statistics if there were changes
+        if (holderDelta !== 0 || supplyDelta !== BigInt(0)) {
+          await updateHolderStats(context, chainId, holderDelta, supplyDelta, timestamp);
+        }
+      } catch (error) {
+        console.error('[TrackedErc20] Holder stats error:', tokenAddress, error);
       }
     }
 
     // 3. Burn tracking (if enabled + is burn)
     if (config.burnTracking && isBurnTransfer(toLower)) {
-      await trackBurn(event, context, config, fromLower, toLower);
+      try {
+        await trackBurn(event, context, config, fromLower, toLower);
+      } catch (error) {
+        console.error('[TrackedErc20] Burn tracking error:', tokenAddress, error);
+      }
     }
   }
 );
