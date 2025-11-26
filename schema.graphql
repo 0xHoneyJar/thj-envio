@@ -620,3 +620,82 @@ type TrackedTokenBalance {
   balance: BigInt!  # Current balance
   lastUpdated: BigInt!
 }
+
+# ============================
+# HENLOCKER VAULT SYSTEM
+# ============================
+
+# Vault round (per strike price per epoch)
+type HenloVaultRound {
+  id: ID!                      # {strike}_{epochId}_{chainId}
+  strike: BigInt!              # Strike price
+  epochId: BigInt!             # Epoch ID
+  exists: Boolean!
+  closed: Boolean!
+  depositsPaused: Boolean!
+  timestamp: BigInt!           # When round was opened
+  depositLimit: BigInt!        # Maximum deposit capacity
+  totalDeposits: BigInt!       # Total deposited amount
+  whaleDeposits: BigInt!       # Deposits from reservoir (whale matching)
+  userDeposits: BigInt!        # Regular user deposits
+  remainingCapacity: BigInt!   # depositLimit - totalDeposits
+  canRedeem: Boolean!          # Can users redeem from this round
+  chainId: Int!
+}
+
+# Individual deposit record
+type HenloVaultDeposit {
+  id: ID!                      # {txHash}_{logIndex}
+  user: String!                # User address (lowercase)
+  strike: BigInt!              # Strike price
+  epochId: BigInt!             # Epoch ID
+  amount: BigInt!              # Deposit amount
+  timestamp: BigInt!           # When deposit occurred
+  transactionHash: String!     # Transaction hash
+  chainId: Int!
+}
+
+# User balance per strike
+type HenloVaultBalance {
+  id: ID!                      # {user}_{strike}_{chainId}
+  user: String!                # User address (lowercase)
+  strike: BigInt!              # Strike price
+  balance: BigInt!             # Current balance for this strike
+  lastUpdated: BigInt!         # Last update timestamp
+  chainId: Int!
+}
+
+# Epoch-level aggregates
+type HenloVaultEpoch {
+  id: ID!                      # {epochId}_{chainId}
+  epochId: BigInt!             # Epoch ID
+  strike: BigInt!              # Associated strike
+  closed: Boolean!             # Epoch closed
+  depositsPaused: Boolean!     # Deposits paused
+  timestamp: BigInt!           # When epoch created
+  depositLimit: BigInt!        # Deposit limit
+  totalDeposits: BigInt!       # Total user deposits
+  reservoir: String!           # Reservoir contract address
+  totalWhitelistDeposit: BigInt!  # Whitelist deposit total
+  totalMatched: BigInt!        # Matched amounts from reservoir
+  chainId: Int!
+}
+
+# Global vault statistics (singleton per chain)
+type HenloVaultStats {
+  id: ID!                      # chainId as string
+  totalDeposits: BigInt!       # Sum of all deposits
+  totalUsers: Int!             # Count of unique users
+  totalRounds: Int!            # Count of rounds created
+  totalEpochs: Int!            # Count of epochs created
+  chainId: Int!
+}
+
+# Tracks unique users who have deposited
+type HenloVaultUser {
+  id: ID!                      # {user}_{chainId}
+  user: String!                # User address (lowercase)
+  firstDepositTime: BigInt     # First deposit timestamp
+  lastActivityTime: BigInt!    # Last activity timestamp
+  chainId: Int!
+}

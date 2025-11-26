@@ -1,10 +1,21 @@
 /*
- * HenloVault Mint Event Handler
- * Tracks initial HENLOCKED token mints from the HenloVault
- * This captures the initial token distribution that isn't emitted as standard ERC-20 Transfer events
+ * HenloVault Event Handlers
+ *
+ * Handles two systems:
+ * 1. HENLOCKED token mints - Tracks initial token distribution via TrackedTokenBalance
+ * 2. Henlocker vault system - Tracks rounds, deposits, balances, epochs, and stats
  */
 
-import { TrackedTokenBalance, HenloVault } from "generated";
+import {
+  TrackedTokenBalance,
+  HenloVault,
+  HenloVaultRound,
+  HenloVaultDeposit,
+  HenloVaultBalance,
+  HenloVaultEpoch,
+  HenloVaultStats,
+  HenloVaultUser,
+} from "generated";
 
 // Map strike values to HENLOCKED token addresses and keys
 // Strike represents FDV target in thousands (e.g., 100000 = $100M FDV)
@@ -31,15 +42,76 @@ const STRIKE_TO_TOKEN: Record<string, { address: string; key: string }> = {
   },
 };
 
+// ============================
+// Helper Functions
+// ============================
+
+/**
+ * Get or create HenloVaultStats singleton for a chain
+ */
+async function getOrCreateStats(
+  context: any,
+  chainId: number,
+  timestamp: bigint
+): Promise<HenloVaultStats> {
+  const statsId = chainId.toString();
+  let stats = await context.HenloVaultStats.get(statsId);
+
+  if (!stats) {
+    stats = {
+      id: statsId,
+      totalDeposits: BigInt(0),
+      totalUsers: 0,
+      totalRounds: 0,
+      totalEpochs: 0,
+      chainId,
+    };
+  }
+
+  return stats;
+}
+
+/**
+ * Get or create HenloVaultUser for tracking unique depositors
+ */
+async function getOrCreateUser(
+  context: any,
+  user: string,
+  chainId: number,
+  timestamp: bigint
+): Promise<{ vaultUser: HenloVaultUser; isNew: boolean }> {
+  const userId = `${user}_${chainId}`;
+  let vaultUser = await context.HenloVaultUser.get(userId);
+  const isNew = !vaultUser;
+
+  if (!vaultUser) {
+    vaultUser = {
+      id: userId,
+      user,
+      firstDepositTime: timestamp,
+      lastActivityTime: timestamp,
+      chainId,
+    };
+  }
+
+  return { vaultUser, isNew };
+}
+
+// ============================
+// HENLOCKED Token Mint Handler
+// ============================
+
 /**
  * Handles HenloVault Mint events
  * Creates/updates TrackedTokenBalance for the user when they receive HENLOCKED tokens
+ * Also creates deposit records for the Henlocker vault system
  */
 export const handleHenloVaultMint = HenloVault.Mint.handler(
   async ({ event, context }) => {
     const { user, strike, amount } = event.params;
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
+    const userLower = user.toLowerCase();
 
     // Get token info from strike value
     const strikeKey = strike.toString();
@@ -52,14 +124,12 @@ export const handleHenloVaultMint = HenloVault.Mint.handler(
     }
 
     const { address: tokenAddress, key: tokenKey } = tokenInfo;
-    const userLower = user.toLowerCase();
 
-    // Create or update TrackedTokenBalance
+    // 1. Update TrackedTokenBalance (HENLOCKED token tracking)
     const balanceId = `${userLower}_${tokenAddress}_${chainId}`;
     const existingBalance = await context.TrackedTokenBalance.get(balanceId);
 
     if (existingBalance) {
-      // Add to existing balance
       const updatedBalance: TrackedTokenBalance = {
         ...existingBalance,
         balance: existingBalance.balance + amount,
@@ -67,7 +137,6 @@ export const handleHenloVaultMint = HenloVault.Mint.handler(
       };
       context.TrackedTokenBalance.set(updatedBalance);
     } else {
-      // Create new balance record
       const newBalance: TrackedTokenBalance = {
         id: balanceId,
         address: userLower,
@@ -79,5 +148,328 @@ export const handleHenloVaultMint = HenloVault.Mint.handler(
       };
       context.TrackedTokenBalance.set(newBalance);
     }
+
+    // 2. Create HenloVaultDeposit record
+    const depositId = `${event.transaction.hash}_${event.logIndex}`;
+
+    // We need to find the epochId from the round
+    // For now, use 0 as default - this will be updated when we have round context
+    const roundId = `${strike}_0_${chainId}`;
+    const round = await context.HenloVaultRound.get(roundId);
+    const epochId = round ? round.epochId : BigInt(0);
+
+    const deposit: HenloVaultDeposit = {
+      id: depositId,
+      user: userLower,
+      strike: strike,
+      epochId: epochId,
+      amount: amount,
+      timestamp: timestamp,
+      transactionHash: event.transaction.hash,
+      chainId,
+    };
+    context.HenloVaultDeposit.set(deposit);
+
+    // 3. Update HenloVaultBalance
+    const vaultBalanceId = `${userLower}_${strike}_${chainId}`;
+    const existingVaultBalance = await context.HenloVaultBalance.get(vaultBalanceId);
+
+    if (existingVaultBalance) {
+      const updatedVaultBalance: HenloVaultBalance = {
+        ...existingVaultBalance,
+        balance: existingVaultBalance.balance + amount,
+        lastUpdated: timestamp,
+      };
+      context.HenloVaultBalance.set(updatedVaultBalance);
+    } else {
+      const newVaultBalance: HenloVaultBalance = {
+        id: vaultBalanceId,
+        user: userLower,
+        strike: strike,
+        balance: amount,
+        lastUpdated: timestamp,
+        chainId,
+      };
+      context.HenloVaultBalance.set(newVaultBalance);
+    }
+
+    // 4. Update HenloVaultRound (if exists)
+    if (round) {
+      const updatedRound: HenloVaultRound = {
+        ...round,
+        totalDeposits: round.totalDeposits + amount,
+        userDeposits: round.userDeposits + amount,
+        remainingCapacity: round.depositLimit - (round.totalDeposits + amount),
+      };
+      context.HenloVaultRound.set(updatedRound);
+    }
+
+    // 5. Update HenloVaultStats
+    const stats = await getOrCreateStats(context, chainId, timestamp);
+    const { vaultUser, isNew } = await getOrCreateUser(context, userLower, chainId, timestamp);
+
+    const updatedStats: HenloVaultStats = {
+      ...stats,
+      totalDeposits: stats.totalDeposits + amount,
+      totalUsers: isNew ? stats.totalUsers + 1 : stats.totalUsers,
+    };
+    context.HenloVaultStats.set(updatedStats);
+
+    // Update user activity
+    const updatedUser: HenloVaultUser = {
+      ...vaultUser,
+      lastActivityTime: timestamp,
+    };
+    context.HenloVaultUser.set(updatedUser);
+  }
+);
+
+// ============================
+// Henlocker Vault Round Handlers
+// ============================
+
+/**
+ * Handles RoundOpened events - Creates a new vault round
+ */
+export const handleHenloVaultRoundOpened = HenloVault.RoundOpened.handler(
+  async ({ event, context }) => {
+    const { epochId, strike, depositLimit } = event.params;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+
+    const roundId = `${strike}_${epochId}_${chainId}`;
+
+    const round: HenloVaultRound = {
+      id: roundId,
+      strike: BigInt(strike),
+      epochId: BigInt(epochId),
+      exists: true,
+      closed: false,
+      depositsPaused: false,
+      timestamp: timestamp,
+      depositLimit: depositLimit,
+      totalDeposits: BigInt(0),
+      whaleDeposits: BigInt(0),
+      userDeposits: BigInt(0),
+      remainingCapacity: depositLimit,
+      canRedeem: false,
+      chainId,
+    };
+
+    context.HenloVaultRound.set(round);
+
+    // Update stats
+    const stats = await getOrCreateStats(context, chainId, timestamp);
+    const updatedStats: HenloVaultStats = {
+      ...stats,
+      totalRounds: stats.totalRounds + 1,
+    };
+    context.HenloVaultStats.set(updatedStats);
+  }
+);
+
+/**
+ * Handles RoundClosed events - Marks round as closed
+ */
+export const handleHenloVaultRoundClosed = HenloVault.RoundClosed.handler(
+  async ({ event, context }) => {
+    const { epochId, strike } = event.params;
+    const chainId = event.chainId;
+
+    const roundId = `${strike}_${epochId}_${chainId}`;
+    const round = await context.HenloVaultRound.get(roundId);
+
+    if (round) {
+      const updatedRound: HenloVaultRound = {
+        ...round,
+        closed: true,
+        canRedeem: true,
+      };
+      context.HenloVaultRound.set(updatedRound);
+    }
+  }
+);
+
+/**
+ * Handles DepositsPaused events
+ */
+export const handleHenloVaultDepositsPaused = HenloVault.DepositsPaused.handler(
+  async ({ event, context }) => {
+    const { epochId, strike } = event.params;
+    const chainId = event.chainId;
+
+    const roundId = `${strike}_${epochId}_${chainId}`;
+    const round = await context.HenloVaultRound.get(roundId);
+
+    if (round) {
+      const updatedRound: HenloVaultRound = {
+        ...round,
+        depositsPaused: true,
+      };
+      context.HenloVaultRound.set(updatedRound);
+    }
+
+    // Also update epoch
+    const epochEntityId = `${epochId}_${chainId}`;
+    const epoch = await context.HenloVaultEpoch.get(epochEntityId);
+    if (epoch) {
+      const updatedEpoch: HenloVaultEpoch = {
+        ...epoch,
+        depositsPaused: true,
+      };
+      context.HenloVaultEpoch.set(updatedEpoch);
+    }
+  }
+);
+
+/**
+ * Handles DepositsUnpaused events
+ */
+export const handleHenloVaultDepositsUnpaused = HenloVault.DepositsUnpaused.handler(
+  async ({ event, context }) => {
+    const { epochId, strike } = event.params;
+    const chainId = event.chainId;
+
+    const roundId = `${strike}_${epochId}_${chainId}`;
+    const round = await context.HenloVaultRound.get(roundId);
+
+    if (round) {
+      const updatedRound: HenloVaultRound = {
+        ...round,
+        depositsPaused: false,
+      };
+      context.HenloVaultRound.set(updatedRound);
+    }
+
+    // Also update epoch
+    const epochEntityId = `${epochId}_${chainId}`;
+    const epoch = await context.HenloVaultEpoch.get(epochEntityId);
+    if (epoch) {
+      const updatedEpoch: HenloVaultEpoch = {
+        ...epoch,
+        depositsPaused: false,
+      };
+      context.HenloVaultEpoch.set(updatedEpoch);
+    }
+  }
+);
+
+/**
+ * Handles MintFromReservoir events - Whale/reservoir deposits
+ */
+export const handleHenloVaultMintFromReservoir = HenloVault.MintFromReservoir.handler(
+  async ({ event, context }) => {
+    const { reservoir, strike, amount } = event.params;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+
+    // Find the round for this strike (need to find active epoch)
+    // For now, search for any open round with this strike
+    // This is a simplification - in production we'd need to track the current epoch
+    const roundId = `${strike}_0_${chainId}`;
+    const round = await context.HenloVaultRound.get(roundId);
+
+    if (round) {
+      const updatedRound: HenloVaultRound = {
+        ...round,
+        totalDeposits: round.totalDeposits + amount,
+        whaleDeposits: round.whaleDeposits + amount,
+        remainingCapacity: round.depositLimit - (round.totalDeposits + amount),
+      };
+      context.HenloVaultRound.set(updatedRound);
+    }
+
+    // Update stats
+    const stats = await getOrCreateStats(context, chainId, timestamp);
+    const updatedStats: HenloVaultStats = {
+      ...stats,
+      totalDeposits: stats.totalDeposits + amount,
+    };
+    context.HenloVaultStats.set(updatedStats);
+  }
+);
+
+/**
+ * Handles Redeem events - User withdrawals
+ */
+export const handleHenloVaultRedeem = HenloVault.Redeem.handler(
+  async ({ event, context }) => {
+    const { user, strike, amount } = event.params;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+    const userLower = user.toLowerCase();
+
+    // Update HenloVaultBalance
+    const vaultBalanceId = `${userLower}_${strike}_${chainId}`;
+    const existingVaultBalance = await context.HenloVaultBalance.get(vaultBalanceId);
+
+    if (existingVaultBalance) {
+      const newBalance = existingVaultBalance.balance - amount;
+      const updatedVaultBalance: HenloVaultBalance = {
+        ...existingVaultBalance,
+        balance: newBalance > BigInt(0) ? newBalance : BigInt(0),
+        lastUpdated: timestamp,
+      };
+      context.HenloVaultBalance.set(updatedVaultBalance);
+    }
+
+    // Update user activity
+    const userId = `${userLower}_${chainId}`;
+    const vaultUser = await context.HenloVaultUser.get(userId);
+    if (vaultUser) {
+      const updatedUser: HenloVaultUser = {
+        ...vaultUser,
+        lastActivityTime: timestamp,
+      };
+      context.HenloVaultUser.set(updatedUser);
+    }
+  }
+);
+
+/**
+ * Handles ReservoirSet events - Creates/updates epoch with reservoir
+ */
+export const handleHenloVaultReservoirSet = HenloVault.ReservoirSet.handler(
+  async ({ event, context }) => {
+    const { epochId, strike, reservoir } = event.params;
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+
+    const epochEntityId = `${epochId}_${chainId}`;
+    let epoch = await context.HenloVaultEpoch.get(epochEntityId);
+
+    if (!epoch) {
+      // Create new epoch
+      epoch = {
+        id: epochEntityId,
+        epochId: BigInt(epochId),
+        strike: BigInt(strike),
+        closed: false,
+        depositsPaused: false,
+        timestamp: timestamp,
+        depositLimit: BigInt(0),
+        totalDeposits: BigInt(0),
+        reservoir: reservoir.toLowerCase(),
+        totalWhitelistDeposit: BigInt(0),
+        totalMatched: BigInt(0),
+        chainId,
+      };
+
+      // Update stats
+      const stats = await getOrCreateStats(context, chainId, timestamp);
+      const updatedStats: HenloVaultStats = {
+        ...stats,
+        totalEpochs: stats.totalEpochs + 1,
+      };
+      context.HenloVaultStats.set(updatedStats);
+    } else {
+      // Update existing epoch with reservoir
+      epoch = {
+        ...epoch,
+        reservoir: reservoir.toLowerCase(),
+      };
+    }
+
+    context.HenloVaultEpoch.set(epoch);
   }
 );

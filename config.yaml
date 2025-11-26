@@ -240,11 +240,41 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # HenloVault for tracking HENLOCKED token mints
+  # HenloVault for tracking HENLOCKED token mints AND Henlocker vault system
   - name: HenloVault
     handler: src/EventHandlers.ts
     events:
+      # Original Mint event for HENLOCKED token tracking
       - event: Mint(address indexed user, uint256 indexed strike, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      # Henlocker vault events
+      - event: RoundOpened(uint48 indexed epochId, uint64 indexed strike, uint256 depositLimit)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: RoundClosed(uint48 indexed epochId, uint64 indexed strike)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: DepositsPaused(uint48 indexed epochId, uint64 indexed strike)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: DepositsUnpaused(uint48 indexed epochId, uint64 indexed strike)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: MintFromReservoir(address indexed reservoir, uint64 indexed strike, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Redeem(address indexed user, uint64 indexed strike, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: ReservoirSet(uint48 indexed epochId, uint64 indexed strike, address indexed reservoir)
         field_selection:
           transaction_fields:
             - hash
