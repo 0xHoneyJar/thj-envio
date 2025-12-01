@@ -11,4 +11,5 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
   "0xaab7b4502251ae393d0590bab3e208e2d58f4813": "mireveal_6_6",
   "0xc64126ea8dc7626c16daa2a29d375c33fcaa4c7c": "mireveal_7_7",
   "0x24f4047d372139de8dacbe79e2fc576291ec3ffc": "mireveal_8_8",
+  "0x427a8f2e608e185eece69aca15e535cd6c36aad8": "mibera_zora",
 };

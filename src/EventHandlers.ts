@@ -94,6 +94,21 @@ import {
 // Mibera Collection handlers (transfer/mint tracking)
 import { handleMiberaCollectionTransfer } from "./handlers/mibera-collection";
 
+// Mibera Premint handlers (participation/refund tracking)
+import {
+  handlePremintParticipated,
+  handlePremintRefunded,
+} from "./handlers/mibera-premint";
+
+// Mibera Sets handlers (ERC-1155 on Optimism)
+import {
+  handleMiberaSetsSingle,
+  handleMiberaSetsBatch,
+} from "./handlers/mibera-sets";
+
+// friend.tech handlers (key trading on Base)
+import { handleFriendtechTrade } from "./handlers/friendtech";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -201,3 +216,14 @@ export { handleRFVChanged };
 
 // Mibera Collection handlers (transfer/mint tracking)
 export { handleMiberaCollectionTransfer };
+
+// Mibera Premint handlers (participation/refund tracking)
+export { handlePremintParticipated };
+export { handlePremintRefunded };
+
+// Mibera Sets handlers (ERC-1155 on Optimism)
+export { handleMiberaSetsSingle };
+export { handleMiberaSetsBatch };
+
+// friend.tech handlers (key trading on Base)
+export { handleFriendtechTrade };

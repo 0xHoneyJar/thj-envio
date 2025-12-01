@@ -814,3 +814,107 @@ type HenloVaultUser {
   lastActivityTime: BigInt!    # Last activity timestamp
   chainId: Int!
 }
+
+# ============================
+# MIBERA PREMINT TRACKING
+# ============================
+
+# Individual premint participation event
+type PremintParticipation {
+  id: ID!                      # txHash_logIndex
+  phase: BigInt!               # Premint phase (1, 2, etc.)
+  user: String!                # User address (lowercase)
+  amount: BigInt!              # Amount contributed
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Individual refund event
+type PremintRefund {
+  id: ID!                      # txHash_logIndex
+  phase: BigInt!               # Premint phase
+  user: String!                # User address (lowercase)
+  amount: BigInt!              # Amount refunded
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Aggregate user premint stats
+type PremintUser {
+  id: ID!                      # user_chainId
+  user: String!                # User address (lowercase)
+  totalContributed: BigInt!    # Total amount contributed across all phases
+  totalRefunded: BigInt!       # Total amount refunded across all phases
+  netContribution: BigInt!     # totalContributed - totalRefunded
+  participationCount: Int!     # Number of participation events
+  refundCount: Int!            # Number of refund events
+  firstParticipationTime: BigInt
+  lastActivityTime: BigInt!
+  chainId: Int!
+}
+
+# Per-phase statistics
+type PremintPhaseStats {
+  id: ID!                      # phase_chainId
+  phase: BigInt!
+  totalContributed: BigInt!    # Total contributions in this phase
+  totalRefunded: BigInt!       # Total refunds in this phase
+  netContribution: BigInt!     # Net amount still in phase
+  uniqueParticipants: Int!     # Count of unique addresses
+  participationCount: Int!     # Total participation events
+  refundCount: Int!            # Total refund events
+  chainId: Int!
+}
+
+# ============================
+# FRIEND.TECH KEY TRACKING
+# ============================
+
+# Individual trade event (buy or sell)
+type FriendtechTrade {
+  id: ID!                      # txHash_logIndex
+  trader: String!              # Address that made the trade
+  subject: String!             # Subject (key) being traded
+  subjectKey: String!          # Human-readable key name (e.g., "jani_key")
+  isBuy: Boolean!              # true = buy, false = sell
+  shareAmount: BigInt!         # Number of shares traded
+  ethAmount: BigInt!           # ETH amount for the trade
+  supply: BigInt!              # Total supply after trade
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Aggregate holder balance per subject
+type FriendtechHolder {
+  id: ID!                      # subject_trader_chainId
+  subject: String!             # Subject address
+  subjectKey: String!          # Human-readable key name
+  holder: String!              # Holder address
+  balance: Int!                # Current key balance (buys - sells)
+  totalBought: Int!            # Lifetime keys bought
+  totalSold: Int!              # Lifetime keys sold
+  firstTradeTime: BigInt       # First trade timestamp
+  lastTradeTime: BigInt!       # Last trade timestamp
+  chainId: Int!
+}
+
+# Per-subject statistics
+type FriendtechSubjectStats {
+  id: ID!                      # subject_chainId
+  subject: String!             # Subject address
+  subjectKey: String!          # Human-readable key name
+  totalSupply: BigInt!         # Current total supply
+  uniqueHolders: Int!          # Count of addresses with balance > 0
+  totalTrades: Int!            # Total trade count
+  totalBuys: Int!              # Total buy count
+  totalSells: Int!             # Total sell count
+  totalVolumeEth: BigInt!      # Total ETH volume
+  lastTradeTime: BigInt!       # Last trade timestamp
+  chainId: Int!
+}

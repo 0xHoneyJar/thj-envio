@@ -191,6 +191,38 @@ contracts:
   #       field_selection:
   #         transaction_fields:
   #           - hash
+  # MiberaPremint - Tracks participation and refunds in Mibera premint
+  - name: MiberaPremint
+    handler: src/EventHandlers.ts
+    events:
+      - event: Participated(uint256 indexed phase, address indexed user, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Refunded(uint256 indexed phase, address indexed user, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+  # MiberaSets - ERC1155 Sets collection on Optimism (airdropped from distribution wallet)
+  - name: MiberaSets
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)
+        field_selection:
+          transaction_fields:
+            - hash
+  # FriendtechShares - friend.tech key trading on Base (tracking Mibera-related subjects)
+  - name: FriendtechShares
+    handler: src/EventHandlers.ts
+    events:
+      - event: Trade(address trader, address subject, bool isBuy, uint256 shareAmount, uint256 ethAmount, uint256 protocolEthAmount, uint256 subjectEthAmount, uint256 supply)
+        field_selection:
+          transaction_fields:
+            - hash
   # MiberaTreasury - Treasury backing/marketplace for defaulted NFTs
   - name: MiberaTreasury
     handler: src/EventHandlers.ts
@@ -394,14 +426,26 @@ networks:
       - name: HoneyJar
         address:
           - 0xe1d16cc75c9f39a2e0f5131eb39d4b634b23f301 # HoneyJar4
+      # Mibera Sets - ERC1155 collection (token IDs 8-11 = Strong Set, 12 = Super Set)
+      - name: MiberaSets
+        address:
+          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be
+      # Mibera Zora - ERC721 collection on Optimism
+      - name: TrackedErc721
+        address:
+          - 0x427a8f2e608e185eece69aca15e535cd6c36aad8 # mibera_zora
 
   # Base
   - id: 8453
-    start_block: 23252723
+    start_block: 2430439  # friend.tech start block (earliest contract)
     contracts:
       - name: HoneyJar
         address:
           - 0xbad7b49d985bbfd3a22706c447fb625a28f048b4 # HoneyJar5
+      # friend.tech shares trading (Mibera-related subjects: jani key, charlotte fang key)
+      - name: FriendtechShares
+        address:
+          - 0xCF205808Ed36593aa40a44F10c7f7C2F67d4A4d4
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
@@ -523,6 +567,10 @@ networks:
       - name: MiberaCollection
         address:
           - 0x6666397dfe9a8c469bf65dc744cb1c733416c420 # Mibera Collection
+      # Mibera Premint - Participation and refund tracking
+      - name: MiberaPremint
+        address:
+          - 0xdd5F6f41B250644E5678D77654309a5b6A5f4D55 # Mibera Premint
 
 # Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true

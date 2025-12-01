@@ -13,8 +13,18 @@ import { recordAction } from "../lib/actions";
 
 const ZERO = ZERO_ADDRESS.toLowerCase();
 
+// Dead/burn address commonly used by projects
+const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
+
 // Mibera NFT contract address (lowercase)
 const MIBERA_CONTRACT = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
+
+/**
+ * Check if an address is a burn destination
+ */
+function isBurnAddress(address: string): boolean {
+  return address === ZERO || address === DEAD_ADDRESS;
+}
 
 export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
   async ({ event, context }) => {
@@ -46,6 +56,27 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
         context: {
           tokenId: tokenId.toString(),
           contract: contractAddress,
+        },
+      });
+    }
+
+    // If this is a burn (to zero or dead address), create a burn action
+    if (isBurnAddress(to) && from !== ZERO) {
+      const burnActionId = `${txHash}_${logIndex}_burn`;
+      recordAction(context, {
+        id: burnActionId,
+        actionType: "burn",
+        actor: from,
+        primaryCollection: collectionKey.toLowerCase(),
+        timestamp,
+        chainId,
+        txHash,
+        logIndex,
+        numeric1: 1n,
+        context: {
+          tokenId: tokenId.toString(),
+          contract: contractAddress,
+          burnAddress: to,
         },
       });
     }
