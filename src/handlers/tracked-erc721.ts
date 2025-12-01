@@ -7,7 +7,10 @@ import type {
 } from "generated";
 
 import { ZERO_ADDRESS } from "./constants";
-import { TRACKED_ERC721_COLLECTION_KEYS } from "./tracked-erc721/constants";
+import {
+  TRACKED_ERC721_COLLECTION_KEYS,
+  TRANSFER_TRACKED_COLLECTIONS,
+} from "./tracked-erc721/constants";
 import { STAKING_CONTRACT_KEYS } from "./mibera-staking/constants";
 import { recordAction } from "../lib/actions";
 
@@ -77,6 +80,32 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
           tokenId: tokenId.toString(),
           contract: contractAddress,
           burnAddress: to,
+        },
+      });
+    }
+
+    // Track transfers for specific collections (non-mint, non-burn transfers)
+    if (
+      TRANSFER_TRACKED_COLLECTIONS.has(collectionKey) &&
+      from !== ZERO &&
+      !isBurnAddress(to)
+    ) {
+      const transferActionId = `${txHash}_${logIndex}_transfer`;
+      recordAction(context, {
+        id: transferActionId,
+        actionType: "transfer",
+        actor: to, // Recipient is the actor (they received the NFT)
+        primaryCollection: collectionKey.toLowerCase(),
+        timestamp,
+        chainId,
+        txHash,
+        logIndex,
+        numeric1: BigInt(tokenId.toString()),
+        context: {
+          tokenId: tokenId.toString(),
+          contract: contractAddress,
+          from,
+          to,
         },
       });
     }

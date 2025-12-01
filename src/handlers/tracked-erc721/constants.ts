@@ -13,3 +13,12 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
   "0x24f4047d372139de8dacbe79e2fc576291ec3ffc": "mireveal_8_8",
   "0x427a8f2e608e185eece69aca15e535cd6c36aad8": "mibera_zora",
 };
+
+/**
+ * Collections that should track all transfers (not just mints/burns)
+ * Used for timeline/activity tracking
+ */
+export const TRANSFER_TRACKED_COLLECTIONS = new Set<string>([
+  "mibera",
+  "mibera_zora",
+]);
