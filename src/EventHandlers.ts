@@ -106,6 +106,12 @@ import {
   handleMiberaSetsBatch,
 } from "./handlers/mibera-sets";
 
+// Mibera Zora handlers (ERC-1155 on Optimism via Zora platform)
+import {
+  handleMiberaZoraSingle,
+  handleMiberaZoraBatch,
+} from "./handlers/mibera-zora";
+
 // friend.tech handlers (key trading on Base)
 import { handleFriendtechTrade } from "./handlers/friendtech";
 
@@ -224,6 +230,10 @@ export { handlePremintRefunded };
 // Mibera Sets handlers (ERC-1155 on Optimism)
 export { handleMiberaSetsSingle };
 export { handleMiberaSetsBatch };
+
+// Mibera Zora handlers (ERC-1155 on Optimism via Zora platform)
+export { handleMiberaZoraSingle };
+export { handleMiberaZoraBatch };
 
 // friend.tech handlers (key trading on Base)
 export { handleFriendtechTrade };

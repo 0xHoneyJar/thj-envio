@@ -215,6 +215,18 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # MiberaZora1155 - ERC1155 collection on Optimism (Zora platform)
+  - name: MiberaZora1155
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)
+        field_selection:
+          transaction_fields:
+            - hash
   # FriendtechShares - friend.tech key trading on Base (tracking Mibera-related subjects)
   - name: FriendtechShares
     handler: src/EventHandlers.ts
@@ -430,8 +442,8 @@ networks:
       - name: MiberaSets
         address:
           - 0x886d2176d899796cd1affa07eff07b9b2b80f1be
-      # Mibera Zora - ERC721 collection on Optimism
-      - name: TrackedErc721
+      # Mibera Zora - ERC1155 collection on Optimism (Zora platform)
+      - name: MiberaZora1155
         address:
           - 0x427a8f2e608e185eece69aca15e535cd6c36aad8 # mibera_zora
 
