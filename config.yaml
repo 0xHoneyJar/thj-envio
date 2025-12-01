@@ -235,6 +235,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # MiladyCollection - Milady NFT burn tracking on Ethereum mainnet
+  - name: MiladyCollection
+    handler: src/EventHandlers.ts
+    events:
+      - event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+        field_selection:
+          transaction_fields:
+            - hash
   # MiberaTreasury - Treasury backing/marketplace for defaulted NFTs
   - name: MiberaTreasury
     handler: src/EventHandlers.ts
@@ -390,7 +398,7 @@ contracts:
 networks:
   # Ethereum Mainnet
   - id: 1
-    start_block: 16751283 # Earliest block (Honeycomb)
+    start_block: 13090020 # Earliest block - Milady contract deployment (was 16751283 for Honeycomb)
     contracts:
       # Native HoneyJar contracts on Ethereum
       - name: HoneyJar
@@ -414,6 +422,10 @@ networks:
       - name: HoneyJar5Eth
         address:
           - 0x39eb35a84752b4bd3459083834af1267d276a54c # HoneyJar5 L0 remint (was missing!)
+      # Milady NFT collection on Ethereum (burn tracking)
+      - name: MiladyCollection
+        address:
+          - 0x5af0d9827e0c53e4799bb226655a1de152a425a5 # Milady Maker
 
   # Arbitrum
   - id: 42161
@@ -433,7 +445,7 @@ networks:
 
   # Optimism
   - id: 10
-    start_block: 125752663
+    start_block: 121292097  # First tx on MiberaSets contract (0x886d...)
     contracts:
       - name: HoneyJar
         address:

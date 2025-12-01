@@ -281,6 +281,31 @@ type UserVaultSummary {
 }
 
 # ============================
+# NFT BURN TRACKING MODELS
+# ============================
+
+type NftBurn {
+  id: ID!  # tx_hash_logIndex
+  collectionKey: String!  # "mibera", "milady", etc.
+  tokenId: BigInt!
+  from: String!  # Address that burned the NFT
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+type NftBurnStats {
+  id: ID!  # chainId_collectionKey (e.g., "80094_mibera" or "1_milady")
+  chainId: Int!
+  collectionKey: String!
+  totalBurned: Int!
+  uniqueBurners: Int!
+  lastBurnTime: BigInt
+  firstBurnTime: BigInt
+}
+
+# ============================
 # HENLO BURN TRACKING MODELS
 # ============================
 

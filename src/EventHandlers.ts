@@ -91,8 +91,11 @@ import {
   handleRFVChanged,
 } from "./handlers/mibera-treasury";
 
-// Mibera Collection handlers (transfer/mint tracking)
+// Mibera Collection handlers (transfer/mint/burn tracking)
 import { handleMiberaCollectionTransfer } from "./handlers/mibera-collection";
+
+// Milady Collection handlers (burn tracking on ETH mainnet)
+import { handleMiladyCollectionTransfer } from "./handlers/milady-collection";
 
 // Mibera Premint handlers (participation/refund tracking)
 import {
@@ -220,8 +223,11 @@ export { handleItemPurchased };
 export { handleItemRedeemed };
 export { handleRFVChanged };
 
-// Mibera Collection handlers (transfer/mint tracking)
+// Mibera Collection handlers (transfer/mint/burn tracking)
 export { handleMiberaCollectionTransfer };
+
+// Milady Collection handlers (burn tracking on ETH mainnet)
+export { handleMiladyCollectionTransfer };
 
 // Mibera Premint handlers (participation/refund tracking)
 export { handlePremintParticipated };
