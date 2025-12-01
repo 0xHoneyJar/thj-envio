@@ -11,19 +11,10 @@
 import { MiberaZora1155, Erc1155MintEvent } from "generated";
 
 import { recordAction } from "../lib/actions";
-
-// Zero address for mint detection
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+import { isMintFromZero } from "../lib/mint-detection";
 
 // Collection key for action tracking
 const COLLECTION_KEY = "mibera_zora";
-
-/**
- * Check if this is a mint (from zero address)
- */
-function isMint(fromAddress: string): boolean {
-  return fromAddress === ZERO_ADDRESS;
-}
 
 /**
  * Handle TransferSingle events
@@ -49,7 +40,7 @@ export const handleMiberaZoraSingle = MiberaZora1155.TransferSingle.handler(
     const eventId = `${event.transaction.hash}_${event.logIndex}`;
 
     // Check if this is a mint or a transfer
-    const isMintEvent = isMint(fromLower);
+    const isMintEvent = isMintFromZero(fromLower);
 
     if (isMintEvent) {
       // Create mint event record
@@ -133,7 +124,7 @@ export const handleMiberaZoraBatch = MiberaZora1155.TransferBatch.handler(
     const length = Math.min(idsArray.length, valuesArray.length);
 
     // Check if this is a mint or a transfer
-    const isMintEvent = isMint(fromLower);
+    const isMintEvent = isMintFromZero(fromLower);
 
     for (let index = 0; index < length; index += 1) {
       const rawId = idsArray[index];

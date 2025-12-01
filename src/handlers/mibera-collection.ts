@@ -8,9 +8,9 @@
 import { MiberaCollection } from "generated";
 import type { MiberaTransfer } from "generated";
 import { recordAction } from "../lib/actions";
+import { isMintFromZero } from "../lib/mint-detection";
+import { BERACHAIN_ID } from "./constants";
 
-const BERACHAIN_ID = 80094;
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const MIBERA_COLLECTION_ADDRESS = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
 
 /**
@@ -25,7 +25,7 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const tokenId = event.params.tokenId;
     const txHash = event.transaction.hash;
 
-    const isMint = from === ZERO_ADDRESS;
+    const isMint = isMintFromZero(from);
 
     // Create transfer record
     const transferId = `${txHash}_${event.logIndex}`;

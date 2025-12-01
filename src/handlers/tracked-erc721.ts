@@ -13,21 +13,12 @@ import {
 } from "./tracked-erc721/constants";
 import { STAKING_CONTRACT_KEYS } from "./mibera-staking/constants";
 import { recordAction } from "../lib/actions";
+import { isBurnAddress, isMintFromZero } from "../lib/mint-detection";
 
 const ZERO = ZERO_ADDRESS.toLowerCase();
 
-// Dead/burn address commonly used by projects
-const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";
-
 // Mibera NFT contract address (lowercase)
 const MIBERA_CONTRACT = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
-
-/**
- * Check if an address is a burn destination
- */
-function isBurnAddress(address: string): boolean {
-  return address === ZERO || address === DEAD_ADDRESS;
-}
 
 export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
   async ({ event, context }) => {

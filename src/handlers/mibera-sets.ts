@@ -13,12 +13,11 @@
 import { MiberaSets, Erc1155MintEvent } from "generated";
 
 import { recordAction } from "../lib/actions";
-
-// Zero address for mint detection
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+import { isMintOrAirdrop } from "../lib/mint-detection";
 
 // Distribution wallet that airdropped Sets (transfers FROM this address = mints)
 const DISTRIBUTION_WALLET = "0x4a8c9a29b23c4eac0d235729d5e0d035258cdfa7";
+const AIRDROP_WALLETS = new Set([DISTRIBUTION_WALLET]);
 
 // Collection key for action tracking
 const COLLECTION_KEY = "mibera_sets";
@@ -38,13 +37,6 @@ function getSetTier(tokenId: bigint): string {
     return "super";
   }
   return "unknown";
-}
-
-/**
- * Check if this is a mint (from zero address or distribution wallet)
- */
-function isMint(fromAddress: string): boolean {
-  return fromAddress === ZERO_ADDRESS || fromAddress === DISTRIBUTION_WALLET;
 }
 
 /**
@@ -72,7 +64,7 @@ export const handleMiberaSetsSingle = MiberaSets.TransferSingle.handler(
     const setTier = getSetTier(tokenId);
 
     // Check if this is a mint or a transfer
-    const isMintEvent = isMint(fromLower);
+    const isMintEvent = isMintOrAirdrop(fromLower, AIRDROP_WALLETS);
 
     if (isMintEvent) {
       // Create mint event record
@@ -158,7 +150,7 @@ export const handleMiberaSetsBatch = MiberaSets.TransferBatch.handler(
     const length = Math.min(idsArray.length, valuesArray.length);
 
     // Check if this is a mint or a transfer
-    const isMintEvent = isMint(fromLower);
+    const isMintEvent = isMintOrAirdrop(fromLower, AIRDROP_WALLETS);
 
     for (let index = 0; index < length; index += 1) {
       const rawId = idsArray[index];

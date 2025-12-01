@@ -13,14 +13,12 @@ import {
 } from "generated";
 
 import { recordAction } from "../lib/actions";
+import {
+  MIBERA_SUBJECTS,
+  FRIENDTECH_COLLECTION_KEY,
+} from "./friendtech/constants";
 
-// Mibera-related friend.tech subjects
-const MIBERA_SUBJECTS: Record<string, string> = {
-  "0x1defc6b7320f9480f3b2d77e396a942f2803559d": "jani_key",
-  "0x956d9b56b20c28993b9baaed1465376ce996e3ed": "charlotte_fang_key",
-};
-
-const COLLECTION_KEY = "friendtech";
+const COLLECTION_KEY = FRIENDTECH_COLLECTION_KEY;
 
 /**
  * Handle Trade events from friend.tech
