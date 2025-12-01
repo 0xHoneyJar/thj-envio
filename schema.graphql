@@ -608,6 +608,121 @@ type MiberaStaker {
 }
 
 # ============================
+# MIBERA TREASURY MARKETPLACE
+# ============================
+
+# ============================
+# MIBERA LOAN SYSTEM
+# ============================
+
+# Active loans tracking (both backing loans and item loans)
+type MiberaLoan @entity {
+  id: ID!                      # chainId_loanType_loanId (e.g., "80094_backing_1")
+  loanId: BigInt!
+  loanType: String!            # "backing" | "item"
+  user: String!                # User who took the loan
+  tokenIds: [BigInt!]!         # NFT token IDs used as collateral (backing loans have multiple)
+  amount: BigInt!              # Loan amount (for backing loans)
+  expiry: BigInt!              # Timestamp when loan expires
+  status: String!              # "ACTIVE" | "REPAID" | "DEFAULTED"
+  createdAt: BigInt!           # Timestamp when loan was created
+  repaidAt: BigInt             # Timestamp when repaid (null if active/defaulted)
+  defaultedAt: BigInt          # Timestamp when defaulted (null if active/repaid)
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Loan stats aggregate
+type MiberaLoanStats @entity {
+  id: ID!                      # "80094_global"
+  totalActiveLoans: Int!
+  totalLoansCreated: Int!
+  totalLoansRepaid: Int!
+  totalLoansDefaulted: Int!
+  totalAmountLoaned: BigInt!
+  totalNftsWithLoans: Int!     # Current NFTs being used as collateral
+  chainId: Int!
+}
+
+# Daily RFV snapshots for historical charting
+type DailyRfvSnapshot @entity {
+  id: ID!                      # chainId_day (e.g., "80094_19875")
+  day: Int!                    # Days since epoch
+  rfv: BigInt!                 # RFV value for this day
+  timestamp: BigInt!           # Timestamp of when recorded
+  chainId: Int!
+}
+
+# Collection mint/transfer activity (for activity feed)
+type MiberaTransfer @entity {
+  id: ID!                      # txHash_logIndex
+  from: String!
+  to: String!
+  tokenId: BigInt!
+  isMint: Boolean!             # True if from is zero address
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# SilkRoad marketplace orders (from CandiesMarket ERC1155)
+type MiberaOrder @entity {
+  id: ID!                      # chainId_txHash_logIndex
+  user: String!                # Buyer address (lowercase)
+  tokenId: BigInt!             # Candies token ID purchased
+  amount: BigInt!              # Quantity purchased
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# ============================
+# TREASURY MARKETPLACE
+# ============================
+
+# Treasury-owned NFT tracking (defaulted/redeemed items available for purchase)
+type TreasuryItem {
+  id: ID!                      # tokenId as string
+  tokenId: BigInt!
+  isTreasuryOwned: Boolean!    # true if currently owned by treasury
+  acquiredAt: BigInt           # timestamp when treasury acquired it
+  acquiredVia: String          # "backing_loan_default" | "item_loan_default" | "redemption"
+  acquiredTxHash: String       # transaction that transferred to treasury
+  purchasedAt: BigInt          # timestamp when purchased (null if still available)
+  purchasedBy: String          # address that purchased (null if available)
+  purchasedTxHash: String      # purchase transaction hash
+  purchasePrice: BigInt        # RFV + royalty at time of purchase
+  chainId: Int!
+}
+
+# Treasury aggregate statistics
+type TreasuryStats {
+  id: ID!                      # "80094_global"
+  totalItemsOwned: Int!        # current count of treasury-owned items
+  totalItemsEverOwned: Int!    # all-time items acquired
+  totalItemsSold: Int!         # all-time items purchased from treasury
+  realFloorValue: BigInt!      # current RFV (from RFVChanged event)
+  lastRfvUpdate: BigInt        # timestamp of last RFV update
+  lastActivityAt: BigInt!      # last event timestamp
+  chainId: Int!
+}
+
+# Treasury activity event log (for history/feed)
+type TreasuryActivity {
+  id: ID!                      # txHash_logIndex
+  activityType: String!        # "item_acquired" | "item_purchased" | "rfv_updated" | "backing_loan_defaulted"
+  tokenId: BigInt              # NFT tokenId (null for RFV updates and backing loan defaults)
+  user: String                 # user involved (acquirer or purchaser)
+  amount: BigInt               # RFV/price at time of event
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# ============================
 # TRACKED ERC-20 TOKEN BALANCES
 # ============================
 

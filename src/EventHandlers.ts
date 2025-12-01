@@ -78,6 +78,22 @@ import {
   handleHenloVaultReservoirSet,
 } from "./handlers/henlo-vault";
 
+// Mibera Treasury handlers (defaulted NFT marketplace + loan system)
+import {
+  handleLoanReceived,
+  handleBackingLoanPayedBack,
+  handleBackingLoanExpired,
+  handleItemLoaned,
+  handleLoanItemSentBack,
+  handleItemLoanExpired,
+  handleItemPurchased,
+  handleItemRedeemed,
+  handleRFVChanged,
+} from "./handlers/mibera-treasury";
+
+// Mibera Collection handlers (transfer/mint tracking)
+import { handleMiberaCollectionTransfer } from "./handlers/mibera-collection";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -171,3 +187,17 @@ export { handleHenloVaultReservoirSet };
 
 // Mibera staking handlers - REMOVED: Now handled by TrackedErc721 handler
 // export { handleMiberaStakingTransfer };
+
+// Mibera Treasury handlers (defaulted NFT marketplace + loan system)
+export { handleLoanReceived };
+export { handleBackingLoanPayedBack };
+export { handleBackingLoanExpired };
+export { handleItemLoaned };
+export { handleLoanItemSentBack };
+export { handleItemLoanExpired };
+export { handleItemPurchased };
+export { handleItemRedeemed };
+export { handleRFVChanged };
+
+// Mibera Collection handlers (transfer/mint tracking)
+export { handleMiberaCollectionTransfer };

@@ -1,14 +1,18 @@
 /*
  * ERC1155 mint tracking for Candies Market collections.
+ * Also tracks orders (non-mint transfers) for SilkRoad marketplace.
  */
 
-import { CandiesMarket1155, Erc1155MintEvent, CandiesInventory } from "generated";
+import { CandiesMarket1155, Erc1155MintEvent, CandiesInventory, MiberaOrder } from "generated";
 
-import { ZERO_ADDRESS } from "./constants";
+import { ZERO_ADDRESS, BERACHAIN_ID } from "./constants";
 import { MINT_COLLECTION_KEYS } from "./mints/constants";
 import { recordAction } from "../lib/actions";
 
 const ZERO = ZERO_ADDRESS.toLowerCase();
+
+// SilkRoad marketplace address - only create orders for this contract
+const SILKROAD_ADDRESS = "0x80283fbf2b8e50f6ddf9bfc4a90a8336bc90e38f";
 
 const getCollectionKey = (address: string): string => {
   const key = MINT_COLLECTION_KEYS[address.toLowerCase()];
@@ -18,21 +22,38 @@ const getCollectionKey = (address: string): string => {
 export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
   async ({ event, context }) => {
     const { operator, from, to, id, value } = event.params;
+    const fromLower = from.toLowerCase();
+    const contractAddress = event.srcAddress.toLowerCase();
+    const timestamp = BigInt(event.block.timestamp);
+    const chainId = event.chainId;
+    const tokenId = BigInt(id.toString());
+    const quantity = BigInt(value.toString());
 
-    if (from.toLowerCase() !== ZERO) {
+    // Track orders for SilkRoad marketplace (non-mint transfers on Berachain)
+    if (fromLower !== ZERO && contractAddress === SILKROAD_ADDRESS && chainId === BERACHAIN_ID) {
+      const orderId = `${chainId}_${event.transaction.hash}_${event.logIndex}`;
+      const order: MiberaOrder = {
+        id: orderId,
+        user: to.toLowerCase(),
+        tokenId,
+        amount: quantity,
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        chainId,
+      };
+      context.MiberaOrder.set(order);
+    }
+
+    // Skip mint processing if not a mint
+    if (fromLower !== ZERO) {
       return;
     }
 
-    const contractAddress = event.srcAddress.toLowerCase();
     const collectionKey = getCollectionKey(contractAddress);
     const mintId = `${event.transaction.hash}_${event.logIndex}`;
-
-    const timestamp = BigInt(event.block.timestamp);
-    const chainId = event.chainId;
     const minter = to.toLowerCase();
     const operatorLower = operator.toLowerCase();
-    const tokenId = BigInt(id.toString());
-    const quantity = BigInt(value.toString());
 
     const mintEvent: Erc1155MintEvent = {
       id: mintId,

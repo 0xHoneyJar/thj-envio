@@ -5,6 +5,8 @@
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const BERACHAIN_TESTNET_ID = 80094;
 export const BERACHAIN_MAINNET_ID = 80084;
+// Note: Despite the naming above, 80094 is actually mainnet. Use BERACHAIN_ID for clarity.
+export const BERACHAIN_ID = 80094;
 
 // Kingdomly proxy bridge contracts (these hold NFTs when bridged to Berachain)
 export const PROXY_CONTRACTS: Record<string, string> = {
