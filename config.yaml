@@ -445,7 +445,7 @@ networks:
 
   # Optimism
   - id: 10
-    start_block: 121292097  # First tx on MiberaSets contract (0x886d...)
+    start_block: 125031052  # MiberaSets contract creation block (0x886d...) - Sept 6, 2024
     contracts:
       - name: HoneyJar
         address:
