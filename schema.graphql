@@ -703,6 +703,23 @@ type MiberaOrder @entity {
   chainId: Int!
 }
 
+# Unified activity feed for liquid backing contributions (replaces mibera-squid MintActivity)
+type MintActivity @entity {
+  id: ID!                      # txHash_tokenId_user_activityType
+  user: String!                # User address (lowercase)
+  contract: String!            # Contract address where activity occurred
+  tokenStandard: String!       # "ERC721" | "ERC1155"
+  tokenId: BigInt              # Token ID (nullable for some activities)
+  quantity: BigInt!            # Quantity (usually 1)
+  amountPaid: BigInt!          # BERA paid in wei (KEY FIELD for backing calculation)
+  activityType: String!        # "MINT" | "SALE" | "PURCHASE"
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  operator: String             # Operator address (for ERC1155 or marketplace)
+  chainId: Int!
+}
+
 # ============================
 # TREASURY MARKETPLACE
 # ============================

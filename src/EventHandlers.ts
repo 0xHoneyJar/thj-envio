@@ -118,6 +118,9 @@ import {
 // friend.tech handlers (key trading on Base)
 import { handleFriendtechTrade } from "./handlers/friendtech";
 
+// Seaport marketplace handlers (secondary sales tracking)
+import { handleSeaportOrderFulfilled } from "./handlers/seaport";
+
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
 // import {
@@ -243,3 +246,6 @@ export { handleMiberaZoraBatch };
 
 // friend.tech handlers (key trading on Base)
 export { handleFriendtechTrade };
+
+// Seaport marketplace handlers (secondary sales tracking)
+export { handleSeaportOrderFulfilled };

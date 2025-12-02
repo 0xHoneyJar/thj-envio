@@ -6,7 +6,7 @@
  */
 
 import { MiberaCollection } from "generated";
-import type { MiberaTransfer, NftBurn, NftBurnStats } from "generated";
+import type { MiberaTransfer, MintActivity, NftBurn, NftBurnStats } from "generated";
 import { recordAction } from "../lib/actions";
 import { isMintFromZero, isBurnTransfer } from "../lib/mint-detection";
 import { BERACHAIN_ID } from "./constants";
@@ -25,9 +25,15 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const to = event.params.to.toLowerCase();
     const tokenId = event.params.tokenId;
     const txHash = event.transaction.hash;
+    const blockNumber = BigInt(event.block.number);
 
     const isMint = isMintFromZero(from);
     const isBurn = isBurnTransfer(from, to);
+
+    // Get transaction value (BERA paid) for mints
+    // Note: transaction.value is available because we added it to field_selection in config
+    const txValue = (event.transaction as any).value;
+    const amountPaid = txValue ? BigInt(txValue.toString()) : 0n;
 
     // Create transfer record
     const transferId = `${txHash}_${event.logIndex}`;
@@ -38,14 +44,32 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
       tokenId,
       isMint,
       timestamp,
-      blockNumber: BigInt(event.block.number),
+      blockNumber,
       transactionHash: txHash,
       chainId: BERACHAIN_ID,
     };
     context.MiberaTransfer.set(transfer);
 
-    // Record action for activity feeds
+    // Create MintActivity record for mints (for unified activity feed)
     if (isMint) {
+      const mintActivityId = `${txHash}_${tokenId}_${to}_MINT`;
+      const mintActivity: MintActivity = {
+        id: mintActivityId,
+        user: to,
+        contract: MIBERA_COLLECTION_ADDRESS,
+        tokenStandard: "ERC721",
+        tokenId,
+        quantity: 1n,
+        amountPaid,
+        activityType: "MINT",
+        timestamp,
+        blockNumber,
+        transactionHash: txHash,
+        operator: undefined,
+        chainId: BERACHAIN_ID,
+      };
+      context.MintActivity.set(mintActivity);
+
       recordAction(context, {
         actionType: "mibera_mint",
         actor: to,

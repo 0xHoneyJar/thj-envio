@@ -297,6 +297,15 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+            - value
+  # Seaport - OpenSea marketplace for secondary sales tracking
+  - name: Seaport
+    handler: src/EventHandlers.ts
+    events:
+      - event: OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed zone, address recipient, (uint8,address,uint256,uint256)[] offer, (uint8,address,uint256,uint256,address)[] consideration)
+        field_selection:
+          transaction_fields:
+            - hash
   - name: FatBera
     handler: src/EventHandlers.ts
     events:
@@ -595,6 +604,10 @@ networks:
       - name: MiberaPremint
         address:
           - 0xdd5F6f41B250644E5678D77654309a5b6A5f4D55 # Mibera Premint
+      # Seaport - OpenSea marketplace for secondary sales
+      - name: Seaport
+        address:
+          - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
 
 # Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true
