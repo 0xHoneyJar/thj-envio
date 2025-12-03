@@ -136,6 +136,20 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # PaddleFi lending tracking (BERA supply + NFT pawn)
+  - name: PaddleFi
+    handler: src/EventHandlers.ts
+    events:
+      # Mint = Supply BERA (lender deposits BERA, receives pTokens)
+      - event: Mint(address minter, uint256 mintAmount, uint256 mintTokens)
+        field_selection:
+          transaction_fields:
+            - hash
+      # Pawn = Deposit NFT as collateral (borrower pawns Mibera NFTs)
+      - event: Pawn(address borrower, uint256[] nftIds)
+        field_selection:
+          transaction_fields:
+            - hash
   - name: CandiesMarket1155
     handler: src/EventHandlers.ts
     events:
@@ -541,6 +555,10 @@ networks:
           # NOTE: mibera_tarot handled by TrackedErc721 (which now creates mint actions too)
       # Mibera staking tracking - REMOVED: Now handled by TrackedErc721 handler
       # (was causing handler conflict where TrackedHolder entries were never created)
+      # PaddleFi lending - BERA supply + NFT pawn tracking
+      - name: PaddleFi
+        address:
+          - 0x242b7126F3c4E4F8CbD7f62571293e63E9b0a4E1 # PaddleFi MIBERA-WBERA vault
       - name: CandiesMarket1155
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F

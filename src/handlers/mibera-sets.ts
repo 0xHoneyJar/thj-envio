@@ -14,6 +14,7 @@ import { MiberaSets, Erc1155MintEvent } from "generated";
 
 import { recordAction } from "../lib/actions";
 import { isMintOrAirdrop } from "../lib/mint-detection";
+import { isMarketplaceAddress } from "./marketplaces/constants";
 
 // Distribution wallet that airdropped Sets (transfers FROM this address = mints)
 const DISTRIBUTION_WALLET = "0x4a8c9a29b23c4eac0d235729d5e0d035258cdfa7";
@@ -123,6 +124,8 @@ export const handleMiberaSetsSingle = MiberaSets.TransferSingle.handler(
           to: toLower,
           operator: operatorLower,
           contract: contractAddress,
+          isSecondary: true,
+          viaMarketplace: isMarketplaceAddress(operatorLower),
         },
       });
     }
@@ -228,6 +231,8 @@ export const handleMiberaSetsBatch = MiberaSets.TransferBatch.handler(
             operator: operatorLower,
             contract: contractAddress,
             batchIndex: index,
+            isSecondary: true,
+            viaMarketplace: isMarketplaceAddress(operatorLower),
           },
         });
       }

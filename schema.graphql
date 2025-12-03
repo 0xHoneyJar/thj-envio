@@ -600,6 +600,57 @@ type SFVaultStrategy {
 }
 
 # ============================
+# PADDLEFI LENDING TRACKING
+# ============================
+
+# Individual BERA supply event (lender deposits BERA)
+type PaddleSupply {
+  id: ID!                      # txHash_logIndex
+  minter: String!              # User who supplied BERA
+  mintAmount: BigInt!          # Amount of BERA supplied (in wei)
+  mintTokens: BigInt!          # pTokens received
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Individual pawn event (borrower deposits NFT as collateral)
+type PaddlePawn {
+  id: ID!                      # txHash_logIndex
+  borrower: String!            # User who pawned NFTs
+  nftIds: [BigInt!]!           # Array of Mibera token IDs used as collateral
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Aggregate supplier stats
+type PaddleSupplier {
+  id: ID!                      # address (lowercase)
+  address: String!             # Supplier address
+  totalSupplied: BigInt!       # Lifetime BERA supplied
+  totalPTokens: BigInt!        # Total pTokens received
+  supplyCount: Int!            # Number of supply transactions
+  firstSupplyTime: BigInt
+  lastActivityTime: BigInt!
+  chainId: Int!
+}
+
+# Aggregate borrower stats
+type PaddleBorrower {
+  id: ID!                      # address (lowercase)
+  address: String!             # Borrower address
+  totalNftsPawned: Int!        # Total NFTs used as collateral (lifetime)
+  currentNftsPawned: Int!      # Currently pawned NFTs
+  pawnCount: Int!              # Number of pawn transactions
+  firstPawnTime: BigInt
+  lastActivityTime: BigInt!
+  chainId: Int!
+}
+
+# ============================
 # MIBERA STAKING TRACKING
 # ============================
 

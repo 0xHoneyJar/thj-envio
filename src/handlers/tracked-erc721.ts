@@ -12,6 +12,7 @@ import {
   TRANSFER_TRACKED_COLLECTIONS,
 } from "./tracked-erc721/constants";
 import { STAKING_CONTRACT_KEYS } from "./mibera-staking/constants";
+import { isMarketplaceAddress } from "./marketplaces/constants";
 import { recordAction } from "../lib/actions";
 import { isBurnAddress, isMintFromZero } from "../lib/mint-detection";
 
@@ -97,6 +98,8 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
           contract: contractAddress,
           from,
           to,
+          isSecondary: true,
+          viaMarketplace: isMarketplaceAddress(from) || isMarketplaceAddress(to),
         },
       });
     }
