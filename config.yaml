@@ -574,7 +574,6 @@ networks:
       - name: CubBadges1155
         address:
           - 0x574617ab9788e614b3eb3f7bd61334720d9e1aac # Cub Universal Badges (mainnet)
-          - 0x886d2176d899796cd1affa07eff07b9b2b80f1be # Legacy Artio deployment
       - name: FatBera
         address:
           - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
