@@ -46,6 +46,37 @@ const STRIKE_TO_TOKEN: Record<string, { address: string; key: string }> = {
 // Helper Functions
 // ============================
 
+// Map strike values to their epochIds (based on contract deployment order)
+const STRIKE_TO_EPOCH: Record<string, number> = {
+  "100000": 1,
+  "330000": 2,
+  "420000": 3,
+  "690000": 4,
+  "1000000": 5,
+  "20000": 6,
+};
+
+/**
+ * Find the active round for a given strike
+ * Uses the known strike-to-epoch mapping since each strike has one epoch
+ */
+async function findRoundByStrike(
+  context: any,
+  strike: bigint,
+  chainId: number
+): Promise<HenloVaultRound | undefined> {
+  const strikeKey = strike.toString();
+  const epochId = STRIKE_TO_EPOCH[strikeKey];
+
+  if (epochId === undefined) {
+    // Unknown strike, return undefined
+    return undefined;
+  }
+
+  const roundId = `${strike}_${epochId}_${chainId}`;
+  return await context.HenloVaultRound.get(roundId);
+}
+
 /**
  * Get or create HenloVaultStats singleton for a chain
  */
@@ -152,11 +183,9 @@ export const handleHenloVaultMint = HenloVault.Mint.handler(
     // 2. Create HenloVaultDeposit record
     const depositId = `${event.transaction.hash}_${event.logIndex}`;
 
-    // We need to find the epochId from the round
-    // For now, use 0 as default - this will be updated when we have round context
-    const roundId = `${strike}_0_${chainId}`;
-    const round = await context.HenloVaultRound.get(roundId);
-    const epochId = round ? round.epochId : BigInt(0);
+    // Find the round for this strike using the strike-to-epoch mapping
+    const round = await findRoundByStrike(context, strike, chainId);
+    const epochId = round ? round.epochId : BigInt(STRIKE_TO_EPOCH[strikeKey] || 0);
 
     const deposit: HenloVaultDeposit = {
       id: depositId,
@@ -363,11 +392,8 @@ export const handleHenloVaultMintFromReservoir = HenloVault.MintFromReservoir.ha
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
 
-    // Find the round for this strike (need to find active epoch)
-    // For now, search for any open round with this strike
-    // This is a simplification - in production we'd need to track the current epoch
-    const roundId = `${strike}_0_${chainId}`;
-    const round = await context.HenloVaultRound.get(roundId);
+    // Find the round for this strike using the strike-to-epoch mapping
+    const round = await findRoundByStrike(context, strike, chainId);
 
     if (round) {
       const updatedRound: HenloVaultRound = {
