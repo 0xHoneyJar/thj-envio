@@ -30,21 +30,28 @@ export async function updateHolderBalances(
   let holderDelta = 0;
   let supplyDelta = BigInt(0);
 
+  // Pre-load holders in parallel for better performance
+  const [fromHolder, toHolder] = await Promise.all([
+    fromLower !== zeroAddress ? getOrCreateHolder(context, fromLower, chainId, timestamp) : null,
+    (toLower !== zeroAddress && toLower !== deadAddress) ? getOrCreateHolder(context, toLower, chainId, timestamp) : null,
+  ]);
+
   // Handle 'from' address (decrease balance)
-  if (fromLower !== zeroAddress) {
-    const fromHolder = await getOrCreateHolder(context, fromLower, chainId, timestamp);
+  if (fromLower !== zeroAddress && fromHolder) {
+    // Floor at 0 to prevent negative balances
     const newFromBalance = fromHolder.balance - value;
+    const flooredBalance = newFromBalance < BigInt(0) ? BigInt(0) : newFromBalance;
 
     // Update holder record
     const updatedFromHolder = {
       ...fromHolder,
-      balance: newFromBalance,
+      balance: flooredBalance,
       lastActivityTime: timestamp,
     };
     context.HenloHolder.set(updatedFromHolder);
 
     // If balance went to zero, decrease holder count
-    if (fromHolder.balance > BigInt(0) && newFromBalance === BigInt(0)) {
+    if (fromHolder.balance > BigInt(0) && flooredBalance === BigInt(0)) {
       holderDelta--;
     }
 
@@ -52,14 +59,13 @@ export async function updateHolderBalances(
     if (toLower === zeroAddress || toLower === deadAddress) {
       supplyDelta -= value;
     }
-  } else {
+  } else if (fromLower === zeroAddress) {
     // Mint: supply increases
     supplyDelta += value;
   }
 
   // Handle 'to' address (increase balance)
-  if (toLower !== zeroAddress && toLower !== deadAddress) {
-    const toHolder = await getOrCreateHolder(context, toLower, chainId, timestamp);
+  if (toLower !== zeroAddress && toLower !== deadAddress && toHolder) {
     const newToBalance = toHolder.balance + value;
 
     // Update holder record

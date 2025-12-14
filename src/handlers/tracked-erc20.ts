@@ -84,40 +84,39 @@ async function updateBalance(
   timestamp: bigint,
   zeroAddress: string
 ) {
-  // Handle sender (decrease balance) - skip if mint (from zero address)
-  if (fromLower !== zeroAddress) {
-    const fromId = `${fromLower}_${tokenAddress}_${chainId}`;
-    const fromBalance = await context.TrackedTokenBalance.get(fromId);
+  // Build IDs
+  const fromId = fromLower !== zeroAddress ? `${fromLower}_${tokenAddress}_${chainId}` : null;
+  const toId = toLower !== zeroAddress ? `${toLower}_${tokenAddress}_${chainId}` : null;
 
+  // Pre-load balances in parallel for better performance
+  const [fromBalance, toBalance] = await Promise.all([
+    fromId ? context.TrackedTokenBalance.get(fromId) : null,
+    toId ? context.TrackedTokenBalance.get(toId) : null,
+  ]);
+
+  // Handle sender (decrease balance) - skip if mint (from zero address)
+  if (fromId) {
     if (fromBalance) {
+      // Floor at 0 to prevent negative balances (can happen if indexer started after token distribution)
       const newBalance = fromBalance.balance - value;
+      const flooredBalance = newBalance < BigInt(0) ? BigInt(0) : newBalance;
       const updatedFromBalance: TrackedTokenBalance = {
         ...fromBalance,
-        balance: newBalance,
+        balance: flooredBalance,
         lastUpdated: timestamp,
       };
       context.TrackedTokenBalance.set(updatedFromBalance);
     } else {
-      // Create record with negative balance (shouldn't happen in practice)
-      const newFromBalance: TrackedTokenBalance = {
-        id: fromId,
-        address: fromLower,
-        tokenAddress,
-        tokenKey,
-        chainId,
-        balance: -value,
-        lastUpdated: timestamp,
-      };
-      context.TrackedTokenBalance.set(newFromBalance);
+      // No existing record - user received tokens before indexer started
+      // Skip creating a record with negative/zero balance to avoid polluting data
+      // The correct fix is to re-index from the token distribution block
+      console.warn(`[TrackedErc20] Transfer OUT with no prior balance record: ${fromLower} token=${tokenKey}`);
     }
   }
 
   // Handle receiver (increase balance) - skip if burn (to zero address)
   // Note: We still track burns in TrackedTokenBalance for completeness
-  if (toLower !== zeroAddress) {
-    const toId = `${toLower}_${tokenAddress}_${chainId}`;
-    const toBalance = await context.TrackedTokenBalance.get(toId);
-
+  if (toId) {
     if (toBalance) {
       const newBalance = toBalance.balance + value;
       const updatedToBalance: TrackedTokenBalance = {

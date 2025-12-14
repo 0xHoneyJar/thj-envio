@@ -143,32 +143,33 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
       return;
     }
 
-    // Normal transfer handling
-    await adjustHolder({
-      context,
-      contractAddress,
-      collectionKey,
-      chainId,
-      holderAddress: from,
-      delta: -1,
-      txHash,
-      logIndex,
-      timestamp,
-      direction: "out",
-    });
-
-    await adjustHolder({
-      context,
-      contractAddress,
-      collectionKey,
-      chainId,
-      holderAddress: to,
-      delta: 1,
-      txHash,
-      logIndex,
-      timestamp,
-      direction: "in",
-    });
+    // Normal transfer handling - run in parallel for better performance
+    await Promise.all([
+      adjustHolder({
+        context,
+        contractAddress,
+        collectionKey,
+        chainId,
+        holderAddress: from,
+        delta: -1,
+        txHash,
+        logIndex,
+        timestamp,
+        direction: "out",
+      }),
+      adjustHolder({
+        context,
+        contractAddress,
+        collectionKey,
+        chainId,
+        holderAddress: to,
+        delta: 1,
+        txHash,
+        logIndex,
+        timestamp,
+        direction: "in",
+      }),
+    ]);
   }
 );
 
