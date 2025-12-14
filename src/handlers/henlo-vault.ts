@@ -20,6 +20,10 @@ import {
 // Map strike values to HENLOCKED token addresses and keys
 // Strike represents FDV target in thousands (e.g., 100000 = $100M FDV)
 const STRIKE_TO_TOKEN: Record<string, { address: string; key: string }> = {
+  "20000": {
+    address: "0x4c9c76d10b1fa7d8f93ba54ab48e890ff0a7660d",
+    key: "hlkd20m",
+  },
   "100000": {
     address: "0x7bdf98ddeed209cfa26bd2352b470ac8b5485ec5",
     key: "hlkd100m",
