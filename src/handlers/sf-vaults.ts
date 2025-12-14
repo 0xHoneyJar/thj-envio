@@ -100,8 +100,21 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
 };
 
 /**
+ * Lookup table mapping strategy addresses to their known multiRewards addresses
+ * Used as fallback when RPC calls fail (e.g., contract doesn't exist at historical block)
+ */
+const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
+  "0x9e9a8aa97991d4aa2e5d7fed2b19fa24f2e95eed": "0xbfda8746f8abee58a58f87c1d2bb2d9eee6e3554", // HLKD1B
+  "0xafbcc65965e355667e67e3d98389c46227aefdf0": "0x01c1c9c333ea81e422e421db63030e882851eb3d", // HLKD690M
+  "0x70a637ecfc0bb266627021530c5a08c86d4f0c7a": "0x4eedee17cdfbd9910c421ecc9d3401c70c0bf624", // HLKD420M
+  "0x2a23627a52fc2efee0452648fbdbe9dba4c0bee8": "0xec204cb71d69f1b4d334c960d16a68364b604857", // HLKD330M
+  "0x15a0172c3b37a7d93a54bf762d6442b51408c0f2": "0x00192ce353151563b3bd8664327d882c7ac45cb8", // HLKD100M
+};
+
+/**
  * Effect to query multiRewardsAddress from a strategy contract at a specific block
  * Used when handling StrategyUpdated events to get the new MultiRewards address
+ * Falls back to hardcoded mapping if RPC call fails
  */
 export const getMultiRewardsAddress = experimental_createEffect(
   {
@@ -114,6 +127,9 @@ export const getMultiRewardsAddress = experimental_createEffect(
     cache: true,
   },
   async ({ input, context }) => {
+    const strategyLower = input.strategyAddress.toLowerCase();
+
+    // First try RPC call
     const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
     const client = createPublicClient({
       chain: berachain,
@@ -130,6 +146,13 @@ export const getMultiRewardsAddress = experimental_createEffect(
 
       return (multiRewards as string).toLowerCase();
     } catch (error) {
+      // Fallback to hardcoded mapping if RPC fails
+      const fallback = STRATEGY_TO_MULTI_REWARDS[strategyLower];
+      if (fallback) {
+        context.log.warn(`RPC call failed for strategy ${strategyLower}, using fallback multiRewards: ${fallback}`);
+        return fallback;
+      }
+
       context.log.error(`Failed to get multiRewardsAddress for strategy ${input.strategyAddress} at block ${input.blockNumber}: ${error}`);
       throw error;
     }
@@ -240,9 +263,16 @@ async function getActiveStrategy(
 SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
   const newStrategy = event.params.newStrategy.toLowerCase();
 
+  // First check if we have a hardcoded mapping (faster and more reliable)
+  const fallbackMultiRewards = STRATEGY_TO_MULTI_REWARDS[newStrategy];
+  if (fallbackMultiRewards) {
+    context.addSFMultiRewards(fallbackMultiRewards);
+    return;
+  }
+
   // Query the new strategy's multiRewardsAddress at this block
   // Note: contractRegister doesn't have access to context.effect, so we make direct RPC call
-  const rpcUrl = process.env.RPC_URL || "https://rpc.berachain.com";
+  const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
   const client = createPublicClient({
     chain: berachain,
     transport: http(rpcUrl),
