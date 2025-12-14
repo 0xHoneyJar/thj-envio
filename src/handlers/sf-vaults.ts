@@ -4,6 +4,8 @@
  * Tracks ERC4626 vault deposits/withdrawals and MultiRewards staking/claiming
  * Maintains stateful position tracking and vault-level statistics
  * Supports dynamic strategy migrations with historical tracking
+ *
+ * RPC: Uses ENVIO_RPC_URL env var for strategy lookups
  */
 
 import {
