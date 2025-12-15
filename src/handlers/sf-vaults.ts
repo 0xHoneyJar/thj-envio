@@ -259,27 +259,40 @@ async function getActiveStrategy(
 
 /**
  * Register new MultiRewards contracts dynamically when strategy is updated
- *
- * OPTIMIZATION: Uses hardcoded mapping to avoid RPC calls during indexing.
- * When deploying a new strategy, add its multiRewards to STRATEGY_TO_MULTI_REWARDS.
- * RPC fallback is disabled for performance - unknown strategies will log a warning.
  */
 SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
   const newStrategy = event.params.newStrategy.toLowerCase();
 
-  // Use hardcoded mapping - no RPC calls for maximum indexing speed
-  const multiRewards = STRATEGY_TO_MULTI_REWARDS[newStrategy];
-  if (multiRewards) {
-    context.addSFMultiRewards(multiRewards);
+  // First check if we have a hardcoded mapping (faster and more reliable)
+  const fallbackMultiRewards = STRATEGY_TO_MULTI_REWARDS[newStrategy];
+  if (fallbackMultiRewards) {
+    context.addSFMultiRewards(fallbackMultiRewards);
     return;
   }
 
-  // Unknown strategy - log warning instead of making slow RPC call
-  // To fix: Add the strategy -> multiRewards mapping to STRATEGY_TO_MULTI_REWARDS
-  context.log.warn(
-    `Unknown strategy ${newStrategy} - add to STRATEGY_TO_MULTI_REWARDS mapping. ` +
-    `MultiRewards contract will not be indexed until mapping is added.`
-  );
+  // Query the new strategy's multiRewardsAddress at this block
+  // Note: contractRegister doesn't have access to context.effect, so we make direct RPC call
+  const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
+  const client = createPublicClient({
+    chain: berachain,
+    transport: http(rpcUrl),
+  });
+
+  try {
+    const multiRewards = await client.readContract({
+      address: newStrategy as `0x${string}`,
+      abi: parseAbi(["function multiRewardsAddress() view returns (address)"]),
+      functionName: "multiRewardsAddress",
+      blockNumber: BigInt(event.block.number),
+    });
+
+    const newMultiRewards = (multiRewards as string).toLowerCase();
+
+    // Register the new MultiRewards contract for indexing
+    context.addSFMultiRewards(newMultiRewards);
+  } catch (error) {
+    context.log.error(`Failed to get multiRewardsAddress for strategy ${newStrategy}: ${error}`);
+  }
 });
 
 /**
@@ -299,16 +312,11 @@ export const handleSFVaultStrategyUpdated = SFVaultERC4626.StrategyUpdated.handl
       return;
     }
 
-    // First check hardcoded mapping (fast path - no RPC)
-    let newMultiRewards = STRATEGY_TO_MULTI_REWARDS[newStrategy];
-
-    // Fallback to RPC effect with caching if not in hardcoded mapping
-    if (!newMultiRewards) {
-      newMultiRewards = await context.effect(getMultiRewardsAddress, {
-        strategyAddress: newStrategy,
-        blockNumber: BigInt(event.block.number),
-      });
-    }
+    // Query the new strategy's multiRewardsAddress at this block
+    const newMultiRewards = await context.effect(getMultiRewardsAddress, {
+      strategyAddress: newStrategy,
+      blockNumber: BigInt(event.block.number),
+    });
 
     // Mark old strategy as inactive
     const oldStrategyId = `${BERACHAIN_ID}_${vaultAddress}_${oldStrategy}`;
