@@ -241,6 +241,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # MirrorObservability - tracks WritingEditions article purchases (Mibera lore articles)
+  - name: MirrorObservability
+    handler: src/EventHandlers.ts
+    events:
+      - event: WritingEditionPurchased(address indexed clone, uint256 tokenId, address indexed recipient, uint256 price, string message)
+        field_selection:
+          transaction_fields:
+            - hash
   # FriendtechShares - friend.tech key trading on Base (tracking Mibera-related subjects)
   - name: FriendtechShares
     handler: src/EventHandlers.ts
@@ -468,7 +476,7 @@ networks:
 
   # Optimism
   - id: 10
-    start_block: 125031052  # MiberaSets contract creation block (0x886d...) - Sept 6, 2024
+    start_block: 107558369  # Mirror Observability deployment (July 30, 2023) - earliest for Mibera articles
     contracts:
       - name: HoneyJar
         address:
@@ -481,6 +489,20 @@ networks:
       - name: MiberaZora1155
         address:
           - 0x427a8f2e608e185eece69aca15e535cd6c36aad8 # mibera_zora
+      # Mirror Observability - tracks WritingEditions article purchases on Optimism
+      - name: MirrorObservability
+        address:
+          - 0x4c2393aae4f0ad55dfd4ddcfa192f817d1b28d1f
+      # Mibera Article ERC-721s (WritingEditions clones) - transfer tracking
+      - name: TrackedErc721
+        address:
+          - 0x6b31859e5e32a5212f1ba4d7b377604b9d4c7a60 # lore_1_introducing_mibera
+          - 0x9247edf18518c4dccfa7f8b2345a1e8a4738204f # lore_2_honey_online_offline
+          - 0xb2c7f411aa425d3fce42751e576a01b1ff150385 # lore_3_bera_kali_acc
+          - 0xa12064e3b1f6102435e77aa68569e79955070357 # lore_4_bgt_network_spirituality
+          - 0x6ca29eed22f04c1ec6126c59922844811dcbcdfa # lore_5_initiation_ritual
+          - 0x7988434e1469d35fa5f442e649de45d47c3df23c # lore_6_miberamaker_design
+          - 0x96c200ec4cca0bc57444cfee888cfba78a1ddbd8 # lore_7_miberamaker_design
 
   # Base
   - id: 8453

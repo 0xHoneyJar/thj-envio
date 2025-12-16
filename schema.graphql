@@ -1011,3 +1011,32 @@ type FriendtechSubjectStats {
   lastTradeTime: BigInt!       # Last trade timestamp
   chainId: Int!
 }
+
+# ============================
+# MIRROR ARTICLE PURCHASES
+# ============================
+
+# Individual article purchase event (WritingEditionPurchased)
+type MirrorArticlePurchase {
+  id: ID!                      # txHash_logIndex
+  clone: String!               # Article contract address (WritingEditions clone)
+  tokenId: BigInt!             # Token ID of the purchased edition
+  recipient: String!           # Address that received the article NFT
+  price: BigInt!               # Price paid in wei
+  message: String              # Optional message from purchaser
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Per-article (clone) aggregate statistics
+type MirrorArticleStats {
+  id: ID!                      # clone_chainId
+  clone: String!               # Article contract address
+  totalPurchases: Int!         # Total number of purchases
+  totalRevenue: BigInt!        # Total ETH raised
+  uniqueCollectors: Int!       # Count of unique addresses
+  lastPurchaseTime: BigInt     # Last purchase timestamp
+  chainId: Int!
+}

@@ -115,6 +115,9 @@ import {
   handleMiberaZoraBatch,
 } from "./handlers/mibera-zora";
 
+// Mirror Observability handlers (article purchases on Optimism)
+import { handleWritingEditionPurchased } from "./handlers/mirror-observability";
+
 // friend.tech handlers (key trading on Base)
 import { handleFriendtechTrade } from "./handlers/friendtech";
 
@@ -246,6 +249,9 @@ export { handleMiberaSetsBatch };
 // Mibera Zora handlers (ERC-1155 on Optimism via Zora platform)
 export { handleMiberaZoraSingle };
 export { handleMiberaZoraBatch };
+
+// Mirror Observability handlers (article purchases on Optimism)
+export { handleWritingEditionPurchased };
 
 // friend.tech handlers (key trading on Base)
 export { handleFriendtechTrade };
