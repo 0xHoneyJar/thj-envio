@@ -10,7 +10,7 @@ import {
 } from "generated";
 
 import { recordAction } from "../../lib/actions";
-import { TokenConfig } from "./token-config";
+import { TokenConfig } from "./constants";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const DEAD_ADDRESS = "0x000000000000000000000000000000000000dead";

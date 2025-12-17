@@ -4,7 +4,7 @@
  */
 
 import { HenloHolder, HenloHolderStats } from "generated";
-import { TokenConfig } from "./token-config";
+import { TokenConfig } from "./constants";
 import { ZERO_ADDRESS, DEAD_ADDRESS } from "./burn-tracking";
 
 /**

@@ -5,7 +5,7 @@
  */
 
 import { TrackedTokenBalance, TrackedErc20 } from "generated";
-import { TOKEN_CONFIGS } from "./tracked-erc20/token-config";
+import { TOKEN_CONFIGS } from "./tracked-erc20/constants";
 import { isBurnTransfer, trackBurn, ZERO_ADDRESS } from "./tracked-erc20/burn-tracking";
 import { updateHolderBalances, updateHolderStats } from "./tracked-erc20/holder-stats";
 
