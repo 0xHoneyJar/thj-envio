@@ -554,25 +554,39 @@ networks:
       # Crayons ERC721 Collections (Transfer indexing)
       - name: CrayonsCollection
         address: []
+      # ============================================================
       # Static tracked ERC721 collections
+      # ============================================================
       - name: TrackedErc721
         address:
-          - 0x6666397DFe9a8c469BF65dc744CB1C733416c420 # mibera holders
-          - 0x4B08a069381EfbB9f08C73D6B2e975C9BE3c4684 # tarot
-          - 0x86Db98cf1b81E833447b12a077ac28c36b75c8E1 # miparcels
-          - 0x8D4972bd5D2df474e71da6676a365fB549853991 # miladies
-          - 0x144B27b1A267eE71989664b3907030Da84cc4754 # mireveal_1_1
-          - 0x72DB992E18a1bf38111B1936DD723E82D0D96313 # mireveal_2_2
-          - 0x3A00301B713be83EC54B7B4Fb0f86397d087E6d3 # mireveal_3_3
-          - 0x419F25C4f9A9c730AAcf58b8401B5b3e566Fe886 # mireveal_4_20
-          - 0x81A27117bd894942BA6737402fB9e57e942C6058 # mireveal_5_5
-          - 0xaaB7b4502251aE393D0590bAB3e208E2d58F4813 # mireveal_6_6
-          - 0xc64126EA8dC7626c16daA2A29D375C33fcaa4C7c # mireveal_7_7
-          - 0x24F4047d372139de8DACbe79e2fC576291Ec3ffc # mireveal_8_8
+          # ----- MIBERA MAIN COLLECTION -----
+          - 0x6666397DFe9a8c469BF65dc744CB1C733416c420 # mibera (the main Mibera collection)
+
+          # ----- MIBERA TAROT (aka "Mibera Quiz") -----
+          # Tarot cards from a quiz users took - same thing, different names
+          - 0x4B08a069381EfbB9f08C73D6B2e975C9BE3c4684 # mibera_tarot / mibera_quiz
+
+          # ----- FRACTURES (10-piece SBFT collection) -----
+          # All 10 contracts below are part of the "Fractures" set
+          # These are SBFTs (soul bound fungible tokens) that form a complete collection
+          - 0x86Db98cf1b81E833447b12a077ac28c36b75c8E1 # fracture #1: miparcels
+          - 0x8D4972bd5D2df474e71da6676a365fB549853991 # fracture #2: miladies (Miladies on Berachain)
+          - 0x144B27b1A267eE71989664b3907030Da84cc4754 # fracture #3: mireveal_1_1
+          - 0x72DB992E18a1bf38111B1936DD723E82D0D96313 # fracture #4: mireveal_2_2
+          - 0x3A00301B713be83EC54B7B4Fb0f86397d087E6d3 # fracture #5: mireveal_3_3
+          - 0x419F25C4f9A9c730AAcf58b8401B5b3e566Fe886 # fracture #6: mireveal_4_20
+          - 0x81A27117bd894942BA6737402fB9e57e942C6058 # fracture #7: mireveal_5_5
+          - 0xaaB7b4502251aE393D0590bAB3e208E2d58F4813 # fracture #8: mireveal_6_6
+          - 0xc64126EA8dC7626c16daA2A29D375C33fcaa4C7c # fracture #9: mireveal_7_7
+          - 0x24F4047d372139de8DACbe79e2fC576291Ec3ffc # fracture #10: mireveal_8_8
+      # ============================================================
       # General ERC721 Mint tracking (quest/missions)
+      # ============================================================
       - name: GeneralMints
         address:
-          - 0x048327A187b944ddac61c6e202BfccD20d17c008
+          # ----- MIBERA SHADOWS (aka "Mibera VM") -----
+          # The VM (Virtual Mibera) generative collection - also known as Mibera Shadows
+          - 0x048327A187b944ddac61c6e202BfccD20d17c008 # mibera_vm / mibera_shadows
           - 0x230945E0Ed56EF4dE871a6c0695De265DE23D8D8 # mibera_gif
           # NOTE: mibera_tarot handled by TrackedErc721 (which now creates mint actions too)
       # Mibera staking tracking - REMOVED: Now handled by TrackedErc721 handler
@@ -581,10 +595,14 @@ networks:
       - name: PaddleFi
         address:
           - 0x242b7126F3c4E4F8CbD7f62571293e63E9b0a4E1 # PaddleFi MIBERA-WBERA vault
+      # ============================================================
+      # MIBERA CANDIES (aka "Mibera Drugs") - ERC1155 collections
+      # Same thing, different names - candies and drugs are interchangeable terms
+      # ============================================================
       - name: CandiesMarket1155
         address:
-          - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F
-          - 0xeca03517c5195f1edd634da6d690d6c72407c40c
+          - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F # mibera_drugs / mibera_candies (SilkRoad marketplace)
+          - 0xeca03517c5195f1edd634da6d690d6c72407c40c # mibera_drugs / mibera_candies (secondary)
       # MiberaTrade and CandiesTrade contracts commented out until handlers are implemented
       # - name: MiberaTrade
       #   address:
