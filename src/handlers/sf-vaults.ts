@@ -102,6 +102,13 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
 /**
  * Lookup table mapping strategy addresses to their known multiRewards addresses
  * Used as fallback when RPC calls fail (e.g., contract doesn't exist at historical block)
+ *
+ * MAINTENANCE: When new strategies are deployed, add them here:
+ * 1. Get strategy address from StrategyUpdated event or deployment
+ * 2. Query strategy.multiRewardsAddress() on-chain
+ * 3. Add mapping below with vault name comment
+ *
+ * Last verified: 2025-12-21 (5 HLKD vaults)
  */
 const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
   "0x9e9a8aa97991d4aa2e5d7fed2b19fa24f2e95eed": "0xbfda8746f8abee58a58f87c1d2bb2d9eee6e3554", // HLKD1B
