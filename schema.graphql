@@ -58,6 +58,16 @@ type CandiesInventory {
   chainId: Int!
 }
 
+# Tracks BERA spent on candies purchases, deduplicated by transaction
+# Used for backing_contributor calculation
+type CandiesBacking {
+  id: ID!  # txHash
+  user: String!
+  amount: BigInt!  # transaction.value in wei
+  timestamp: BigInt!
+  chainId: Int!
+}
+
 type BadgeHolder {
   id: ID!
   address: String!

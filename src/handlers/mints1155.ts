@@ -3,7 +3,7 @@
  * Also tracks orders (non-mint transfers) for SilkRoad marketplace.
  */
 
-import { CandiesMarket1155, Erc1155MintEvent, CandiesInventory, MiberaOrder } from "generated";
+import { CandiesMarket1155, Erc1155MintEvent, CandiesInventory, CandiesBacking, MiberaOrder } from "generated";
 
 import { ZERO_ADDRESS, BERACHAIN_ID } from "./constants";
 import { MINT_COLLECTION_KEYS } from "./mints/constants";
@@ -54,10 +54,26 @@ export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
     const mintId = `${event.transaction.hash}_${event.logIndex}`;
     const minter = to.toLowerCase();
     const operatorLower = operator.toLowerCase();
+    const txHash = event.transaction.hash;
 
-    // Get transaction value (BERA paid) for backing calculation
-    const txValue = (event.transaction as { value?: bigint }).value;
-    const transactionValue = txValue ? txValue.toString() : undefined;
+    // Track BERA backing for candies only (mibera_drugs)
+    // Use CandiesBacking entity to deduplicate by txHash
+    if (collectionKey === "mibera_drugs") {
+      const txValue = (event.transaction as { value?: bigint }).value;
+      if (txValue && txValue > 0n) {
+        const existingBacking = await context.CandiesBacking.get(txHash);
+        if (!existingBacking) {
+          const backing: CandiesBacking = {
+            id: txHash,
+            user: minter,
+            amount: txValue,
+            timestamp,
+            chainId,
+          };
+          context.CandiesBacking.set(backing);
+        }
+      }
+    }
 
     const mintEvent: Erc1155MintEvent = {
       id: mintId,
@@ -99,14 +115,13 @@ export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
       primaryCollection: collectionKey,
       timestamp,
       chainId,
-      txHash: event.transaction.hash,
+      txHash,
       logIndex: event.logIndex,
       numeric1: quantity,
       context: {
         tokenId: tokenId.toString(),
         operator: operatorLower,
         contract: contractAddress,
-        transactionValue,
       },
     });
   }
@@ -128,9 +143,24 @@ export const handleCandiesMintBatch = CandiesMarket1155.TransferBatch.handler(
     const chainId = event.chainId;
     const txHash = event.transaction.hash;
 
-    // Get transaction value (BERA paid) for backing calculation
-    const txValue = (event.transaction as { value?: bigint }).value;
-    const transactionValue = txValue ? txValue.toString() : undefined;
+    // Track BERA backing for candies only (mibera_drugs)
+    // Use CandiesBacking entity to deduplicate by txHash
+    if (collectionKey === "mibera_drugs") {
+      const txValue = (event.transaction as { value?: bigint }).value;
+      if (txValue && txValue > 0n) {
+        const existingBacking = await context.CandiesBacking.get(txHash);
+        if (!existingBacking) {
+          const backing: CandiesBacking = {
+            id: txHash,
+            user: minterLower,
+            amount: txValue,
+            timestamp,
+            chainId,
+          };
+          context.CandiesBacking.set(backing);
+        }
+      }
+    }
 
     const idsArray = Array.from(ids);
     const valuesArray = Array.from(values);
@@ -201,8 +231,6 @@ export const handleCandiesMintBatch = CandiesMarket1155.TransferBatch.handler(
           operator: operatorLower,
           contract: contractAddress,
           batchIndex: index,
-          // Only record transactionValue on first item to avoid double-counting
-          transactionValue: index === 0 ? transactionValue : undefined,
         },
       });
     }
