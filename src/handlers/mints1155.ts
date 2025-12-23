@@ -55,6 +55,10 @@ export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
     const minter = to.toLowerCase();
     const operatorLower = operator.toLowerCase();
 
+    // Get transaction value (BERA paid) for backing calculation
+    const txValue = (event.transaction as { value?: bigint }).value;
+    const transactionValue = txValue ? txValue.toString() : undefined;
+
     const mintEvent: Erc1155MintEvent = {
       id: mintId,
       collectionKey,
@@ -102,6 +106,7 @@ export const handleCandiesMintSingle = CandiesMarket1155.TransferSingle.handler(
         tokenId: tokenId.toString(),
         operator: operatorLower,
         contract: contractAddress,
+        transactionValue,
       },
     });
   }
@@ -122,6 +127,10 @@ export const handleCandiesMintBatch = CandiesMarket1155.TransferBatch.handler(
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
     const txHash = event.transaction.hash;
+
+    // Get transaction value (BERA paid) for backing calculation
+    const txValue = (event.transaction as { value?: bigint }).value;
+    const transactionValue = txValue ? txValue.toString() : undefined;
 
     const idsArray = Array.from(ids);
     const valuesArray = Array.from(values);
@@ -192,6 +201,8 @@ export const handleCandiesMintBatch = CandiesMarket1155.TransferBatch.handler(
           operator: operatorLower,
           contract: contractAddress,
           batchIndex: index,
+          // Only record transactionValue on first item to avoid double-counting
+          transactionValue: index === 0 ? transactionValue : undefined,
         },
       });
     }
