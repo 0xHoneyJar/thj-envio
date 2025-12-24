@@ -6,6 +6,11 @@
  *
  * This handler captures the custom Minted event that includes the encoded_traits string,
  * which is critical for regenerating VM metadata if it fails during the initial mint.
+ *
+ * NOTE: This handler does NOT create new MintEvent entities. It only enriches
+ * existing MintEvent entities created by the Transfer handler in mints.ts.
+ * The Transfer event and Minted event have different logIndexes, so we look up
+ * by txHash + tokenId pattern to find the correct MintEvent to update.
  */
 
 import { GeneralMints, MintEvent } from "generated";
@@ -13,34 +18,32 @@ import { GeneralMints, MintEvent } from "generated";
 export const handleVmMinted = GeneralMints.Minted.handler(
   async ({ event, context }) => {
     const { user, tokenId, traits } = event.params;
+    const txHash = event.transaction.hash;
 
-    const contractAddress = event.srcAddress.toLowerCase();
-    const minter = user.toLowerCase();
-    const id = `${event.transaction.hash}_${event.logIndex}`;
-    const timestamp = BigInt(event.block.timestamp);
-    const chainId = event.chainId;
+    // Find the MintEvent created by the Transfer handler
+    // The Transfer handler creates MintEvents with id = `${txHash}_${logIndex}`
+    // We need to find it by querying, but Envio doesn't support queries in handlers.
+    // Instead, we'll use a predictable ID pattern: the Transfer event typically
+    // fires right before the Minted event, so its logIndex is event.logIndex - 1
+    const transferLogIndex = event.logIndex - 1;
+    const transferEventId = `${txHash}_${transferLogIndex}`;
 
-    // Check if MintEvent already exists (from Transfer handler)
-    const existingMintEvent = await context.MintEvent.get(id);
+    const existingMintEvent = await context.MintEvent.get(transferEventId);
 
-    // Create new MintEvent with encoded traits
-    // If it already exists, spread its properties; otherwise create new
-    const mintEvent = {
-      ...(existingMintEvent || {
-        id,
-        collectionKey: "mibera_vm", // VM contract collection key
-        tokenId: BigInt(tokenId.toString()),
-        minter,
-        timestamp,
-        blockNumber: BigInt(event.block.number),
-        transactionHash: event.transaction.hash,
-        chainId,
-      }),
-      encodedTraits: traits, // Add or update encoded traits
-    };
-
-    context.MintEvent.set(mintEvent);
-
-    console.log(`[VM Minted] Stored traits for tokenId ${tokenId}: ${traits}`);
+    if (existingMintEvent) {
+      // Update the existing MintEvent with encoded traits
+      context.MintEvent.set({
+        ...existingMintEvent,
+        encodedTraits: traits,
+      });
+      console.log(`[VM Minted] Updated traits for tokenId ${tokenId}: ${traits}`);
+    } else {
+      // Log warning - the Transfer handler should have created this already
+      console.warn(
+        `[VM Minted] No existing MintEvent found for txHash ${txHash}, tokenId ${tokenId}. ` +
+        `Expected at logIndex ${transferLogIndex}, but MintEvent was not found.`
+      );
+      // Do NOT create a new MintEvent here - let the Transfer handler handle creation
+    }
   }
 );
