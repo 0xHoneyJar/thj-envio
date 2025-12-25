@@ -4,6 +4,7 @@
  * Tracks:
  * - Mint (Supply BERA): Lenders deposit BERA into the lending pool
  * - Pawn: Borrowers deposit Mibera NFTs as collateral
+ * - LiquidateBorrow: Liquidations (borrower liquidated, liquidator seizes NFTs)
  *
  * Contract: 0x242b7126F3c4E4F8CbD7f62571293e63E9b0a4E1 (Berachain)
  */
@@ -15,6 +16,7 @@ import type {
   PaddlePawn as PaddlePawnEntity,
   PaddleSupplier as PaddleSupplierEntity,
   PaddleBorrower as PaddleBorrowerEntity,
+  PaddleLiquidation as PaddleLiquidationEntity,
 } from "generated";
 
 import { recordAction } from "../lib/actions";
@@ -220,3 +222,85 @@ async function updateBorrowerStats({
 
   context.PaddleBorrower.set(borrower);
 }
+
+/**
+ * Handle LiquidateBorrow events (Liquidation)
+ * Emitted when a liquidator repays a borrower's debt and seizes their NFT collateral
+ *
+ * Records two actions:
+ * - paddle_liquidated: for the borrower who was liquidated
+ * - paddle_liquidator: for the user who performed the liquidation
+ *
+ * App layer computes aggregates (was_first, was_first_ten, count_tier) from Actions table
+ */
+export const handlePaddleLiquidateBorrow = PaddleFi.LiquidateBorrow.handler(
+  async ({ event, context }) => {
+    const liquidator = event.params.liquidator.toLowerCase();
+    const borrower = event.params.borrower.toLowerCase();
+    const repayAmount = event.params.repayAmount;
+    const nftIds = event.params.nftIds.map((id) => BigInt(id.toString()));
+    const chainId = event.chainId;
+    const txHash = event.transaction.hash;
+    const logIndex = event.logIndex;
+    const timestamp = BigInt(event.block.timestamp);
+    const blockNumber = BigInt(event.block.number);
+
+    const eventId = `${txHash}_${logIndex}`;
+
+    // Create liquidation event record
+    const liquidationEvent: PaddleLiquidationEntity = {
+      id: eventId,
+      liquidator,
+      borrower,
+      repayAmount,
+      nftIds,
+      timestamp,
+      blockNumber,
+      transactionHash: txHash,
+      chainId,
+    };
+    context.PaddleLiquidation.set(liquidationEvent);
+
+    // Record action for liquidated user (was liquidated)
+    recordAction(context, {
+      id: `${eventId}_liquidated`,
+      actionType: "paddle_liquidated",
+      actor: borrower,
+      primaryCollection: "paddlefi",
+      timestamp,
+      chainId,
+      txHash,
+      logIndex: Number(logIndex),
+      numeric1: repayAmount,
+      numeric2: BigInt(nftIds.length),
+      context: {
+        type: "was_liquidated",
+        liquidator,
+        repayAmount: repayAmount.toString(),
+        nftIds: nftIds.map((id) => id.toString()),
+        nftCount: nftIds.length,
+      },
+    });
+
+    // Record action for liquidator (performed liquidation)
+    recordAction(context, {
+      id: `${eventId}_liquidator`,
+      actionType: "paddle_liquidator",
+      actor: liquidator,
+      primaryCollection: "paddlefi",
+      timestamp,
+      chainId,
+      txHash,
+      logIndex: Number(logIndex),
+      numeric1: repayAmount,
+      numeric2: BigInt(nftIds.length),
+      context: {
+        type: "performed_liquidation",
+        borrower,
+        repayAmount: repayAmount.toString(),
+        nftIds: nftIds.map((id) => id.toString()),
+        nftCount: nftIds.length,
+      },
+    });
+  }
+);

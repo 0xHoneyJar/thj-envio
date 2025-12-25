@@ -136,7 +136,7 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # PaddleFi lending tracking (BERA supply + NFT pawn)
+  # PaddleFi lending tracking (BERA supply + NFT pawn + liquidations)
   - name: PaddleFi
     handler: src/EventHandlers.ts
     events:
@@ -147,6 +147,11 @@ contracts:
             - hash
       # Pawn = Deposit NFT as collateral (borrower pawns Mibera NFTs)
       - event: Pawn(address borrower, uint256[] nftIds)
+        field_selection:
+          transaction_fields:
+            - hash
+      # LiquidateBorrow = Liquidation event (liquidator repays debt, seizes NFT collateral)
+      - event: LiquidateBorrow(address liquidator, address borrower, uint256 repayAmount, uint256[] nftIds)
         field_selection:
           transaction_fields:
             - hash

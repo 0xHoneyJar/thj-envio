@@ -124,8 +124,12 @@ import { handleFriendtechTrade } from "./handlers/friendtech";
 // Seaport marketplace handlers (secondary sales tracking)
 import { handleSeaportOrderFulfilled } from "./handlers/seaport";
 
-// PaddleFi lending handlers (BERA supply + NFT pawn)
-import { handlePaddleMint, handlePaddlePawn } from "./handlers/paddlefi";
+// PaddleFi lending handlers (BERA supply + NFT pawn + liquidations)
+import {
+  handlePaddleMint,
+  handlePaddlePawn,
+  handlePaddleLiquidateBorrow,
+} from "./handlers/paddlefi";
 
 // Trading system handlers
 // TODO: Fix TypeScript errors in trade handlers before uncommenting
@@ -259,6 +263,7 @@ export { handleFriendtechTrade };
 // Seaport marketplace handlers (secondary sales tracking)
 export { handleSeaportOrderFulfilled };
 
-// PaddleFi lending handlers (BERA supply + NFT pawn)
+// PaddleFi lending handlers (BERA supply + NFT pawn + liquidations)
 export { handlePaddleMint };
 export { handlePaddlePawn };
+export { handlePaddleLiquidateBorrow };

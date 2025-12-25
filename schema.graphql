@@ -660,6 +660,19 @@ type PaddleBorrower {
   chainId: Int!
 }
 
+# Individual liquidation event (for querying by app)
+type PaddleLiquidation {
+  id: ID!                      # txHash_logIndex
+  liquidator: String!          # User who performed the liquidation
+  borrower: String!            # User who was liquidated
+  repayAmount: BigInt!         # Amount of debt repaid by liquidator
+  nftIds: [BigInt!]!           # NFTs seized as collateral
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
 # ============================
 # MIBERA STAKING TRACKING
 # ============================
