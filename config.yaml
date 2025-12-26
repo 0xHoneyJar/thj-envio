@@ -270,8 +270,8 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  # MiberaTreasury - Treasury backing/marketplace for defaulted NFTs
-  - name: MiberaTreasury
+  # MiberaLiquidBacking - Liquid backing system (loans, RFV, marketplace for defaulted NFTs)
+  - name: MiberaLiquidBacking
     handler: src/EventHandlers.ts
     events:
       # Loan lifecycle events
@@ -654,10 +654,10 @@ networks:
           - 0xF07Fa3ECE9741D408d643748Ff85710BEdEF25bA # HLKD420M
           - 0x37DD8850919EBdCA911C383211a70839A94b0539 # HLKD330M
           - 0x7Bdf98DdeEd209cFa26bD2352b470Ac8b5485EC5 # HLKD100M
-      # Mibera Treasury - NFT backing and marketplace
-      - name: MiberaTreasury
+      # Mibera Liquid Backing - Loans, RFV, and marketplace
+      - name: MiberaLiquidBacking
         address:
-          - 0xaa04F13994A7fCd86F3BbbF4054d239b88F2744d # Mibera Treasury
+          - 0xaa04F13994A7fCd86F3BbbF4054d239b88F2744d # Mibera Liquid Backing
       # Mibera Collection - NFT transfer tracking for mint activity
       - name: MiberaCollection
         address:

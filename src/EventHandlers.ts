@@ -78,7 +78,7 @@ import {
   handleHenloVaultReservoirSet,
 } from "./handlers/henlo-vault";
 
-// Mibera Treasury handlers (defaulted NFT marketplace + loan system)
+// Mibera Liquid Backing handlers (loans, RFV, defaulted NFT marketplace)
 import {
   handleLoanReceived,
   handleBackingLoanPayedBack,
@@ -89,7 +89,7 @@ import {
   handleItemPurchased,
   handleItemRedeemed,
   handleRFVChanged,
-} from "./handlers/mibera-treasury";
+} from "./handlers/mibera-liquid-backing";
 
 // Mibera Collection handlers (transfer/mint/burn tracking)
 import { handleMiberaCollectionTransfer } from "./handlers/mibera-collection";

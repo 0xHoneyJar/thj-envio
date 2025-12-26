@@ -1,16 +1,16 @@
 /**
- * Mibera Treasury Handlers
+ * Mibera Liquid Backing Handlers
  *
- * Tracks treasury-owned NFTs, purchases, RFV updates, and loan lifecycle
- * Enables real-time marketplace availability queries and loan tracking
+ * Tracks backing loans, item loans, RFV updates, and marketplace for defaulted NFTs
+ * Enables real-time loan tracking and treasury marketplace queries
  */
 
-import { MiberaTreasury } from "generated";
+import { MiberaLiquidBacking } from "generated";
 import type { TreasuryItem, TreasuryStats, TreasuryActivity, MiberaLoan, MiberaLoanStats, DailyRfvSnapshot } from "generated";
 import { recordAction } from "../lib/actions";
 
 const BERACHAIN_ID = 80094;
-const TREASURY_ADDRESS = "0xaa04f13994a7fcd86f3bbbf4054d239b88f2744d";
+const LIQUID_BACKING_ADDRESS = "0xaa04f13994a7fcd86f3bbbf4054d239b88f2744d";
 const SECONDS_PER_DAY = 86400;
 
 /**
@@ -74,7 +74,7 @@ function getDayFromTimestamp(timestamp: bigint): number {
  * Handle LoanReceived - User creates a backing loan (collateral-based)
  * Event: LoanReceived(uint256 loanId, uint256[] ids, uint256 amount, uint256 expiry)
  */
-export const handleLoanReceived = MiberaTreasury.LoanReceived.handler(
+export const handleLoanReceived = MiberaLiquidBacking.LoanReceived.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -117,7 +117,7 @@ export const handleLoanReceived = MiberaTreasury.LoanReceived.handler(
     recordAction(context, {
       actionType: "loan_received",
       actor: user,
-      primaryCollection: TREASURY_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -133,7 +133,7 @@ export const handleLoanReceived = MiberaTreasury.LoanReceived.handler(
  * Handle BackingLoanPayedBack - User repays backing loan
  * Event: BackingLoanPayedBack(uint256 loanId, uint256 newTotalBacking)
  */
-export const handleBackingLoanPayedBack = MiberaTreasury.BackingLoanPayedBack.handler(
+export const handleBackingLoanPayedBack = MiberaLiquidBacking.BackingLoanPayedBack.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -163,8 +163,8 @@ export const handleBackingLoanPayedBack = MiberaTreasury.BackingLoanPayedBack.ha
     // Record action
     recordAction(context, {
       actionType: "loan_repaid",
-      actor: existingLoan?.user || TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: existingLoan?.user || LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -178,7 +178,7 @@ export const handleBackingLoanPayedBack = MiberaTreasury.BackingLoanPayedBack.ha
  * Handle ItemLoaned - User takes an item loan (single NFT from treasury)
  * Event: ItemLoaned(uint256 loanId, uint256 itemId, uint256 expiry)
  */
-export const handleItemLoaned = MiberaTreasury.ItemLoaned.handler(
+export const handleItemLoaned = MiberaLiquidBacking.ItemLoaned.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -219,7 +219,7 @@ export const handleItemLoaned = MiberaTreasury.ItemLoaned.handler(
     recordAction(context, {
       actionType: "item_loaned",
       actor: user,
-      primaryCollection: TREASURY_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -235,7 +235,7 @@ export const handleItemLoaned = MiberaTreasury.ItemLoaned.handler(
  * Handle LoanItemSentBack - User returns item loan
  * Event: LoanItemSentBack(uint256 loanId, uint256 newTotalBacking)
  */
-export const handleLoanItemSentBack = MiberaTreasury.LoanItemSentBack.handler(
+export const handleLoanItemSentBack = MiberaLiquidBacking.LoanItemSentBack.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -265,8 +265,8 @@ export const handleLoanItemSentBack = MiberaTreasury.LoanItemSentBack.handler(
     // Record action
     recordAction(context, {
       actionType: "item_loan_returned",
-      actor: existingLoan?.user || TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: existingLoan?.user || LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -288,7 +288,7 @@ export const handleLoanItemSentBack = MiberaTreasury.LoanItemSentBack.handler(
  * The loan contains multiple collateral items. We record the event but can't determine
  * specific tokenIds without querying the contract.
  */
-export const handleBackingLoanExpired = MiberaTreasury.BackingLoanExpired.handler(
+export const handleBackingLoanExpired = MiberaLiquidBacking.BackingLoanExpired.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -341,8 +341,8 @@ export const handleBackingLoanExpired = MiberaTreasury.BackingLoanExpired.handle
     // Record action for activity feed
     recordAction(context, {
       actionType: "treasury_backing_loan_expired",
-      actor: TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -360,7 +360,7 @@ export const handleBackingLoanExpired = MiberaTreasury.BackingLoanExpired.handle
  * For item loans, the loanId can be used to look up the specific itemId.
  * The item that was loaned now belongs to the treasury.
  */
-export const handleItemLoanExpired = MiberaTreasury.ItemLoanExpired.handler(
+export const handleItemLoanExpired = MiberaLiquidBacking.ItemLoanExpired.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const loanId = event.params.loanId;
@@ -447,8 +447,8 @@ export const handleItemLoanExpired = MiberaTreasury.ItemLoanExpired.handler(
 
     recordAction(context, {
       actionType: "treasury_item_acquired",
-      actor: TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -463,7 +463,7 @@ export const handleItemLoanExpired = MiberaTreasury.ItemLoanExpired.handler(
  * Handle ItemPurchased - NFT purchased from treasury
  * Event: ItemPurchased(uint256 itemId, uint256 newTotalBacking)
  */
-export const handleItemPurchased = MiberaTreasury.ItemPurchased.handler(
+export const handleItemPurchased = MiberaLiquidBacking.ItemPurchased.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const itemId = event.params.itemId;
@@ -529,8 +529,8 @@ export const handleItemPurchased = MiberaTreasury.ItemPurchased.handler(
 
     recordAction(context, {
       actionType: "treasury_purchase",
-      actor: buyer || TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: buyer || LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -545,7 +545,7 @@ export const handleItemPurchased = MiberaTreasury.ItemPurchased.handler(
  * Handle ItemRedeemed - NFT deposited into treasury
  * Event: ItemRedeemed(uint256 itemId, uint256 newTotalBacking)
  */
-export const handleItemRedeemed = MiberaTreasury.ItemRedeemed.handler(
+export const handleItemRedeemed = MiberaLiquidBacking.ItemRedeemed.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const itemId = event.params.itemId;
@@ -611,8 +611,8 @@ export const handleItemRedeemed = MiberaTreasury.ItemRedeemed.handler(
 
     recordAction(context, {
       actionType: "treasury_item_redeemed",
-      actor: depositor || TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: depositor || LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
@@ -629,7 +629,7 @@ export const handleItemRedeemed = MiberaTreasury.ItemRedeemed.handler(
  *
  * Also creates daily RFV snapshots for historical charting
  */
-export const handleRFVChanged = MiberaTreasury.RFVChanged.handler(
+export const handleRFVChanged = MiberaLiquidBacking.RFVChanged.handler(
   async ({ event, context }) => {
     const timestamp = BigInt(event.block.timestamp);
     const newRFV = event.params.newRFV;
@@ -672,8 +672,8 @@ export const handleRFVChanged = MiberaTreasury.RFVChanged.handler(
 
     recordAction(context, {
       actionType: "treasury_rfv_updated",
-      actor: TREASURY_ADDRESS,
-      primaryCollection: TREASURY_ADDRESS,
+      actor: LIQUID_BACKING_ADDRESS,
+      primaryCollection: LIQUID_BACKING_ADDRESS,
       timestamp,
       chainId: BERACHAIN_ID,
       txHash,
