@@ -628,19 +628,19 @@ networks:
       # Set & Forgetti Vaults (ERC4626)
       - name: SFVaultERC4626
         address:
-          - 0x4b8e4C84901C8404F4cfe438A33ee9Ef72F345d1 # HLKD1B Vault
-          - 0x962D17044fB34abbF523F6bff93D05c0214d7BB3 # HLKD690M Vault
-          - 0xa51Dd612F0A03cBc81652078f631fb5F7081ff0F # HLKD420M Vault
-          - 0xb7411DdE748Fb6D13cE04B9aac5E1fEa8AD264dD # HLKD330M Vault
-          - 0x6552e503dfC5103BB31a3fE96Ac3c3a092607f36 # HLKD100M Vault
+          - 0x3bEC4140EDA07911208d4fC06b2f5ADB7B5237FB # HLKD1B Vault
+          - 0x335d150495F6C8483773ABC0e4Fa5780dd270E78 # HLKD690M Vault
+          - 0x2e2bDfdD4b786703B374aEEAa44195698a699dD1 # HLKD420M Vault
+          - 0x91F321A8791fB899c6b860B9F54940C68cB45AeD # HLKD330M Vault
+          - 0xEe1087ec5D6A0a673C046b9ACb15C93B7aDB95CA # HLKD100M Vault
       # Set & Forgetti MultiRewards (Staking)
       - name: SFMultiRewards
         address:
-          - 0xBfdA8746f8ABeE58a58F87C1D2BB2d9eEE6e3554 # HLKD1B MultiRewards
-          - 0x01c1C9c333Ea81e422E421Db63030e882851EB3d # HLKD690M MultiRewards
-          - 0x4EEdEe17CDFbd9910C421ecc9d3401C70C0BF624 # HLKD420M MultiRewards
-          - 0xec204cb71D69f1b4d334C960D16a68364B604857 # HLKD330M MultiRewards
-          - 0x00192Ce353151563B3bd8664327d882c7ac45CB8 # HLKD100M MultiRewards
+          - 0x30280bd486Dd2F8710B553Eff27AB84D513775f5 # HLKD1B MultiRewards
+          - 0x8F0c380f8D5cC1Bc21F50Eb8f1D8CB86EB85e393 # HLKD690M MultiRewards
+          - 0xD0B316222f02362038bB1dbC3382506e6ABCf1C4 # HLKD420M MultiRewards
+          - 0xa1b7DF99167F07aB9286eaa5597B3e8614a7D13e # HLKD330M MultiRewards
+          - 0x10c59924cf07D75702e3B81af0e60D5865339974 # HLKD100M MultiRewards
       # HenloVault for tracking HENLOCKED token mints
       - name: HenloVault
         address:

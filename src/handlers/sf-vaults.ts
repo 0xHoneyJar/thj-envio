@@ -58,44 +58,44 @@ interface VaultConfig {
 
 const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD1B
-  "0x4b8e4c84901c8404f4cfe438a33ee9ef72f345d1": {
-    vault: "0x4b8e4c84901c8404f4cfe438a33ee9ef72f345d1",
-    multiRewards: "0xbfda8746f8abee58a58f87c1d2bb2d9eee6e3554",
+  "0x3bec4140eda07911208d4fc06b2f5adb7b5237fb": {
+    vault: "0x3bec4140eda07911208d4fc06b2f5adb7b5237fb",
+    multiRewards: "0x30280bd486dd2f8710b553eff27ab84d513775f5",
     kitchenToken: "0xf0edfc3e122db34773293e0e5b2c3a58492e7338",
     kitchenTokenSymbol: "HLKD1B",
-    strategy: "0x9e9a8aa97991d4aa2e5d7fed2b19fa24f2e95eed",
+    strategy: "0x39748c56511c02eb7be22225c4699f59fbb55b8f",
   },
   // HLKD690M
-  "0x962d17044fb34abbf523f6bff93d05c0214d7bb3": {
-    vault: "0x962d17044fb34abbf523f6bff93d05c0214d7bb3",
-    multiRewards: "0x01c1c9c333ea81e422e421db63030e882851eb3d",
+  "0x335d150495f6c8483773abc0e4fa5780dd270e78": {
+    vault: "0x335d150495f6c8483773abc0e4fa5780dd270e78",
+    multiRewards: "0x8f0c380f8d5cc1bc21f50eb8f1d8cb86eb85e393",
     kitchenToken: "0x8ab854dc0672d7a13a85399a56cb628fb22102d6",
     kitchenTokenSymbol: "HLKD690M",
-    strategy: "0xafbcc65965e355667e67e3d98389c46227aefdf0",
+    strategy: "0x447d56af16a0cfaff96536c7fd54f46bf56e160e",
   },
   // HLKD420M
-  "0xa51dd612f0a03cbc81652078f631fb5f7081ff0f": {
-    vault: "0xa51dd612f0a03cbc81652078f631fb5f7081ff0f",
-    multiRewards: "0x4eedee17cdfbd9910c421ecc9d3401c70c0bf624",
+  "0x2e2bdfdd4b786703b374aeeaa44195698a699dd1": {
+    vault: "0x2e2bdfdd4b786703b374aeeaa44195698a699dd1",
+    multiRewards: "0xd0b316222f02362038bb1dbc3382506e6abcf1c4",
     kitchenToken: "0xf07fa3ece9741d408d643748ff85710bedef25ba",
     kitchenTokenSymbol: "HLKD420M",
-    strategy: "0x70a637ecfc0bb266627021530c5a08c86d4f0c7a",
+    strategy: "0xffa9dbbff80f736cde9e41427c0335f866854a9a",
   },
   // HLKD330M
-  "0xb7411dde748fb6d13ce04b9aac5e1fea8ad264dd": {
-    vault: "0xb7411dde748fb6d13ce04b9aac5e1fea8ad264dd",
-    multiRewards: "0xec204cb71d69f1b4d334c960d16a68364b604857",
+  "0x91f321a8791fb899c6b860b9f54940c68cb45aed": {
+    vault: "0x91f321a8791fb899c6b860b9f54940c68cb45aed",
+    multiRewards: "0xa1b7df99167f07ab9286eaa5597b3e8614a7d13e",
     kitchenToken: "0x37dd8850919ebdca911c383211a70839a94b0539",
     kitchenTokenSymbol: "HLKD330M",
-    strategy: "0x2a23627a52fc2efee0452648fbdbe9dba4c0bee8",
+    strategy: "0x3032a263c651d9237b74cd6d47baf1345bf0930e",
   },
   // HLKD100M
-  "0x6552e503dfc5103bb31a3fe96ac3c3a092607f36": {
-    vault: "0x6552e503dfc5103bb31a3fe96ac3c3a092607f36",
-    multiRewards: "0x00192ce353151563b3bd8664327d882c7ac45cb8",
+  "0xee1087ec5d6a0a673c046b9acb15c93b7adb95ca": {
+    vault: "0xee1087ec5d6a0a673c046b9acb15c93b7adb95ca",
+    multiRewards: "0x10c59924cf07d75702e3b81af0e60d5865339974",
     kitchenToken: "0x7bdf98ddeed209cfa26bd2352b470ac8b5485ec5",
     kitchenTokenSymbol: "HLKD100M",
-    strategy: "0x15a0172c3b37a7d93a54bf762d6442b51408c0f2",
+    strategy: "0xaee9aea23783057cbc890684464570ad9723be01",
   },
 };
 
@@ -104,11 +104,11 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
  * Used as fallback when RPC calls fail (e.g., contract doesn't exist at historical block)
  */
 const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
-  "0x9e9a8aa97991d4aa2e5d7fed2b19fa24f2e95eed": "0xbfda8746f8abee58a58f87c1d2bb2d9eee6e3554", // HLKD1B
-  "0xafbcc65965e355667e67e3d98389c46227aefdf0": "0x01c1c9c333ea81e422e421db63030e882851eb3d", // HLKD690M
-  "0x70a637ecfc0bb266627021530c5a08c86d4f0c7a": "0x4eedee17cdfbd9910c421ecc9d3401c70c0bf624", // HLKD420M
-  "0x2a23627a52fc2efee0452648fbdbe9dba4c0bee8": "0xec204cb71d69f1b4d334c960d16a68364b604857", // HLKD330M
-  "0x15a0172c3b37a7d93a54bf762d6442b51408c0f2": "0x00192ce353151563b3bd8664327d882c7ac45cb8", // HLKD100M
+  "0x39748c56511c02eb7be22225c4699f59fbb55b8f": "0x30280bd486dd2f8710b553eff27ab84d513775f5", // HLKD1B
+  "0x447d56af16a0cfaff96536c7fd54f46bf56e160e": "0x8f0c380f8d5cc1bc21f50eb8f1d8cb86eb85e393", // HLKD690M
+  "0xffa9dbbff80f736cde9e41427c0335f866854a9a": "0xd0b316222f02362038bb1dbc3382506e6abcf1c4", // HLKD420M
+  "0x3032a263c651d9237b74cd6d47baf1345bf0930e": "0xa1b7df99167f07ab9286eaa5597b3e8614a7d13e", // HLKD330M
+  "0xaee9aea23783057cbc890684464570ad9723be01": "0x10c59924cf07d75702e3b81af0e60d5865339974", // HLKD100M
 };
 
 /**
