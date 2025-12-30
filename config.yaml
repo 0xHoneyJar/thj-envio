@@ -520,6 +520,10 @@ networks:
       - name: FriendtechShares
         address:
           - 0xCF205808Ed36593aa40a44F10c7f7C2F67d4A4d4
+      # MiberaMaker ERC-20 token trades
+      - name: TrackedErc20
+        address:
+          - 0x120756ccc6f0cefb43a753e1f2534377c2694bb4 # MiberaMaker333
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094

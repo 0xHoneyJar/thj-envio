@@ -25,6 +25,12 @@ export const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     holderStats: true,
     burnSources: HENLO_BURN_SOURCES,
   },
+  // MiberaMaker333 token on Base - balance tracking only
+  "0x120756ccc6f0cefb43a753e1f2534377c2694bb4": {
+    key: "miberamaker",
+    burnTracking: false,
+    holderStats: false,
+  },
   // HENLOCKED tier tokens - balance tracking only
   "0xf0edfc3e122db34773293e0e5b2c3a58492e7338": {
     key: "hlkd1b",

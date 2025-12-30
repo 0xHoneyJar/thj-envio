@@ -1,6 +1,6 @@
 /*
  * Unified ERC-20 Token Handler
- * Tracks token balances for HENLO and HENLOCKED tier tokens
+ * Tracks token balances for HENLO, HENLOCKED tier tokens, and MiberaMaker
  * Also handles burn tracking and holder stats for HENLO token
  */
 
@@ -8,6 +8,10 @@ import { TrackedTokenBalance, TrackedErc20 } from "generated";
 import { TOKEN_CONFIGS } from "./tracked-erc20/constants";
 import { isBurnTransfer, trackBurn, ZERO_ADDRESS } from "./tracked-erc20/burn-tracking";
 import { updateHolderBalances, updateHolderStats } from "./tracked-erc20/holder-stats";
+import { recordAction } from "../lib/actions";
+
+// Tokens that should record Actions for activity tracking
+const ACTIVITY_TRACKED_TOKENS = new Set(["miberamaker"]);
 
 /**
  * Handles ERC-20 Transfer events for tracked tokens
@@ -66,6 +70,48 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
       } catch (error) {
         console.error('[TrackedErc20] Burn tracking error:', tokenAddress, error);
       }
+    }
+
+    // 4. Activity tracking for specific tokens (e.g., MiberaMaker)
+    if (ACTIVITY_TRACKED_TOKENS.has(config.key)) {
+      const isMint = fromLower === zeroAddress;
+      const isBurn = isBurnTransfer(toLower);
+
+      // Determine action type: buy (receive), sell (send), mint, or burn
+      let actionType: string;
+      let actor: string;
+
+      if (isMint) {
+        actionType = `${config.key}_mint`;
+        actor = toLower;
+      } else if (isBurn) {
+        actionType = `${config.key}_burn`;
+        actor = fromLower;
+      } else {
+        // For regular transfers, we record both sender (sell) and receiver (buy)
+        // Record as the receiver (buyer) - this captures DEX trades
+        actionType = `${config.key}_transfer`;
+        actor = toLower;
+      }
+
+      recordAction(context, {
+        id: `${event.transaction.hash}_${event.logIndex}`,
+        actionType,
+        actor,
+        primaryCollection: config.key,
+        timestamp,
+        chainId,
+        txHash: event.transaction.hash,
+        logIndex: event.logIndex,
+        numeric1: value,
+        context: {
+          from: fromLower,
+          to: toLower,
+          tokenAddress,
+          isMint,
+          isBurn,
+        },
+      });
     }
   }
 );
