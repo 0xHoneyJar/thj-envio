@@ -18,9 +18,8 @@
  */
 
 export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
-  // ===== MIBERA MAIN COLLECTION =====
-  // The main Mibera collection (separate from Mibera VM/Shadows)
-  "0x6666397dfe9a8c469bf65dc744cb1c733416c420": "mibera",
+  // NOTE: mibera main collection (0x6666397...) is handled by MiberaCollection handler
+  // to avoid handler conflicts and enable full tracking (TrackedHolder + MiberaTransfer + MintActivity)
 
   // ===== MIBERA TAROT (aka "Mibera Quiz") =====
   // Tarot cards from a quiz users took - same thing, different names
@@ -57,7 +56,7 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
  * Used for timeline/activity tracking
  */
 export const TRANSFER_TRACKED_COLLECTIONS = new Set<string>([
-  "mibera",
+  // NOTE: mibera main collection transfers are tracked by MiberaCollection handler
   // NOTE: mibera_zora is ERC-1155, transfers tracked by mibera-zora.ts handler
 
   // Mibera Lore Articles - track all transfers for timeline

@@ -1,21 +1,39 @@
 /**
  * Mibera Collection Transfer Handler
  *
- * Tracks NFT transfers (including mints and burns) for activity feeds
- * Used to replace /api/activity endpoint that fetches from mibera-squid
+ * Single source of truth for all mibera tracking:
+ * - TrackedHolder (for hold verification in missions)
+ * - MiberaTransfer (activity feed)
+ * - MintActivity (unified activity feed with amountPaid)
+ * - NftBurn/NftBurnStats (burn tracking)
+ * - MiberaStakedToken/MiberaStaker (staking tracking)
+ *
+ * This handler was consolidated to avoid conflicts with TrackedErc721 handler
+ * which was preventing TrackedHolder entries from being created.
  */
 
 import { MiberaCollection } from "generated";
-import type { MiberaTransfer, MintActivity, NftBurn, NftBurnStats } from "generated";
+import type {
+  handlerContext,
+  MiberaTransfer,
+  MintActivity,
+  NftBurn,
+  NftBurnStats,
+  TrackedHolder as TrackedHolderEntity,
+  MiberaStakedToken as MiberaStakedTokenEntity,
+  MiberaStaker as MiberaStakerEntity,
+} from "generated";
 import { recordAction } from "../lib/actions";
-import { isMintFromZero, isBurnTransfer } from "../lib/mint-detection";
-import { BERACHAIN_ID } from "./constants";
+import { isMintFromZero, isBurnTransfer, isBurnAddress } from "../lib/mint-detection";
+import { BERACHAIN_ID, ZERO_ADDRESS } from "./constants";
+import { STAKING_CONTRACT_KEYS } from "./mibera-staking/constants";
 
 const MIBERA_COLLECTION_ADDRESS = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
 const MIBERA_COLLECTION_KEY = "mibera";
+const ZERO = ZERO_ADDRESS.toLowerCase();
 
 /**
- * Handle Transfer - Track all NFT transfers including mints and burns
+ * Handle Transfer - Track all NFT transfers including mints, burns, and holder balances
  * Event: Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
  */
 export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
@@ -26,6 +44,7 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const tokenId = event.params.tokenId;
     const txHash = event.transaction.hash;
     const blockNumber = BigInt(event.block.number);
+    const logIndex = Number(event.logIndex);
 
     const isMint = isMintFromZero(from);
     const isBurn = isBurnTransfer(from, to);
@@ -35,8 +54,10 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const txValue = (event.transaction as any).value;
     const amountPaid = txValue ? BigInt(txValue.toString()) : 0n;
 
-    // Create transfer record
-    const transferId = `${txHash}_${event.logIndex}`;
+    // =========================================================================
+    // 1. Create MiberaTransfer record (activity feed)
+    // =========================================================================
+    const transferId = `${txHash}_${logIndex}`;
     const transfer: MiberaTransfer = {
       id: transferId,
       from,
@@ -50,7 +71,9 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     };
     context.MiberaTransfer.set(transfer);
 
-    // Create MintActivity record for mints (for unified activity feed)
+    // =========================================================================
+    // 2. Handle mints - MintActivity + mint action
+    // =========================================================================
     if (isMint) {
       const mintActivityId = `${txHash}_${tokenId}_${to}_MINT`;
       const mintActivity: MintActivity = {
@@ -71,25 +94,35 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
       context.MintActivity.set(mintActivity);
 
       recordAction(context, {
-        actionType: "mibera_mint",
+        id: `${txHash}_${logIndex}_mint`,
+        actionType: "mint",
         actor: to,
-        primaryCollection: MIBERA_COLLECTION_ADDRESS,
+        primaryCollection: MIBERA_COLLECTION_KEY,
         timestamp,
         chainId: BERACHAIN_ID,
         txHash,
-        logIndex: event.logIndex,
-        numeric1: tokenId,
+        logIndex,
+        numeric1: 1n,
+        context: {
+          tokenId: tokenId.toString(),
+          contract: MIBERA_COLLECTION_ADDRESS,
+          amountPaid: amountPaid.toString(),
+        },
       });
-    } else if (isBurn) {
-      // Record burn event
-      const burnId = `${txHash}_${event.logIndex}`;
+    }
+
+    // =========================================================================
+    // 3. Handle burns - NftBurn + NftBurnStats + burn action
+    // =========================================================================
+    if (isBurn) {
+      const burnId = `${txHash}_${logIndex}`;
       const burn: NftBurn = {
         id: burnId,
         collectionKey: MIBERA_COLLECTION_KEY,
         tokenId,
         from,
         timestamp,
-        blockNumber: BigInt(event.block.number),
+        blockNumber,
         transactionHash: txHash,
         chainId: BERACHAIN_ID,
       };
@@ -110,29 +143,295 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
       };
       context.NftBurnStats.set(stats);
 
-      // Record action for activity feeds
       recordAction(context, {
-        actionType: "mibera_burn",
+        id: `${txHash}_${logIndex}_burn`,
+        actionType: "burn",
         actor: from,
-        primaryCollection: MIBERA_COLLECTION_ADDRESS,
+        primaryCollection: MIBERA_COLLECTION_KEY,
         timestamp,
         chainId: BERACHAIN_ID,
         txHash,
-        logIndex: event.logIndex,
-        numeric1: tokenId,
-      });
-    } else {
-      recordAction(context, {
-        actionType: "mibera_transfer",
-        actor: from,
-        primaryCollection: MIBERA_COLLECTION_ADDRESS,
-        timestamp,
-        chainId: BERACHAIN_ID,
-        txHash,
-        logIndex: event.logIndex,
-        numeric1: tokenId,
-        context: { to },
+        logIndex,
+        numeric1: 1n,
+        context: {
+          tokenId: tokenId.toString(),
+          contract: MIBERA_COLLECTION_ADDRESS,
+          burnAddress: to,
+        },
       });
     }
+
+    // =========================================================================
+    // 4. Handle regular transfers (non-mint, non-burn) - transfer action
+    // =========================================================================
+    if (!isMint && !isBurn) {
+      recordAction(context, {
+        id: `${txHash}_${logIndex}_transfer`,
+        actionType: "transfer",
+        actor: to, // Recipient is the actor
+        primaryCollection: MIBERA_COLLECTION_KEY,
+        timestamp,
+        chainId: BERACHAIN_ID,
+        txHash,
+        logIndex,
+        numeric1: BigInt(tokenId.toString()),
+        context: {
+          tokenId: tokenId.toString(),
+          contract: MIBERA_COLLECTION_ADDRESS,
+          from,
+          to,
+          isSecondary: true,
+        },
+      });
+    }
+
+    // =========================================================================
+    // 5. Handle staking transfers (user <-> staking contract)
+    // =========================================================================
+    const depositContractKey = STAKING_CONTRACT_KEYS[to];
+    const withdrawContractKey = STAKING_CONTRACT_KEYS[from];
+
+    // Handle staking deposit (user -> staking contract)
+    if (depositContractKey && from !== ZERO) {
+      await handleMiberaStakeDeposit({
+        context,
+        stakingContract: depositContractKey,
+        stakingContractAddress: to,
+        userAddress: from,
+        tokenId,
+        chainId: BERACHAIN_ID,
+        txHash,
+        blockNumber,
+        timestamp,
+      });
+      // Don't adjust holder counts - user still owns the NFT (it's staked)
+      return;
+    }
+
+    // Handle staking withdrawal (staking contract -> user)
+    if (withdrawContractKey && to !== ZERO) {
+      await handleMiberaStakeWithdrawal({
+        context,
+        stakingContract: withdrawContractKey,
+        stakingContractAddress: from,
+        userAddress: to,
+        tokenId,
+        chainId: BERACHAIN_ID,
+        txHash,
+        blockNumber,
+        timestamp,
+      });
+      // Don't adjust holder counts - they were never decremented on deposit
+      return;
+    }
+
+    // =========================================================================
+    // 6. Update TrackedHolder balances (for hold verification)
+    // =========================================================================
+    await adjustHolder({
+      context,
+      holderAddress: from,
+      delta: -1,
+      txHash,
+      logIndex,
+      timestamp,
+    });
+
+    await adjustHolder({
+      context,
+      holderAddress: to,
+      delta: 1,
+      txHash,
+      logIndex,
+      timestamp,
+    });
   }
 );
+
+// =============================================================================
+// TrackedHolder Management
+// =============================================================================
+
+interface AdjustHolderArgs {
+  context: handlerContext;
+  holderAddress: string;
+  delta: number;
+  txHash: string;
+  logIndex: number;
+  timestamp: bigint;
+}
+
+async function adjustHolder({
+  context,
+  holderAddress,
+  delta,
+  txHash,
+  logIndex,
+  timestamp,
+}: AdjustHolderArgs) {
+  if (delta === 0) return;
+
+  const address = holderAddress.toLowerCase();
+  if (address === ZERO || isBurnAddress(address)) return;
+
+  const id = `${MIBERA_COLLECTION_ADDRESS}_${BERACHAIN_ID}_${address}`;
+  const existing = await context.TrackedHolder.get(id);
+  const currentCount = existing?.tokenCount ?? 0;
+  const nextCount = currentCount + delta;
+
+  const direction = delta > 0 ? "in" : "out";
+  const tokenCount = Math.max(0, nextCount);
+
+  // Record hold action for activity tracking
+  recordAction(context, {
+    id: `${txHash}_${logIndex}_${direction}`,
+    actionType: "hold721",
+    actor: address,
+    primaryCollection: MIBERA_COLLECTION_KEY,
+    timestamp,
+    chainId: BERACHAIN_ID,
+    txHash,
+    logIndex,
+    numeric1: BigInt(tokenCount),
+    context: {
+      contract: MIBERA_COLLECTION_ADDRESS,
+      collectionKey: MIBERA_COLLECTION_KEY,
+      tokenCount,
+      direction,
+    },
+  });
+
+  // Delete holder if balance drops to 0
+  if (nextCount <= 0) {
+    if (existing) {
+      context.TrackedHolder.deleteUnsafe(id);
+    }
+    return;
+  }
+
+  // Create or update holder
+  const holder: TrackedHolderEntity = {
+    id,
+    contract: MIBERA_COLLECTION_ADDRESS,
+    collectionKey: MIBERA_COLLECTION_KEY,
+    chainId: BERACHAIN_ID,
+    address,
+    tokenCount: nextCount,
+  };
+
+  context.TrackedHolder.set(holder);
+}
+
+// =============================================================================
+// Staking Helpers
+// =============================================================================
+
+interface MiberaStakeArgs {
+  context: handlerContext;
+  stakingContract: string;
+  stakingContractAddress: string;
+  userAddress: string;
+  tokenId: bigint;
+  chainId: number;
+  txHash: string;
+  blockNumber: bigint;
+  timestamp: bigint;
+}
+
+async function handleMiberaStakeDeposit({
+  context,
+  stakingContract,
+  stakingContractAddress,
+  userAddress,
+  tokenId,
+  chainId,
+  txHash,
+  blockNumber,
+  timestamp,
+}: MiberaStakeArgs) {
+  // Create staked token record
+  const stakedTokenId = `${stakingContract}_${tokenId}`;
+  const stakedToken: MiberaStakedTokenEntity = {
+    id: stakedTokenId,
+    stakingContract,
+    contractAddress: stakingContractAddress,
+    tokenId,
+    owner: userAddress,
+    isStaked: true,
+    depositedAt: timestamp,
+    depositTxHash: txHash,
+    depositBlockNumber: blockNumber,
+    withdrawnAt: undefined,
+    withdrawTxHash: undefined,
+    withdrawBlockNumber: undefined,
+    chainId,
+  };
+  context.MiberaStakedToken.set(stakedToken);
+
+  // Update staker stats
+  const stakerId = `${stakingContract}_${userAddress}`;
+  const existingStaker = await context.MiberaStaker.get(stakerId);
+
+  const staker: MiberaStakerEntity = existingStaker
+    ? {
+        ...existingStaker,
+        currentStakedCount: existingStaker.currentStakedCount + 1,
+        totalDeposits: existingStaker.totalDeposits + 1,
+        lastActivityTime: timestamp,
+      }
+    : {
+        id: stakerId,
+        stakingContract,
+        contractAddress: stakingContractAddress,
+        address: userAddress,
+        currentStakedCount: 1,
+        totalDeposits: 1,
+        totalWithdrawals: 0,
+        firstDepositTime: timestamp,
+        lastActivityTime: timestamp,
+        chainId,
+      };
+
+  context.MiberaStaker.set(staker);
+}
+
+async function handleMiberaStakeWithdrawal({
+  context,
+  stakingContract,
+  stakingContractAddress,
+  userAddress,
+  tokenId,
+  chainId,
+  txHash,
+  blockNumber,
+  timestamp,
+}: MiberaStakeArgs) {
+  // Update staked token record
+  const stakedTokenId = `${stakingContract}_${tokenId}`;
+  const existingStakedToken = await context.MiberaStakedToken.get(stakedTokenId);
+
+  if (existingStakedToken) {
+    const updatedStakedToken: MiberaStakedTokenEntity = {
+      ...existingStakedToken,
+      isStaked: false,
+      withdrawnAt: timestamp,
+      withdrawTxHash: txHash,
+      withdrawBlockNumber: blockNumber,
+    };
+    context.MiberaStakedToken.set(updatedStakedToken);
+  }
+
+  // Update staker stats
+  const stakerId = `${stakingContract}_${userAddress}`;
+  const existingStaker = await context.MiberaStaker.get(stakerId);
+
+  if (existingStaker) {
+    const updatedStaker: MiberaStakerEntity = {
+      ...existingStaker,
+      currentStakedCount: Math.max(0, existingStaker.currentStakedCount - 1),
+      totalWithdrawals: existingStaker.totalWithdrawals + 1,
+      lastActivityTime: timestamp,
+    };
+    context.MiberaStaker.set(updatedStaker);
+  }
+}

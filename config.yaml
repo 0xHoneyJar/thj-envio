@@ -568,8 +568,8 @@ networks:
       # ============================================================
       - name: TrackedErc721
         address:
-          # ----- MIBERA MAIN COLLECTION -----
-          - 0x6666397DFe9a8c469BF65dc744CB1C733416c420 # mibera (the main Mibera collection)
+          # NOTE: mibera main collection (0x6666397...) is handled by MiberaCollection handler
+          # to avoid handler conflicts and enable full tracking (TrackedHolder + MiberaTransfer + MintActivity)
 
           # ----- MIBERA TAROT (aka "Mibera Quiz") -----
           # Tarot cards from a quiz users took - same thing, different names
