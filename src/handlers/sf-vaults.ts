@@ -180,12 +180,47 @@ export const getMultiRewardsAddress = experimental_createEffect(
 );
 
 /**
+ * Effect to query the vault (stakingToken) from a MultiRewards contract at a specific block.
+ *
+ * This lets us attribute staking/claim events even if MultiRewards contracts are upgraded,
+ * without relying on hardcoded MultiRewards address lists.
+ */
+export const getVaultAddressFromMultiRewards = experimental_createEffect(
+  {
+    name: "getVaultAddressFromMultiRewards",
+    input: {
+      multiRewardsAddress: S.string,
+      blockNumber: S.bigint,
+    },
+    output: S.string,
+    cache: true,
+  },
+  async ({ input }) => {
+    const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
+    const client = createPublicClient({
+      chain: berachain,
+      transport: http(rpcUrl),
+    });
+
+    const stakingToken = await client.readContract({
+      address: input.multiRewardsAddress as `0x${string}`,
+      abi: parseAbi(["function stakingToken() view returns (address)"]),
+      functionName: "stakingToken",
+      blockNumber: input.blockNumber,
+    });
+
+    return (stakingToken as string).toLowerCase();
+  }
+);
+
+/**
  * Helper function to get vault info from a MultiRewards address
  * Searches through SFVaultStrategy records and falls back to hardcoded configs
  */
 async function getVaultFromMultiRewards(
   context: any,
-  multiRewardsAddress: string
+  multiRewardsAddress: string,
+  blockNumber: bigint
 ): Promise<{ vault: string; config: VaultConfig } | null> {
   // First check hardcoded configs (for initial MultiRewards)
   for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
@@ -210,6 +245,23 @@ async function getVaultFromMultiRewards(
         },
       };
     }
+  }
+
+  // Fallback: derive the vault from MultiRewards.stakingToken()
+  try {
+    const vaultAddress = await context.effect(getVaultAddressFromMultiRewards, {
+      multiRewardsAddress,
+      blockNumber,
+    });
+
+    const config = VAULT_CONFIGS[vaultAddress];
+    if (config) {
+      return { vault: vaultAddress, config };
+    }
+  } catch (error) {
+    context.log.warn(
+      `Failed to read stakingToken() for MultiRewards ${multiRewardsAddress} at block ${blockNumber}: ${error}`
+    );
   }
 
   return null;
@@ -257,6 +309,7 @@ async function getVaultFromStrategy(
 async function ensureInitialStrategy(
   context: any,
   vaultAddress: string,
+  blockNumber: bigint,
 ): Promise<void> {
   const config = VAULT_CONFIGS[vaultAddress];
   if (!config) return;
@@ -265,11 +318,16 @@ async function ensureInitialStrategy(
   const existing = await context.SFVaultStrategy.get(strategyId);
 
   if (!existing) {
+    const multiRewardsAtBlock = await context.effect(getMultiRewardsAddress, {
+      strategyAddress: config.strategy,
+      blockNumber,
+    });
+
     context.SFVaultStrategy.set({
       id: strategyId,
       vault: vaultAddress,
       strategy: config.strategy,
-      multiRewards: config.multiRewards,
+      multiRewards: multiRewardsAtBlock,
       kitchenToken: config.kitchenToken,
       kitchenTokenSymbol: config.kitchenTokenSymbol,
       activeFrom: BigInt(0), // Active from the beginning
@@ -308,7 +366,7 @@ async function getActiveStrategy(
   // Fall back to hardcoded config
   return {
     strategy: config.strategy,
-    multiRewards: config.multiRewards,
+    multiRewards: STRATEGY_TO_MULTI_REWARDS[config.strategy] || config.multiRewards,
   };
 }
 
@@ -532,7 +590,7 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
     const shares = event.params.shares; // Vault shares received
 
     // Ensure initial strategy record exists
-    await ensureInitialStrategy(context, vaultAddress);
+    await ensureInitialStrategy(context, vaultAddress, BigInt(event.block.number));
 
     // Get the current active strategy for this vault
     const activeStrategy = await getActiveStrategy(context, vaultAddress);
@@ -748,7 +806,11 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
     const multiRewardsAddress = event.srcAddress.toLowerCase();
 
     // Look up vault from MultiRewards address
-    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+    const vaultInfo = await getVaultFromMultiRewards(
+      context,
+      multiRewardsAddress,
+      BigInt(event.block.number)
+    );
 
     if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
@@ -859,7 +921,11 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
     const multiRewardsAddress = event.srcAddress.toLowerCase();
 
     // Look up vault from MultiRewards address
-    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+    const vaultInfo = await getVaultFromMultiRewards(
+      context,
+      multiRewardsAddress,
+      BigInt(event.block.number)
+    );
 
     if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
@@ -964,7 +1030,11 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
     const multiRewardsAddress = event.srcAddress.toLowerCase();
 
     // Look up vault from MultiRewards address
-    const vaultInfo = await getVaultFromMultiRewards(context, multiRewardsAddress);
+    const vaultInfo = await getVaultFromMultiRewards(
+      context,
+      multiRewardsAddress,
+      BigInt(event.block.number)
+    );
 
     if (!vaultInfo) {
       context.log.warn(`Unknown MultiRewards address: ${multiRewardsAddress}`);
