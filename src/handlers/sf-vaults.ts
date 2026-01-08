@@ -352,6 +352,19 @@ SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
 });
 
 /**
+ * Register new MultiRewards contracts dynamically when vault admin updates MultiRewards
+ *
+ * NOTE: contractRegister runs before handler processing for the block, which helps ensure
+ * any subsequent events from the new MultiRewards address are picked up without requiring
+ * a redeploy or reindex.
+ */
+SFVaultStrategyWrapper.MultiRewardsUpdated.contractRegister(({ event, context }) => {
+  const newMultiRewards = event.params.newMultiRewards.toLowerCase();
+  const anyContext = context as any;
+  anyContext.addSFMultiRewards(newMultiRewards);
+});
+
+/**
  * Handle StrategyUpdated events
  * Event: StrategyUpdated(address indexed oldStrategy, address indexed newStrategy)
  */

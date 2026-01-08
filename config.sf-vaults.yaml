@@ -18,6 +18,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Set & Forgetti Strategy Wrapper - emits when vault admin updates the MultiRewards contract
+  - name: SFVaultStrategyWrapper
+    handler: src/SFVaultHandlers.ts
+    events:
+      - event: MultiRewardsUpdated(address indexed oldMultiRewards, address indexed newMultiRewards)
+        field_selection:
+          transaction_fields:
+            - hash
   # Set & Forgetti MultiRewards - Staking and reward distribution
   - name: SFMultiRewards
     handler: src/SFVaultHandlers.ts
@@ -48,6 +56,14 @@ networks:
           - 0x2e2bDfdD4b786703B374aEEAa44195698a699dD1 # HLKD420M Vault
           - 0x91F321A8791fB899c6b860B9F54940C68cB45AeD # HLKD330M Vault
           - 0xEe1087ec5D6A0a673C046b9ACb15C93B7aDB95CA # HLKD100M Vault
+      # Set & Forgetti Strategy Wrappers (emits MultiRewardsUpdated)
+      - name: SFVaultStrategyWrapper
+        address:
+          - 0x39748c56511c02eb7be22225c4699f59fbb55b8f # HLKD1B Strategy
+          - 0x447d56af16a0cfaff96536c7fd54f46bf56e160e # HLKD690M Strategy
+          - 0xffa9dbbff80f736cde9e41427c0335f866854a9a # HLKD420M Strategy
+          - 0x3032a263c651d9237b74cd6d47baf1345bf0930e # HLKD330M Strategy
+          - 0xaee9aea23783057cbc890684464570ad9723be01 # HLKD100M Strategy
       # Set & Forgetti MultiRewards (Staking)
       - name: SFMultiRewards
         address:
