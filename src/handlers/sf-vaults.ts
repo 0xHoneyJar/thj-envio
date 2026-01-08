@@ -520,14 +520,10 @@ export const handleSFStrategyMultiRewardsUpdated =
     const oldMultiRewards = event.params.oldMultiRewards.toLowerCase();
     const newMultiRewards = event.params.newMultiRewards.toLowerCase();
     const timestamp = BigInt(event.block.timestamp);
-    const anyContext = context as any;
-
-    // Always register the new MultiRewards contract so we start indexing it immediately
-    anyContext.addSFMultiRewards(newMultiRewards);
 
     const vaultInfo = await getVaultFromStrategy(context, strategyAddress);
     if (!vaultInfo) {
-      anyContext.log.warn(
+      context.log.warn(
         `Unknown strategy wrapper address for MultiRewardsUpdated: ${strategyAddress} (old=${oldMultiRewards}, new=${newMultiRewards})`
       );
       return;
