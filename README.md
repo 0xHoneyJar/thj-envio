@@ -1,6 +1,33 @@
-## Envio Indexer
+# THJ Envio Indexer
 
-*Please refer to the [documentation website](https://docs.envio.dev) for a thorough guide on all [Envio](https://envio.dev) indexer features*
+Multi-chain blockchain indexer for the THJ ecosystem, built with [Envio HyperIndex](https://envio.dev).
+
+## What It Indexes
+
+- **HoneyJar/Honeycomb** - NFT ownership across 6 generations
+- **Henlo** - Token burns, holder balances, vault deposits
+- **Set & Forgetti** - ERC4626 vault positions and staking rewards
+- **Mibera** - NFTs, treasury marketplace, lending (PaddleFi)
+- **CubQuests** - Badge verification and mint tracking
+
+### Chains
+
+| Chain | Products |
+|-------|----------|
+| Berachain | All THJ products |
+| Ethereum | HoneyJar, Honeycomb, Milady burns |
+| Optimism | Mibera articles, Sets |
+| Base | HoneyJar, friend.tech keys |
+| Arbitrum | HoneyJar |
+| Zora | HoneyJar |
+
+## Quick Start
+
+### Pre-requisites
+
+- [Node.js v18+](https://nodejs.org/en/download/current)
+- [pnpm v8+](https://pnpm.io/installation)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Run
 
@@ -8,16 +35,39 @@
 pnpm dev
 ```
 
-Visit http://localhost:8080 to see the GraphQL Playground, local password is `testing`.
+Visit http://localhost:8080 for GraphQL Playground (password: `testing`).
 
-### Generate files from `config.yaml` or `schema.graphql`
+### Generate Types
+
+After modifying `config.yaml` or `schema.graphql`:
 
 ```bash
 pnpm codegen
 ```
 
-### Pre-requisites
+### Deploy
 
-- [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
-- [pnpm (use v8 or newer)](https://pnpm.io/installation)
-- [Docker desktop](https://www.docker.com/products/docker-desktop/)
+```bash
+pnpm deploy
+```
+
+## Documentation
+
+- [Product Requirements](loa-grimoire/prd.md) - What this indexer does
+- [Software Design](loa-grimoire/sdd.md) - How it's built
+- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production setup
+
+## Structure
+
+```
+src/
+├── EventHandlers.ts     # Main entry point
+├── handlers/            # 37 domain-specific handlers
+│   ├── sf-vaults.ts     # Set & Forgetti
+│   ├── henlo-vault.ts   # Henlocker
+│   ├── mibera-*.ts      # Mibera ecosystem
+│   └── ...
+└── lib/                 # Utilities
+```
+
+See [Envio docs](https://docs.envio.dev) for framework details.
