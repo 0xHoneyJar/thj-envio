@@ -51,11 +51,11 @@ networks:
       # Set & Forgetti MultiRewards (Staking)
       - name: SFMultiRewards
         address:
-          - 0x30280bd486Dd2F8710B553Eff27AB84D513775f5 # HLKD1B MultiRewards
-          - 0x8F0c380f8D5cC1Bc21F50Eb8f1D8CB86EB85e393 # HLKD690M MultiRewards
-          - 0xD0B316222f02362038bB1dbC3382506e6ABCf1C4 # HLKD420M MultiRewards
-          - 0xa1b7DF99167F07aB9286eaa5597B3e8614a7D13e # HLKD330M MultiRewards
-          - 0x10c59924cf07D75702e3B81af0e60D5865339974 # HLKD100M MultiRewards
+          - 0x34b3668e2AD47ccFe3C53e24a0606B911D1f6a8f # HLKD1B MultiRewards (new)
+          - 0xd1cbf8f7f310947A7993abbD7fd6113794e353da # HLKD690M MultiRewards (new)
+          - 0x827b7EA9fDb4322DbC6f9bF72C04871Be859f20C # HLKD420M MultiRewards (new)
+          - 0xACd0177BfcBC3760b03c87808b5423945f6bFAEC # HLKD330M MultiRewards (new)
+          - 0xB5b312fbF7Eb145485Ece55B862db94d626eFa0f # HLKD100M MultiRewards (new)
 
 unordered_multichain_mode: false
 preload_handlers: true

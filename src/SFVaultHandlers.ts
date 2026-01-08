@@ -10,6 +10,7 @@ import {
   handleSFVaultDeposit,
   handleSFVaultWithdraw,
   handleSFVaultStrategyUpdated,
+  handleSFStrategyMultiRewardsUpdated,
   handleSFMultiRewardsStaked,
   handleSFMultiRewardsWithdrawn,
   handleSFMultiRewardsRewardPaid,
@@ -19,6 +20,7 @@ import {
 export { handleSFVaultDeposit };
 export { handleSFVaultWithdraw };
 export { handleSFVaultStrategyUpdated };
+export { handleSFStrategyMultiRewardsUpdated };
 export { handleSFMultiRewardsStaked };
 export { handleSFMultiRewardsWithdrawn };
 export { handleSFMultiRewardsRewardPaid };

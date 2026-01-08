@@ -58,6 +58,7 @@ import {
   handleSFVaultDeposit,
   handleSFVaultWithdraw,
   handleSFVaultStrategyUpdated,
+  handleSFStrategyMultiRewardsUpdated,
   handleSFMultiRewardsStaked,
   handleSFMultiRewardsWithdrawn,
   handleSFMultiRewardsRewardPaid,
@@ -196,6 +197,7 @@ export { handleCubBadgesTransferBatch };
 export { handleSFVaultDeposit };
 export { handleSFVaultWithdraw };
 export { handleSFVaultStrategyUpdated };
+export { handleSFStrategyMultiRewardsUpdated };
 export { handleSFMultiRewardsStaked };
 export { handleSFMultiRewardsWithdrawn };
 export { handleSFMultiRewardsRewardPaid };

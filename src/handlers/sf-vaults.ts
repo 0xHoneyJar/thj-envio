@@ -15,6 +15,7 @@ import {
   SFVaultStats,
   SFVaultStrategy,
   SFMultiRewardsPosition,
+  SFVaultStrategyWrapper,
 } from "generated";
 
 import { experimental_createEffect, S } from "envio";
@@ -60,7 +61,7 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD1B
   "0x3bec4140eda07911208d4fc06b2f5adb7b5237fb": {
     vault: "0x3bec4140eda07911208d4fc06b2f5adb7b5237fb",
-    multiRewards: "0x30280bd486dd2f8710b553eff27ab84d513775f5",
+    multiRewards: "0x34b3668e2ad47ccfe3c53e24a0606b911d1f6a8f",
     kitchenToken: "0xf0edfc3e122db34773293e0e5b2c3a58492e7338",
     kitchenTokenSymbol: "HLKD1B",
     strategy: "0x39748c56511c02eb7be22225c4699f59fbb55b8f",
@@ -68,7 +69,7 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD690M
   "0x335d150495f6c8483773abc0e4fa5780dd270e78": {
     vault: "0x335d150495f6c8483773abc0e4fa5780dd270e78",
-    multiRewards: "0x8f0c380f8d5cc1bc21f50eb8f1d8cb86eb85e393",
+    multiRewards: "0xd1cbf8f7f310947a7993abbd7fd6113794e353da",
     kitchenToken: "0x8ab854dc0672d7a13a85399a56cb628fb22102d6",
     kitchenTokenSymbol: "HLKD690M",
     strategy: "0x447d56af16a0cfaff96536c7fd54f46bf56e160e",
@@ -76,7 +77,7 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD420M
   "0x2e2bdfdd4b786703b374aeeaa44195698a699dd1": {
     vault: "0x2e2bdfdd4b786703b374aeeaa44195698a699dd1",
-    multiRewards: "0xd0b316222f02362038bb1dbc3382506e6abcf1c4",
+    multiRewards: "0x827b7ea9fdb4322dbc6f9bf72c04871be859f20c",
     kitchenToken: "0xf07fa3ece9741d408d643748ff85710bedef25ba",
     kitchenTokenSymbol: "HLKD420M",
     strategy: "0xffa9dbbff80f736cde9e41427c0335f866854a9a",
@@ -84,7 +85,7 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD330M
   "0x91f321a8791fb899c6b860b9f54940c68cb45aed": {
     vault: "0x91f321a8791fb899c6b860b9f54940c68cb45aed",
-    multiRewards: "0xa1b7df99167f07ab9286eaa5597b3e8614a7d13e",
+    multiRewards: "0xacd0177bfcbc3760b03c87808b5423945f6bfaec",
     kitchenToken: "0x37dd8850919ebdca911c383211a70839a94b0539",
     kitchenTokenSymbol: "HLKD330M",
     strategy: "0x3032a263c651d9237b74cd6d47baf1345bf0930e",
@@ -92,7 +93,7 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
   // HLKD100M
   "0xee1087ec5d6a0a673c046b9acb15c93b7adb95ca": {
     vault: "0xee1087ec5d6a0a673c046b9acb15c93b7adb95ca",
-    multiRewards: "0x10c59924cf07d75702e3b81af0e60d5865339974",
+    multiRewards: "0xb5b312fbf7eb145485ece55b862db94d626efa0f",
     kitchenToken: "0x7bdf98ddeed209cfa26bd2352b470ac8b5485ec5",
     kitchenTokenSymbol: "HLKD100M",
     strategy: "0xaee9aea23783057cbc890684464570ad9723be01",
@@ -104,11 +105,11 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
  * Used as fallback when RPC calls fail (e.g., contract doesn't exist at historical block)
  */
 const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
-  "0x39748c56511c02eb7be22225c4699f59fbb55b8f": "0x30280bd486dd2f8710b553eff27ab84d513775f5", // HLKD1B
-  "0x447d56af16a0cfaff96536c7fd54f46bf56e160e": "0x8f0c380f8d5cc1bc21f50eb8f1d8cb86eb85e393", // HLKD690M
-  "0xffa9dbbff80f736cde9e41427c0335f866854a9a": "0xd0b316222f02362038bb1dbc3382506e6abcf1c4", // HLKD420M
-  "0x3032a263c651d9237b74cd6d47baf1345bf0930e": "0xa1b7df99167f07ab9286eaa5597b3e8614a7d13e", // HLKD330M
-  "0xaee9aea23783057cbc890684464570ad9723be01": "0x10c59924cf07d75702e3b81af0e60d5865339974", // HLKD100M
+  "0x39748c56511c02eb7be22225c4699f59fbb55b8f": "0x34b3668e2ad47ccfe3c53e24a0606b911d1f6a8f", // HLKD1B
+  "0x447d56af16a0cfaff96536c7fd54f46bf56e160e": "0xd1cbf8f7f310947a7993abbd7fd6113794e353da", // HLKD690M
+  "0xffa9dbbff80f736cde9e41427c0335f866854a9a": "0x827b7ea9fdb4322dbc6f9bf72c04871be859f20c", // HLKD420M
+  "0x3032a263c651d9237b74cd6d47baf1345bf0930e": "0xacd0177bfcbc3760b03c87808b5423945f6bfaec", // HLKD330M
+  "0xaee9aea23783057cbc890684464570ad9723be01": "0xb5b312fbf7eb145485ece55b862db94d626efa0f", // HLKD100M
 };
 
 /**
@@ -128,6 +129,7 @@ export const getMultiRewardsAddress = experimental_createEffect(
   },
   async ({ input, context }) => {
     const strategyLower = input.strategyAddress.toLowerCase();
+    const anyContext = context as any;
 
     // First try RPC call
     const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
@@ -146,14 +148,32 @@ export const getMultiRewardsAddress = experimental_createEffect(
 
       return (multiRewards as string).toLowerCase();
     } catch (error) {
+      // Fallback to DB (tracks MultiRewardsUpdated changes)
+      try {
+        const existingByStrategy = await anyContext.SFVaultStrategy.getWhere.strategy.eq(strategyLower);
+        if (existingByStrategy && existingByStrategy.length > 0) {
+          const activeRecord = existingByStrategy.find((s: any) => s.isActive) ?? existingByStrategy[0];
+          if (activeRecord?.multiRewards) {
+            anyContext.log.warn(
+              `RPC call failed for strategy ${strategyLower}, using DB multiRewards: ${activeRecord.multiRewards}`
+            );
+            return activeRecord.multiRewards;
+          }
+        }
+      } catch (dbError) {
+        anyContext.log.warn(`Failed to query SFVaultStrategy fallback for ${strategyLower}: ${dbError}`);
+      }
+
       // Fallback to hardcoded mapping if RPC fails
       const fallback = STRATEGY_TO_MULTI_REWARDS[strategyLower];
       if (fallback) {
-        context.log.warn(`RPC call failed for strategy ${strategyLower}, using fallback multiRewards: ${fallback}`);
+        anyContext.log.warn(`RPC call failed for strategy ${strategyLower}, using fallback multiRewards: ${fallback}`);
         return fallback;
       }
 
-      context.log.error(`Failed to get multiRewardsAddress for strategy ${input.strategyAddress} at block ${input.blockNumber}: ${error}`);
+      anyContext.log.error(
+        `Failed to get multiRewardsAddress for strategy ${input.strategyAddress} at block ${input.blockNumber}: ${error}`
+      );
       throw error;
     }
   }
@@ -189,6 +209,41 @@ async function getVaultFromMultiRewards(
           multiRewards: strategyRecord.multiRewards,
         },
       };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Helper function to get vault info from a strategy wrapper address
+ * Used when MultiRewardsUpdated is emitted from the strategy wrapper contract.
+ */
+async function getVaultFromStrategy(
+  context: any,
+  strategyAddress: string
+): Promise<{ vault: string; config: VaultConfig } | null> {
+  // First attempt: find via SFVaultStrategy records
+  const strategies = await context.SFVaultStrategy.getWhere.strategy.eq(strategyAddress);
+  if (strategies && strategies.length > 0) {
+    const activeRecord = strategies.find((s: any) => s.isActive) ?? strategies[0];
+    const baseConfig = VAULT_CONFIGS[activeRecord.vault];
+    if (baseConfig) {
+      return {
+        vault: activeRecord.vault,
+        config: {
+          ...baseConfig,
+          strategy: activeRecord.strategy,
+          multiRewards: activeRecord.multiRewards,
+        },
+      };
+    }
+  }
+
+  // Fallback: scan hardcoded configs by strategy address
+  for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
+    if (config.strategy === strategyAddress) {
+      return { vault: vaultAddr, config };
     }
   }
 
@@ -262,11 +317,12 @@ async function getActiveStrategy(
  */
 SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
   const newStrategy = event.params.newStrategy.toLowerCase();
+  const anyContext = context as any;
 
   // First check if we have a hardcoded mapping (faster and more reliable)
   const fallbackMultiRewards = STRATEGY_TO_MULTI_REWARDS[newStrategy];
   if (fallbackMultiRewards) {
-    context.addSFMultiRewards(fallbackMultiRewards);
+    anyContext.addSFMultiRewards(fallbackMultiRewards);
     return;
   }
 
@@ -289,9 +345,9 @@ SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
     const newMultiRewards = (multiRewards as string).toLowerCase();
 
     // Register the new MultiRewards contract for indexing
-    context.addSFMultiRewards(newMultiRewards);
+    anyContext.addSFMultiRewards(newMultiRewards);
   } catch (error) {
-    context.log.error(`Failed to get multiRewardsAddress for strategy ${newStrategy}: ${error}`);
+    anyContext.log.error(`Failed to get multiRewardsAddress for strategy ${newStrategy}: ${error}`);
   }
 });
 
@@ -378,6 +434,70 @@ export const handleSFVaultStrategyUpdated = SFVaultERC4626.StrategyUpdated.handl
     });
   }
 );
+
+/**
+ * Handle MultiRewardsUpdated events on the strategy wrapper contract.
+ * Event: MultiRewardsUpdated(address indexed oldMultiRewards, address indexed newMultiRewards)
+ *
+ * When vault admin calls `setMultiRewards`, the strategy wrapper updates the MultiRewards address
+ * without changing the strategy itself. We must update our strategy->multiRewards mapping so that
+ * new staking/claim events from the new MultiRewards address are correctly attributed to the vault.
+ */
+export const handleSFStrategyMultiRewardsUpdated =
+  SFVaultStrategyWrapper.MultiRewardsUpdated.handler(async ({ event, context }) => {
+    const strategyAddress = event.srcAddress.toLowerCase();
+    const oldMultiRewards = event.params.oldMultiRewards.toLowerCase();
+    const newMultiRewards = event.params.newMultiRewards.toLowerCase();
+    const timestamp = BigInt(event.block.timestamp);
+    const anyContext = context as any;
+
+    // Always register the new MultiRewards contract so we start indexing it immediately
+    anyContext.addSFMultiRewards(newMultiRewards);
+
+    const vaultInfo = await getVaultFromStrategy(context, strategyAddress);
+    if (!vaultInfo) {
+      anyContext.log.warn(
+        `Unknown strategy wrapper address for MultiRewardsUpdated: ${strategyAddress} (old=${oldMultiRewards}, new=${newMultiRewards})`
+      );
+      return;
+    }
+
+    const { vault: vaultAddress, config } = vaultInfo;
+    const strategyId = `${BERACHAIN_ID}_${vaultAddress}_${strategyAddress}`;
+    const existing = await context.SFVaultStrategy.get(strategyId);
+
+    if (existing) {
+      context.SFVaultStrategy.set({
+        ...existing,
+        multiRewards: newMultiRewards,
+      });
+    } else {
+      // If this is the first time we’ve ever seen this vault (no deposits yet),
+      // bootstrap a minimal strategy record so MultiRewards events can be attributed.
+      context.SFVaultStrategy.set({
+        id: strategyId,
+        vault: vaultAddress,
+        strategy: strategyAddress,
+        multiRewards: newMultiRewards,
+        kitchenToken: config.kitchenToken,
+        kitchenTokenSymbol: config.kitchenTokenSymbol,
+        activeFrom: timestamp,
+        activeTo: undefined,
+        isActive: true,
+        chainId: BERACHAIN_ID,
+      });
+    }
+
+    // Keep vault stats pointing at the currently active multiRewards (if stats exists)
+    const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
+    const stats = await context.SFVaultStats.get(statsId);
+    if (stats) {
+      context.SFVaultStats.set({
+        ...stats,
+        lastActivityAt: timestamp,
+      });
+    }
+  });
 
 /**
  * Handle ERC4626 Deposit events
@@ -657,6 +777,7 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
         vaultShares: newVaultShares,
         stakedShares: newStakedShares,
         totalShares: newTotalShares,
+        multiRewards: multiRewardsAddress,
         lastActivityAt: timestamp,
       };
       context.SFPosition.set(updatedPosition);
@@ -767,6 +888,7 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
         vaultShares: newVaultShares,
         stakedShares: newStakedShares,
         totalShares: newTotalShares,
+        multiRewards: multiRewardsAddress,
         lastActivityAt: timestamp,
       };
       context.SFPosition.set(updatedPosition);
@@ -857,6 +979,7 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
       const updatedPosition = {
         ...position,
         totalClaimed: position.totalClaimed + reward,
+        multiRewards: multiRewardsAddress,
         lastActivityAt: timestamp,
       };
       context.SFPosition.set(updatedPosition);

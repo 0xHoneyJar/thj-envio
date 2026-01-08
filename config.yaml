@@ -382,6 +382,14 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # Set & Forgetti Strategy Wrapper - emits when vault admin updates the MultiRewards contract
+  - name: SFVaultStrategyWrapper
+    handler: src/EventHandlers.ts
+    events:
+      - event: MultiRewardsUpdated(address indexed oldMultiRewards, address indexed newMultiRewards)
+        field_selection:
+          transaction_fields:
+            - hash
   # HenloVault for tracking HENLOCKED token mints AND Henlocker vault system
   - name: HenloVault
     handler: src/EventHandlers.ts
@@ -637,14 +645,22 @@ networks:
           - 0x2e2bDfdD4b786703B374aEEAa44195698a699dD1 # HLKD420M Vault
           - 0x91F321A8791fB899c6b860B9F54940C68cB45AeD # HLKD330M Vault
           - 0xEe1087ec5D6A0a673C046b9ACb15C93B7aDB95CA # HLKD100M Vault
+      # Set & Forgetti Strategy Wrappers (emits MultiRewardsUpdated)
+      - name: SFVaultStrategyWrapper
+        address:
+          - 0x39748c56511c02eb7be22225c4699f59fbb55b8f # HLKD1B Strategy
+          - 0x447d56af16a0cfaff96536c7fd54f46bf56e160e # HLKD690M Strategy
+          - 0xffa9dbbff80f736cde9e41427c0335f866854a9a # HLKD420M Strategy
+          - 0x3032a263c651d9237b74cd6d47baf1345bf0930e # HLKD330M Strategy
+          - 0xaee9aea23783057cbc890684464570ad9723be01 # HLKD100M Strategy
       # Set & Forgetti MultiRewards (Staking)
       - name: SFMultiRewards
         address:
-          - 0x30280bd486Dd2F8710B553Eff27AB84D513775f5 # HLKD1B MultiRewards
-          - 0x8F0c380f8D5cC1Bc21F50Eb8f1D8CB86EB85e393 # HLKD690M MultiRewards
-          - 0xD0B316222f02362038bB1dbC3382506e6ABCf1C4 # HLKD420M MultiRewards
-          - 0xa1b7DF99167F07aB9286eaa5597B3e8614a7D13e # HLKD330M MultiRewards
-          - 0x10c59924cf07D75702e3B81af0e60D5865339974 # HLKD100M MultiRewards
+          - 0x34b3668e2AD47ccFe3C53e24a0606B911D1f6a8f # HLKD1B MultiRewards (new)
+          - 0xd1cbf8f7f310947A7993abbD7fd6113794e353da # HLKD690M MultiRewards (new)
+          - 0x827b7EA9fDb4322DbC6f9bF72C04871Be859f20C # HLKD420M MultiRewards (new)
+          - 0xACd0177BfcBC3760b03c87808b5423945f6bFAEC # HLKD330M MultiRewards (new)
+          - 0xB5b312fbF7Eb145485Ece55B862db94d626eFa0f # HLKD100M MultiRewards (new)
       # HenloVault for tracking HENLOCKED token mints
       - name: HenloVault
         address:
