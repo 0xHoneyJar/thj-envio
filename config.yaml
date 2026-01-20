@@ -382,6 +382,10 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+      - event: RebatePaid(address indexed user, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
   # Set & Forgetti Strategy Wrapper - emits when vault admin updates the MultiRewards contract
   - name: SFVaultStrategyWrapper
     handler: src/EventHandlers.ts
