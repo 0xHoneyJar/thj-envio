@@ -1107,3 +1107,53 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
     });
   }
 );
+
+/**
+ * Handle MultiRewards RebatePaid events
+ * Event: RebatePaid(address indexed user, uint256 amount)
+ *
+ * Rebates are automatic HENLO rewards sent to badge holders when the keeper
+ * processes fee tokens. This handler records rebate activity for the user's
+ * activity feed.
+ */
+export const handleSFMultiRewardsRebatePaid = SFMultiRewards.RebatePaid.handler(
+  async ({ event, context }) => {
+    const multiRewardsAddress = event.srcAddress.toLowerCase();
+
+    // Look up vault from MultiRewards address
+    const vaultInfo = await getVaultFromMultiRewards(
+      context,
+      multiRewardsAddress,
+      BigInt(event.block.number)
+    );
+
+    if (!vaultInfo) {
+      context.log.warn(`Unknown MultiRewards address for rebate: ${multiRewardsAddress}`);
+      return;
+    }
+
+    const { vault: vaultAddress, config } = vaultInfo;
+    const timestamp = BigInt(event.block.timestamp);
+    const user = event.params.user.toLowerCase();
+    const amount = event.params.amount; // HENLO rebate amount
+
+    // Record action for activity feed
+    // Note: Rebates don't update position.totalClaimed since they're sent directly
+    // to the user's wallet, not claimed from the vault
+    recordAction(context, {
+      actionType: "sf_rewards_rebate",
+      actor: user,
+      primaryCollection: vaultAddress,
+      timestamp,
+      chainId: BERACHAIN_ID,
+      txHash: event.transaction.hash,
+      logIndex: event.logIndex,
+      numeric1: amount, // HENLO rebate amount
+      context: {
+        vault: vaultAddress,
+        multiRewards: multiRewardsAddress,
+        kitchenTokenSymbol: config.kitchenTokenSymbol,
+      },
+    });
+  }
+);
