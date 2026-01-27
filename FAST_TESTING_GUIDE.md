@@ -77,8 +77,21 @@ Edit your handler, save, and the dev server auto-reloads. Query again to verify.
 
 | Config | Purpose | Block Range | Sync Time |
 |--------|---------|-------------|-----------|
-| `config.test-rebate.yaml` | RebatePaid handler | 15739170-15739180 | ~30s |
-| `config.sf-vaults.yaml` | All SF Vault handlers | 13869572+ | ~10min |
+| `config.test-rebate.yaml` | RebatePaid + RewardPaid handlers | 15739170-15739180 (10 blocks) | ~30s |
+| `config.sf-vaults.yaml` | All SF Vault handlers (Deposit, Withdraw, Strategy, Staked, Withdrawn, RewardPaid) | 13869572+ (no end block) | ~10-15min |
+
+### config.test-rebate.yaml
+- **Contracts**: SFMultiRewards only
+- **Events**: RebatePaid, RewardPaid
+- **Use Case**: Quick validation of rebate/reward handling
+- **Handler File**: src/EventHandlers.ts
+
+### config.sf-vaults.yaml
+- **Contracts**: SFVaultERC4626, SFVaultStrategyWrapper, SFMultiRewards
+- **Events**: Deposit, Withdraw, StrategyUpdated, MultiRewardsUpdated, Staked, Withdrawn, RewardPaid
+- **Use Case**: Full SF vault system integration testing
+- **Handler File**: src/SFVaultHandlers.ts (dedicated test entry point)
+- **Note**: No end_block - syncs continuously for integration testing
 
 ---
 

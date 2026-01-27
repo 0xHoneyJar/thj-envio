@@ -15,58 +15,64 @@ import {
  */
 export const handleAccountOpened = MoneycombVault.AccountOpened.handler(
   async ({ event, context }) => {
-    const { user, accountIndex, honeycombId } = event.params;
-    const userLower = user.toLowerCase();
-    const timestamp = BigInt(event.block.timestamp);
+    try {
+      const { user, accountIndex, honeycombId } = event.params;
+      const userLower = user.toLowerCase();
+      const timestamp = BigInt(event.block.timestamp);
 
-    // Create vault record
-    const vaultId = `${userLower}_${accountIndex}`;
-    const vault: Vault = {
-      id: vaultId,
-      user: userLower,
-      accountIndex: Number(accountIndex),
-      honeycombId: BigInt(honeycombId.toString()),
-      isActive: true,
-      shares: BigInt(0),
-      totalBurned: 0,
-      burnedGen1: false,
-      burnedGen2: false,
-      burnedGen3: false,
-      burnedGen4: false,
-      burnedGen5: false,
-      burnedGen6: false,
-      createdAt: timestamp,
-      closedAt: undefined,
-      lastActivityTime: timestamp,
-    };
+      // Create vault record
+      const vaultId = `${userLower}_${accountIndex}`;
+      const vault: Vault = {
+        id: vaultId,
+        user: userLower,
+        accountIndex: Number(accountIndex),
+        honeycombId: BigInt(honeycombId.toString()),
+        isActive: true,
+        shares: BigInt(0),
+        totalBurned: 0,
+        burnedGen1: false,
+        burnedGen2: false,
+        burnedGen3: false,
+        burnedGen4: false,
+        burnedGen5: false,
+        burnedGen6: false,
+        createdAt: timestamp,
+        closedAt: undefined,
+        lastActivityTime: timestamp,
+      };
 
-    context.Vault.set(vault);
+      context.Vault.set(vault);
 
-    // Create activity record
-    const activityId = `${event.transaction.hash}_${event.logIndex}`;
-    const activity: VaultActivity = {
-      id: activityId,
-      user: userLower,
-      accountIndex: Number(accountIndex),
-      activityType: "ACCOUNT_OPENED",
-      timestamp,
-      blockNumber: BigInt(event.block.number),
-      transactionHash: event.transaction.hash,
-      honeycombId: BigInt(honeycombId.toString()),
-      hjGen: undefined,
-      shares: undefined,
-      reward: undefined,
-    };
+      // Create activity record
+      const activityId = `${event.transaction.hash}_${event.logIndex}`;
+      const activity: VaultActivity = {
+        id: activityId,
+        user: userLower,
+        accountIndex: Number(accountIndex),
+        activityType: "ACCOUNT_OPENED",
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        honeycombId: BigInt(honeycombId.toString()),
+        hjGen: undefined,
+        shares: undefined,
+        reward: undefined,
+      };
 
-    context.VaultActivity.set(activity);
+      context.VaultActivity.set(activity);
 
-    // Update user summary
-    await updateUserVaultSummary(
-      context,
-      userLower,
-      timestamp,
-      "ACCOUNT_OPENED"
-    );
+      // Update user summary
+      await updateUserVaultSummary(
+        context,
+        userLower,
+        timestamp,
+        "ACCOUNT_OPENED"
+      );
+    } catch (error) {
+      context.log.error(
+        `[MoneycombVault] AccountOpened handler failed for tx ${event.transaction.hash}: ${error}`
+      );
+    }
   }
 );
 
@@ -75,50 +81,56 @@ export const handleAccountOpened = MoneycombVault.AccountOpened.handler(
  */
 export const handleAccountClosed = MoneycombVault.AccountClosed.handler(
   async ({ event, context }) => {
-    const { user, accountIndex, honeycombId } = event.params;
-    const userLower = user.toLowerCase();
-    const timestamp = BigInt(event.block.timestamp);
+    try {
+      const { user, accountIndex, honeycombId } = event.params;
+      const userLower = user.toLowerCase();
+      const timestamp = BigInt(event.block.timestamp);
 
-    // Update vault record
-    const vaultId = `${userLower}_${accountIndex}`;
-    const vault = await context.Vault.get(vaultId);
+      // Update vault record
+      const vaultId = `${userLower}_${accountIndex}`;
+      const vault = await context.Vault.get(vaultId);
 
-    if (vault) {
-      // Create updated vault object (immutable update)
-      const updatedVault = {
-        ...vault,
-        isActive: false,
-        closedAt: timestamp,
-        lastActivityTime: timestamp,
+      if (vault) {
+        // Create updated vault object (immutable update)
+        const updatedVault = {
+          ...vault,
+          isActive: false,
+          closedAt: timestamp,
+          lastActivityTime: timestamp,
+        };
+        context.Vault.set(updatedVault);
+      }
+
+      // Create activity record
+      const activityId = `${event.transaction.hash}_${event.logIndex}`;
+      const activity: VaultActivity = {
+        id: activityId,
+        user: userLower,
+        accountIndex: Number(accountIndex),
+        activityType: "ACCOUNT_CLOSED",
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        honeycombId: BigInt(honeycombId.toString()),
+        hjGen: undefined,
+        shares: undefined,
+        reward: undefined,
       };
-      context.Vault.set(updatedVault);
+
+      context.VaultActivity.set(activity);
+
+      // Update user summary
+      await updateUserVaultSummary(
+        context,
+        userLower,
+        timestamp,
+        "ACCOUNT_CLOSED"
+      );
+    } catch (error) {
+      context.log.error(
+        `[MoneycombVault] AccountClosed handler failed for tx ${event.transaction.hash}: ${error}`
+      );
     }
-
-    // Create activity record
-    const activityId = `${event.transaction.hash}_${event.logIndex}`;
-    const activity: VaultActivity = {
-      id: activityId,
-      user: userLower,
-      accountIndex: Number(accountIndex),
-      activityType: "ACCOUNT_CLOSED",
-      timestamp,
-      blockNumber: BigInt(event.block.number),
-      transactionHash: event.transaction.hash,
-      honeycombId: BigInt(honeycombId.toString()),
-      hjGen: undefined,
-      shares: undefined,
-      reward: undefined,
-    };
-
-    context.VaultActivity.set(activity);
-
-    // Update user summary
-    await updateUserVaultSummary(
-      context,
-      userLower,
-      timestamp,
-      "ACCOUNT_CLOSED"
-    );
   }
 );
 
@@ -127,56 +139,62 @@ export const handleAccountClosed = MoneycombVault.AccountClosed.handler(
  */
 export const handleHJBurned = MoneycombVault.HJBurned.handler(
   async ({ event, context }) => {
-    const { user, accountIndex, hjGen } = event.params;
-    const userLower = user.toLowerCase();
-    const timestamp = BigInt(event.block.timestamp);
-    const generation = Number(hjGen);
+    try {
+      const { user, accountIndex, hjGen } = event.params;
+      const userLower = user.toLowerCase();
+      const timestamp = BigInt(event.block.timestamp);
+      const generation = Number(hjGen);
 
-    // Update vault record
-    const vaultId = `${userLower}_${accountIndex}`;
-    const vault = await context.Vault.get(vaultId);
+      // Update vault record
+      const vaultId = `${userLower}_${accountIndex}`;
+      const vault = await context.Vault.get(vaultId);
 
-    if (vault) {
-      // Create updated vault object (immutable update)
-      const updatedVault = {
-        ...vault,
-        totalBurned: vault.totalBurned + 1,
-        burnedGen1: generation === 1 ? true : vault.burnedGen1,
-        burnedGen2: generation === 2 ? true : vault.burnedGen2,
-        burnedGen3: generation === 3 ? true : vault.burnedGen3,
-        burnedGen4: generation === 4 ? true : vault.burnedGen4,
-        burnedGen5: generation === 5 ? true : vault.burnedGen5,
-        burnedGen6: generation === 6 ? true : vault.burnedGen6,
-        lastActivityTime: timestamp,
+      if (vault) {
+        // Create updated vault object (immutable update)
+        const updatedVault = {
+          ...vault,
+          totalBurned: vault.totalBurned + 1,
+          burnedGen1: generation === 1 ? true : vault.burnedGen1,
+          burnedGen2: generation === 2 ? true : vault.burnedGen2,
+          burnedGen3: generation === 3 ? true : vault.burnedGen3,
+          burnedGen4: generation === 4 ? true : vault.burnedGen4,
+          burnedGen5: generation === 5 ? true : vault.burnedGen5,
+          burnedGen6: generation === 6 ? true : vault.burnedGen6,
+          lastActivityTime: timestamp,
+        };
+        context.Vault.set(updatedVault);
+      }
+
+      // Create activity record
+      const activityId = `${event.transaction.hash}_${event.logIndex}`;
+      const activity: VaultActivity = {
+        id: activityId,
+        user: userLower,
+        accountIndex: Number(accountIndex),
+        activityType: "HJ_BURNED",
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        honeycombId: undefined,
+        hjGen: generation,
+        shares: undefined,
+        reward: undefined,
       };
-      context.Vault.set(updatedVault);
+
+      context.VaultActivity.set(activity);
+
+      // Update user summary
+      await updateUserVaultSummary(
+        context,
+        userLower,
+        timestamp,
+        "HJ_BURNED"
+      );
+    } catch (error) {
+      context.log.error(
+        `[MoneycombVault] HJBurned handler failed for tx ${event.transaction.hash}: ${error}`
+      );
     }
-
-    // Create activity record
-    const activityId = `${event.transaction.hash}_${event.logIndex}`;
-    const activity: VaultActivity = {
-      id: activityId,
-      user: userLower,
-      accountIndex: Number(accountIndex),
-      activityType: "HJ_BURNED",
-      timestamp,
-      blockNumber: BigInt(event.block.number),
-      transactionHash: event.transaction.hash,
-      honeycombId: undefined,
-      hjGen: generation,
-      shares: undefined,
-      reward: undefined,
-    };
-
-    context.VaultActivity.set(activity);
-
-    // Update user summary
-    await updateUserVaultSummary(
-      context,
-      userLower,
-      timestamp,
-      "HJ_BURNED"
-    );
   }
 );
 
@@ -185,50 +203,56 @@ export const handleHJBurned = MoneycombVault.HJBurned.handler(
  */
 export const handleSharesMinted = MoneycombVault.SharesMinted.handler(
   async ({ event, context }) => {
-    const { user, accountIndex, shares } = event.params;
-    const userLower = user.toLowerCase();
-    const timestamp = BigInt(event.block.timestamp);
+    try {
+      const { user, accountIndex, shares } = event.params;
+      const userLower = user.toLowerCase();
+      const timestamp = BigInt(event.block.timestamp);
 
-    // Update vault record
-    const vaultId = `${userLower}_${accountIndex}`;
-    const vault = await context.Vault.get(vaultId);
+      // Update vault record
+      const vaultId = `${userLower}_${accountIndex}`;
+      const vault = await context.Vault.get(vaultId);
 
-    if (vault) {
-      // Create updated vault object (immutable update)
-      const updatedVault = {
-        ...vault,
-        shares: vault.shares + BigInt(shares.toString()),
-        lastActivityTime: timestamp,
+      if (vault) {
+        // Create updated vault object (immutable update)
+        const updatedVault = {
+          ...vault,
+          shares: vault.shares + BigInt(shares.toString()),
+          lastActivityTime: timestamp,
+        };
+        context.Vault.set(updatedVault);
+      }
+
+      // Create activity record
+      const activityId = `${event.transaction.hash}_${event.logIndex}`;
+      const activity: VaultActivity = {
+        id: activityId,
+        user: userLower,
+        accountIndex: Number(accountIndex),
+        activityType: "SHARES_MINTED",
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        honeycombId: undefined,
+        hjGen: undefined,
+        shares: BigInt(shares.toString()),
+        reward: undefined,
       };
-      context.Vault.set(updatedVault);
+
+      context.VaultActivity.set(activity);
+
+      // Update user summary
+      await updateUserVaultSummary(
+        context,
+        userLower,
+        timestamp,
+        "SHARES_MINTED",
+        BigInt(shares.toString())
+      );
+    } catch (error) {
+      context.log.error(
+        `[MoneycombVault] SharesMinted handler failed for tx ${event.transaction.hash}: ${error}`
+      );
     }
-
-    // Create activity record
-    const activityId = `${event.transaction.hash}_${event.logIndex}`;
-    const activity: VaultActivity = {
-      id: activityId,
-      user: userLower,
-      accountIndex: Number(accountIndex),
-      activityType: "SHARES_MINTED",
-      timestamp,
-      blockNumber: BigInt(event.block.number),
-      transactionHash: event.transaction.hash,
-      honeycombId: undefined,
-      hjGen: undefined,
-      shares: BigInt(shares.toString()),
-      reward: undefined,
-    };
-
-    context.VaultActivity.set(activity);
-
-    // Update user summary
-    await updateUserVaultSummary(
-      context,
-      userLower,
-      timestamp,
-      "SHARES_MINTED",
-      BigInt(shares.toString())
-    );
   }
 );
 
@@ -237,37 +261,43 @@ export const handleSharesMinted = MoneycombVault.SharesMinted.handler(
  */
 export const handleRewardClaimed = MoneycombVault.RewardClaimed.handler(
   async ({ event, context }) => {
-    const { user, reward } = event.params;
-    const userLower = user.toLowerCase();
-    const timestamp = BigInt(event.block.timestamp);
+    try {
+      const { user, reward } = event.params;
+      const userLower = user.toLowerCase();
+      const timestamp = BigInt(event.block.timestamp);
 
-    // Create activity record
-    const activityId = `${event.transaction.hash}_${event.logIndex}`;
-    const activity: VaultActivity = {
-      id: activityId,
-      user: userLower,
-      accountIndex: -1, // Reward claims don't specify account
-      activityType: "REWARD_CLAIMED",
-      timestamp,
-      blockNumber: BigInt(event.block.number),
-      transactionHash: event.transaction.hash,
-      honeycombId: undefined,
-      hjGen: undefined,
-      shares: undefined,
-      reward: BigInt(reward.toString()),
-    };
+      // Create activity record
+      const activityId = `${event.transaction.hash}_${event.logIndex}`;
+      const activity: VaultActivity = {
+        id: activityId,
+        user: userLower,
+        accountIndex: -1, // Reward claims don't specify account
+        activityType: "REWARD_CLAIMED",
+        timestamp,
+        blockNumber: BigInt(event.block.number),
+        transactionHash: event.transaction.hash,
+        honeycombId: undefined,
+        hjGen: undefined,
+        shares: undefined,
+        reward: BigInt(reward.toString()),
+      };
 
-    context.VaultActivity.set(activity);
+      context.VaultActivity.set(activity);
 
-    // Update user summary
-    await updateUserVaultSummary(
-      context,
-      userLower,
-      timestamp,
-      "REWARD_CLAIMED",
-      undefined,
-      BigInt(reward.toString())
-    );
+      // Update user summary
+      await updateUserVaultSummary(
+        context,
+        userLower,
+        timestamp,
+        "REWARD_CLAIMED",
+        undefined,
+        BigInt(reward.toString())
+      );
+    } catch (error) {
+      context.log.error(
+        `[MoneycombVault] RewardClaimed handler failed for tx ${event.transaction.hash}: ${error}`
+      );
+    }
   }
 );
 

@@ -133,18 +133,12 @@ import {
   handlePaddleLiquidateBorrow,
 } from "./handlers/paddlefi";
 
-// Trading system handlers
-// TODO: Fix TypeScript errors in trade handlers before uncommenting
-// import {
-//   handleMiberaTradeProposed,
-//   handleMiberaTradeAccepted,
-//   handleMiberaTradeCancelled,
-// } from "./handlers/mibera-trades";
-// import {
-//   handleCandiesTradeProposed,
-//   handleCandiesTradeAccepted,
-//   handleCandiesTradeCancelled,
-// } from "./handlers/cargo-trades";
+// Trading system handlers - ARCHIVED
+// Status: Handlers moved to grimoires/loa/archive/wip-handlers/
+// Blockers:
+//   - mibera-trades.ts: MiberaTrade, TradeStats entities not in schema
+//   - cargo-trades.ts: CandiesTrade contract not deployed (TBD)
+// To reactivate: See grimoires/loa/archive/wip-handlers/README.md
 
 // Mibera staking tracking - REMOVED: Now handled by TrackedErc721 handler
 // import { handleMiberaStakingTransfer } from "./handlers/mibera-staking";
@@ -217,14 +211,7 @@ export { handleHenloVaultMintFromReservoir };
 export { handleHenloVaultRedeem };
 export { handleHenloVaultReservoirSet };
 
-// Trading system handlers
-// TODO: Fix TypeScript errors in trade handlers before uncommenting
-// export { handleMiberaTradeProposed };
-// export { handleMiberaTradeAccepted };
-// export { handleMiberaTradeCancelled };
-// export { handleCandiesTradeProposed };
-// export { handleCandiesTradeAccepted };
-// export { handleCandiesTradeCancelled };
+// Trading system handlers - ARCHIVED (see grimoires/loa/archive/wip-handlers/)
 
 // Mibera staking handlers - REMOVED: Now handled by TrackedErc721 handler
 // export { handleMiberaStakingTransfer };

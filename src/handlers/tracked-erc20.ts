@@ -59,7 +59,7 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
           await updateHolderStats(context, chainId, holderDelta, supplyDelta, timestamp);
         }
       } catch (error) {
-        console.error('[TrackedErc20] Holder stats error:', tokenAddress, error);
+        context.log.error(`[TrackedErc20] Holder stats error for token ${tokenAddress} on chain ${chainId}: ${error}`);
       }
     }
 
@@ -68,7 +68,7 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
       try {
         await trackBurn(event, context, config, fromLower, toLower);
       } catch (error) {
-        console.error('[TrackedErc20] Burn tracking error:', tokenAddress, error);
+        context.log.error(`[TrackedErc20] Burn tracking error for token ${tokenAddress} on chain ${chainId}: ${error}`);
       }
     }
 

@@ -1,24 +1,48 @@
 # THJ Envio - Claude Code Guide
 
-**Purpose**: Blockchain indexer for THJ ecosystem
+**Purpose**: Blockchain indexer for THJ ecosystem - single source of truth for CubQuests, Score API, and Set&Forgetti apps.
 
 ## Tech Stack
 
-Envio 2.27.3, TypeScript, Ethers v6, Node v20, pnpm
+Envio 2.32.2, TypeScript 5.2.2, Ethers v6, Node v20, pnpm
+
+## Production
+
+**GraphQL Endpoint**: https://indexer.hyperindex.xyz/914708e/v1/graphql
+
+## Quick Commands
+
+```bash
+pnpm codegen           # After schema/config changes
+pnpm tsc --noEmit      # Type check
+TUI_OFF=true pnpm dev  # Local development (TUI_OFF required)
+pnpm deploy            # Deploy to HyperIndex
+```
+
+## Fast Testing
+
+Use targeted block ranges for quick validation (~30 seconds vs hours):
+```bash
+# Copy test config and run
+cp config.test-rebate.yaml config.yaml
+TUI_OFF=true pnpm dev
+```
+See `FAST_TESTING_GUIDE.md` for details.
+
+## Key Documentation
+
+| Document | Purpose |
+|----------|---------|
+| `grimoires/loa/HANDLER_REGISTRY.md` | Contract → Handler → Entity mapping |
+| `grimoires/loa/ENTITY_REFERENCE.md` | GraphQL entity quick reference |
+| `grimoires/loa/sdd.md` | System architecture |
+| `grimoires/loa/prd.md` | Product requirements |
+| `FAST_TESTING_GUIDE.md` | Fast testing with block ranges |
 
 ## Skills
 
 - `envio-patterns` (framework constraints, handler patterns, quest integration)
 - `thj-ecosystem-overview` (cross-brand architecture)
-
-## Quick Commands
-
-```bash
-pnpm codegen      # After schema changes
-pnpm tsc --noEmit
-TUI_OFF=true pnpm dev
-pnpm deploy
-```
 
 **For Envio patterns**: Use `envio-patterns` skill (immutability, indexed actions, etc.).
 

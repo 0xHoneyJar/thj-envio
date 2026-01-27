@@ -102,6 +102,9 @@ export async function trackBurn(
   });
 
   // Track unique burners at global, chain, and source scope
+  // Cast to `any` required because HenloChainBurner and HenloSourceBurner
+  // entities may not exist in all schema versions. Using optional chaining
+  // with the cast allows graceful handling when these stores are unavailable.
   const extendedContext = context as any;
   const chainBurnerId = `${chainId}_${burnerId}`;
   const sourceBurnerId = `${chainId}_${source}_${burnerId}`;

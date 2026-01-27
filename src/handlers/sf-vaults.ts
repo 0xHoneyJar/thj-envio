@@ -129,6 +129,10 @@ export const getMultiRewardsAddress = experimental_createEffect(
   },
   async ({ input, context }) => {
     const strategyLower = input.strategyAddress.toLowerCase();
+    // Cast to `any` required because Envio's experimental_createEffect context
+    // has a narrower type than the full handler context. The effect context
+    // doesn't include entity stores (like SFVaultStrategy) in its type definition,
+    // but they're available at runtime for fallback queries.
     const anyContext = context as any;
 
     // First try RPC call

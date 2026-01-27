@@ -36,10 +36,10 @@ export const handleVmMinted = GeneralMints.Minted.handler(
         ...existingMintEvent,
         encodedTraits: traits,
       });
-      console.log(`[VM Minted] Updated traits for tokenId ${tokenId}: ${traits}`);
+      context.log.info(`[VM Minted] Updated traits for tokenId ${tokenId}: ${traits}`);
     } else {
       // Log warning - the Transfer handler should have created this already
-      console.warn(
+      context.log.warn(
         `[VM Minted] No existing MintEvent found for txHash ${txHash}, tokenId ${tokenId}. ` +
         `Expected at logIndex ${transferLogIndex}, but MintEvent was not found.`
       );

@@ -50,7 +50,9 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const isBurn = isBurnTransfer(from, to);
 
     // Get transaction value (BERA paid) for mints
-    // Note: transaction.value is available because we added it to field_selection in config
+    // Cast to `any` required because Envio's generated Transaction type doesn't
+    // include `value` by default. The field is available at runtime when
+    // `field_selection.transaction.value = true` is set in config.yaml.
     const txValue = (event.transaction as any).value;
     const amountPaid = txValue ? BigInt(txValue.toString()) : 0n;
 
