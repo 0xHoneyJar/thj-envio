@@ -126,6 +126,16 @@ import { handleFriendtechTrade } from "./handlers/friendtech";
 // Seaport marketplace handlers (secondary sales tracking)
 import { handleSeaportOrderFulfilled } from "./handlers/seaport";
 
+// APDAO Auction House handlers (auction lifecycle + queue management)
+import {
+  handleAuctionCreated,
+  handleAuctionBid,
+  handleAuctionExtended,
+  handleAuctionSettled,
+  handleTokensAddedToQueue,
+  handleTokensRemovedFromQueue,
+} from "./handlers/apdao-auction";
+
 // PaddleFi lending handlers (BERA supply + NFT pawn + liquidations)
 import {
   handlePaddleMint,
@@ -253,6 +263,14 @@ export { handleFriendtechTrade };
 
 // Seaport marketplace handlers (secondary sales tracking)
 export { handleSeaportOrderFulfilled };
+
+// APDAO Auction House handlers (auction lifecycle + queue management)
+export { handleAuctionCreated };
+export { handleAuctionBid };
+export { handleAuctionExtended };
+export { handleAuctionSettled };
+export { handleTokensAddedToQueue };
+export { handleTokensRemovedFromQueue };
 
 // PaddleFi lending handlers (BERA supply + NFT pawn + liquidations)
 export { handlePaddleMint };

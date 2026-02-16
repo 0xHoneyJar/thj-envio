@@ -1063,3 +1063,60 @@ type MirrorArticleStats {
   lastPurchaseTime: BigInt     # Last purchase timestamp
   chainId: Int!
 }
+
+# ============================
+# APDAO AUCTION HOUSE
+# ============================
+
+# Individual auction (one per seat token auctioned)
+type ApdaoAuction @entity {
+  id: ID!                      # chainId_apdaoId (e.g., "80094_42")
+  apdaoId: BigInt!             # Seat token ID being auctioned
+  startTime: BigInt!           # Auction start timestamp
+  endTime: BigInt!             # Auction end timestamp (may be extended)
+  winner: String               # Winner address (null until settled)
+  amount: BigInt               # Winning bid amount (null until settled)
+  settled: Boolean!            # Whether auction has been settled
+  bidCount: Int!               # Number of bids placed
+  createdAt: BigInt!           # Block timestamp of AuctionCreated event
+  settledAt: BigInt            # Block timestamp of AuctionSettled event
+  transactionHash: String!     # Creation tx hash
+  chainId: Int!
+}
+
+# Individual bid on an auction
+type ApdaoBid @entity {
+  id: ID!                      # txHash_logIndex
+  apdaoId: BigInt!             # Seat token ID being bid on
+  sender: String!              # Bidder address (lowercase)
+  value: BigInt!               # Bid amount in wei
+  extended: Boolean!           # Whether this bid extended the auction
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+  chainId: Int!
+}
+
+# Token in the auction queue (seats added/removed by owners)
+type ApdaoQueuedToken @entity {
+  id: ID!                      # chainId_tokenId (e.g., "80094_42")
+  tokenId: BigInt!             # Seat token ID
+  owner: String!               # Address that queued the token (lowercase)
+  queuedAt: BigInt!            # Timestamp when added to queue
+  transactionHash: String!     # Queue tx hash
+  isQueued: Boolean!           # False if removed from queue
+  removedAt: BigInt            # Timestamp when removed (null if still queued)
+  chainId: Int!
+}
+
+# Global auction statistics
+type ApdaoAuctionStats @entity {
+  id: ID!                      # chainId_global (e.g., "80094_global")
+  totalAuctions: Int!          # Total auctions created
+  totalSettled: Int!           # Total auctions settled
+  totalBids: Int!              # Total bids placed across all auctions
+  totalVolume: BigInt!         # Sum of all winning bid amounts
+  lastAuctionTime: BigInt      # Timestamp of most recent auction creation
+  lastSettledTime: BigInt      # Timestamp of most recent settlement
+  chainId: Int!
+}
