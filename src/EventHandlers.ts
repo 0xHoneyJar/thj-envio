@@ -46,7 +46,18 @@ import {
   handleCandiesMintSingle,
   handleCandiesMintBatch,
 } from "./handlers/mints1155";
-import { handleFatBeraDeposit } from "./handlers/fatbera";
+import {
+  handleAutomatedStakeExecution,
+  handleBeaconDeposit,
+  handleBlockRewardProcessed,
+  handleFatBeraBatchStarted,
+  handleFatBeraDeposit,
+  handleFatBeraRewardAdded,
+  handleFatBeraWithdrawalFulfilled,
+  handleFatBeraWithdrawalRequested,
+  handleValidatorDepositRequested,
+  handleValidatorWithdrawalRequested,
+} from "./handlers/fatbera";
 import { handleBgtQueueBoost } from "./handlers/bgt";
 import {
   handleCubBadgesTransferSingle,
@@ -194,6 +205,15 @@ export { handleVmMinted };
 export { handleCandiesMintSingle };
 export { handleCandiesMintBatch };
 export { handleFatBeraDeposit };
+export { handleFatBeraRewardAdded };
+export { handleFatBeraWithdrawalRequested };
+export { handleFatBeraBatchStarted };
+export { handleFatBeraWithdrawalFulfilled };
+export { handleBeaconDeposit };
+export { handleBlockRewardProcessed };
+export { handleAutomatedStakeExecution };
+export { handleValidatorWithdrawalRequested };
+export { handleValidatorDepositRequested };
 export { handleBgtQueueBoost };
 export { handleCubBadgesTransferSingle };
 export { handleCubBadgesTransferBatch };

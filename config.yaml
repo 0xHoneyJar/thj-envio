@@ -333,14 +333,69 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
-  - name: FatBera
+  - name: FatBeraDeposits
     handler: src/EventHandlers.ts
     events:
-      - event: Deposit(address indexed from, address indexed to, uint256 amount, uint256 shares)
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
         field_selection:
           transaction_fields:
             - hash
             - from
+            - to
+  - name: FatBeraAccounting
+    handler: src/EventHandlers.ts
+    events:
+      - event: RewardAdded(address indexed token, uint256 rewardAmount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: WithdrawalRequested(address indexed user, uint256 indexed batchId, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: BatchStarted(uint256 indexed batchId, uint256 totalAmount)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: WithdrawalFulfilled(address indexed user, uint256 indexed batchId, uint256 amount)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: BeaconDeposit
+    handler: src/EventHandlers.ts
+    events:
+      - event: Deposit(bytes pubkey, bytes credentials, uint64 amount, bytes signature, uint64 index)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: BlockRewardController
+    handler: src/EventHandlers.ts
+    events:
+      - event: BlockRewardProcessed(bytes indexed pubkey, uint64 nextTimestamp, uint256 baseRate, uint256 rewardRate)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: AutomatedStake
+    handler: src/EventHandlers.ts
+    events:
+      - event: WithdrawUnwrapAndStakeExecuted(uint256 indexed amount, uint256 indexed validatorIndex, bytes indexed pubkey)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: ValidatorWithdrawalModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: ValidatorWithdrawalRequested(address indexed safe, address indexed initiator, bytes indexed cometBFTPublicKey, uint256 withdrawAmount, uint256 fee)
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: ValidatorDepositRouter
+    handler: src/EventHandlers.ts
+    events:
+      - event: ValidatorDepositRequested(address indexed depositor, address indexed receiver, uint256 amount, uint256 indexed validatorIndex)
+        field_selection:
+          transaction_fields:
+            - hash
   - name: BgtToken
     handler: src/EventHandlers.ts
     events:
@@ -567,7 +622,7 @@ networks:
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
-    start_block: 866405 # Using the start block from the HoneyJar contracts (SF vaults use 12134222 for earliest deployment)
+    start_block: 866405 # Preserve existing THJ coverage; fatBERA-specific contracts use their own start_block
     contracts:
       # AquaberaVault forwarder on Berachain Mainnet
       - name: AquaberaVault
@@ -663,9 +718,36 @@ networks:
       - name: CubBadges1155
         address:
           - 0x574617ab9788e614b3eb3f7bd61334720d9e1aac # Cub Universal Badges (mainnet)
-      - name: FatBera
+      - name: FatBeraDeposits
         address:
           - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
+        start_block: 1966971
+      - name: FatBeraAccounting
+        address:
+          - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
+        start_block: 1066385
+      - name: BeaconDeposit
+        address:
+          - 0x4242424242424242424242424242424242424242
+        start_block: 1066385
+      - name: BlockRewardController
+        address:
+          - 0x1ae7dd7ae06f6c58b4524d9c1f816094b1bccd8e
+        start_block: 1066385
+      - name: AutomatedStake
+        address:
+          - 0x8ba92925c156ea522Cd80b4633bd0a9824c3bcdf
+        start_block: 1966971
+      - name: ValidatorWithdrawalModule
+        address:
+          - 0x81Da3e3E0C0C541038646AcE201EA17c4274bbcb
+          - 0xE9f68A1cFe403f84C7bD37a590CfE390A3250324
+          - 0x56c70E5eFbA5f18B04d17bBC580b6d37B3AFE5Ed
+        start_block: 1066385
+      - name: ValidatorDepositRouter
+        address:
+          - 0x989212D8227a8957b9247e1966046B47a7a63D64
+        start_block: 1966971
       - name: BgtToken
         address:
           - 0x656b95E550C07a9ffe548Bd4085c72418Ceb1dBa

@@ -112,6 +112,81 @@ type FatBeraDeposit {
   chainId: Int!
 }
 
+type ValidatorDeposits {
+  id: ID!
+  pubkey: String! @index
+  blockHeight: Int! @index
+  timestamp: Timestamp!
+  depositAmount: BigInt!
+  totalDeposited: BigInt!
+  depositCount: Int!
+  outstandingFatBERA: BigInt!
+}
+
+type ValidatorBlockRewards {
+  id: ID!
+  pubkey: String! @index
+  blockHeight: Int! @index
+  totalBlockRewards: BigInt!
+  timestamp: Timestamp!
+  nextTimestamp: BigInt!
+  baseRate: BigInt!
+  rewardRate: BigInt!
+  rewardCount: Int!
+  stakerReward: BigInt!
+  validatorReward: BigInt!
+  totalStakerRewards: BigInt!
+  totalValidatorRewards: BigInt!
+  outstandingStakerRewards: BigInt!
+}
+
+type ValidatorWithdrawalTotals {
+  id: ID!
+  cometBFTPublicKey: String! @index
+  totalWithdrawn: BigInt!
+  withdrawalCount: Int!
+  totalFees: BigInt!
+  lastWithdrawalAmount: BigInt!
+  lastWithdrawalBlock: Int!
+  lastWithdrawalTimestamp: Timestamp!
+  lastWithdrawalSafe: String!
+  lastWithdrawalInitiator: String!
+}
+
+type WithdrawalBatch {
+  id: ID!
+  batchId: Int! @index
+  totalAmount: BigInt!
+  startTime: Timestamp!
+  uniqueUsers: Int!
+  userAddresses: [String!]!
+  blockHeight: Int! @index
+  transactionHash: String!
+  status: String! @index
+  predictedWithdrawalBlock: Int!
+  requests: [WithdrawalRequest!]! @derivedFrom(field: "batch")
+}
+
+type WithdrawalRequest {
+  id: ID!
+  user: String! @index
+  batch: WithdrawalBatch!
+  amount: BigInt!
+  timestamp: Timestamp!
+  blockHeight: Int! @index
+  transactionHash: String!
+}
+
+type WithdrawalFulfillment {
+  id: ID!
+  user: String! @index
+  batch: WithdrawalBatch!
+  amount: BigInt!
+  timestamp: Timestamp!
+  blockHeight: Int! @index
+  transactionHash: String!
+}
+
 type BgtBoostEvent {
   id: ID!
   account: String!
