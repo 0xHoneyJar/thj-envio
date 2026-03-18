@@ -39,12 +39,7 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
   "0xc64126ea8dc7626c16daa2a29d375c33fcaa4c7c": "mireveal_7_7", // fracture #9
   "0x24f4047d372139de8dacbe79e2fc576291ec3ffc": "mireveal_8_8", // fracture #10
   // NOTE: mibera_zora is ERC-1155 (Zora platform), handled by MiberaZora1155 handler
-
-  // ===== BASE - THJ APAC / Purupuru Collections =====
-  // party.app minted ERC-721 collections
-  "0xcd3ab1b6e95cdb40a19286d863690eb407335b21": "puru_elemental_jani",
-  "0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0": "puru_boarding_passes",
-  "0x85a72eee14dcaa1ccc5616df39acde212280dccb": "puru_introducing_kizuna",
+  // NOTE: puru collections are ERC-1155 (party.app), handled by PuruApiculture1155 handler
 
   // ===== OPTIMISM - Mibera Lore Articles =====
   // Mirror WritingEditions ERC-721 collections
@@ -64,11 +59,7 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
 export const TRANSFER_TRACKED_COLLECTIONS = new Set<string>([
   // NOTE: mibera main collection transfers are tracked by MiberaCollection handler
   // NOTE: mibera_zora is ERC-1155, transfers tracked by mibera-zora.ts handler
-
-  // THJ APAC / Purupuru collections - track all transfers
-  "puru_elemental_jani",
-  "puru_boarding_passes",
-  "puru_introducing_kizuna",
+  // NOTE: puru collections are ERC-1155, transfers tracked by puru-apiculture1155.ts handler
 
   // Mibera Lore Articles - track all transfers for timeline
   "lore_1_introducing_mibera",
