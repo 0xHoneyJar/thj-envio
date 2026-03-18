@@ -538,7 +538,7 @@ contracts:
           transaction_fields:
             - hash
 
-networks:
+chains:
   # Ethereum Mainnet
   - id: 1
     start_block: 13090020 # Earliest block - Milady contract deployment
@@ -646,8 +646,11 @@ networks:
           - 0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0 # puru_boarding_passes
           - 0x85A72EEe14dcaA1CCC5616DF39AcdE212280DcCB # puru_introducing_kizuna
         start_block: 13803165 # Apiculture Szn 0 deployment (earliest of the 4)
-      # Seaport on Base REMOVED — handler is hardcoded to Berachain + Mibera only,
-      # so all Base Seaport events were silently dropped. Removing eliminates ~5M wasted block scans.
+      # Seaport - OpenSea marketplace for secondary sales (Purupuru collections)
+      - name: Seaport
+        address:
+          - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
+        start_block: 20521993 # puru_boarding_passes deployment (earliest tracked Base collection)
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
@@ -861,6 +864,4 @@ networks:
           - 0xE840929cd47c6a1cf0f5D9b6d0C6277075680A0b # APDAO Auction House Proxy
         start_block: 5206807 # ApdaoAuctionHouse deployment
 
-# Enable multichain mode for cross-chain tracking
-unordered_multichain_mode: true
-preload_handlers: true
+# V3: unordered multichain and preload are now defaults (removed deprecated flags)

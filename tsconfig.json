@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2020", //required for use with BigInt types
-    "lib": [
-      "es2020"
-    ],
+    "target": "es2022",
+    "lib": ["es2022"],
     "allowJs": true,
     "checkJs": false,
     "outDir": "build",
@@ -12,10 +10,13 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "module": "CommonJS"
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "noEmit": true
   },
   "include": [
-    "src",
-    "test"
+    "src"
   ]
 }

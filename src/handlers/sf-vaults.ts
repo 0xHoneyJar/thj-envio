@@ -18,7 +18,7 @@ import {
   SFVaultStrategyWrapper,
 } from "generated";
 
-import { experimental_createEffect, S } from "envio";
+import { createEffect, S } from "envio";
 import { createPublicClient, http, parseAbi, defineChain } from "viem";
 
 import { recordAction } from "../lib/actions";
@@ -124,7 +124,7 @@ const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
  * Used when handling StrategyUpdated events to get the new MultiRewards address
  * Falls back to hardcoded mapping if RPC call fails
  */
-export const getMultiRewardsAddress = experimental_createEffect(
+export const getMultiRewardsAddress = createEffect(
   {
     name: "getMultiRewardsAddress",
     input: {
@@ -133,10 +133,11 @@ export const getMultiRewardsAddress = experimental_createEffect(
     },
     output: S.string,
     cache: true,
+    rateLimit: { calls: 10, per: "second" },
   },
   async ({ input, context }) => {
     const strategyLower = input.strategyAddress.toLowerCase();
-    // Cast to `any` required because Envio's experimental_createEffect context
+    // Cast to `any` required because Envio's createEffect context
     // has a narrower type than the full handler context. The effect context
     // doesn't include entity stores (like SFVaultStrategy) in its type definition,
     // but they're available at runtime for fallback queries.
@@ -155,7 +156,7 @@ export const getMultiRewardsAddress = experimental_createEffect(
     } catch (error) {
       // Fallback to DB (tracks MultiRewardsUpdated changes)
       try {
-        const existingByStrategy = await anyContext.SFVaultStrategy.getWhere.strategy.eq(strategyLower);
+        const existingByStrategy = await anyContext.SFVaultStrategy.getWhere({ strategy: { _eq: strategyLower } });
         if (existingByStrategy && existingByStrategy.length > 0) {
           const activeRecord = existingByStrategy.find((s: any) => s.isActive) ?? existingByStrategy[0];
           if (activeRecord?.multiRewards) {
@@ -190,7 +191,7 @@ export const getMultiRewardsAddress = experimental_createEffect(
  * This lets us attribute staking/claim events even if MultiRewards contracts are upgraded,
  * without relying on hardcoded MultiRewards address lists.
  */
-export const getVaultAddressFromMultiRewards = experimental_createEffect(
+export const getVaultAddressFromMultiRewards = createEffect(
   {
     name: "getVaultAddressFromMultiRewards",
     input: {
@@ -199,6 +200,7 @@ export const getVaultAddressFromMultiRewards = experimental_createEffect(
     },
     output: S.string,
     cache: true,
+    rateLimit: { calls: 10, per: "second" },
   },
   async ({ input }) => {
     const stakingToken = await rpcClient.readContract({
@@ -229,7 +231,7 @@ async function getVaultFromMultiRewards(
   }
 
   // Then search SFVaultStrategy records for dynamically registered MultiRewards
-  const strategies = await context.SFVaultStrategy.getWhere.multiRewards.eq(multiRewardsAddress);
+  const strategies = await context.SFVaultStrategy.getWhere({ multiRewards: { _eq: multiRewardsAddress } });
 
   if (strategies && strategies.length > 0) {
     const strategyRecord = strategies[0];
@@ -275,7 +277,7 @@ async function getVaultFromStrategy(
   strategyAddress: string
 ): Promise<{ vault: string; config: VaultConfig } | null> {
   // First attempt: find via SFVaultStrategy records
-  const strategies = await context.SFVaultStrategy.getWhere.strategy.eq(strategyAddress);
+  const strategies = await context.SFVaultStrategy.getWhere({ strategy: { _eq: strategyAddress } });
   if (strategies && strategies.length > 0) {
     const activeRecord = strategies.find((s: any) => s.isActive) ?? strategies[0];
     const baseConfig = VAULT_CONFIGS[activeRecord.vault];
@@ -348,7 +350,7 @@ async function getActiveStrategy(
   if (!config) return null;
 
   // Query for active strategy
-  const strategies = await context.SFVaultStrategy.getWhere.vault.eq(vaultAddress);
+  const strategies = await context.SFVaultStrategy.getWhere({ vault: { _eq: vaultAddress } });
 
   if (strategies && strategies.length > 0) {
     // Find the active one

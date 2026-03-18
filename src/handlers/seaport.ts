@@ -2,15 +2,11 @@
  * Seaport Handler - Tracks marketplace trades for activity feed
  *
  * Creates MintActivity records for both SALE and PURCHASE events
- * Used to track secondary market activity contributing to liquid backing
+ * Supports multi-chain, multi-collection tracking via TRACKED_COLLECTIONS config
  */
 
 import { Seaport } from "generated";
 import type { MintActivity } from "generated";
-
-const BERACHAIN_ID = 80094;
-const MIBERA_CONTRACT = "0x6666397dfe9a8c469bf65dc744cb1c733416c420";
-const WBERA_CONTRACT = "0x6969696969696969696969696969696969696969";
 
 // Tuple indices for offer: [itemType, token, identifier, amount]
 const OFFER_ITEM_TYPE = 0;
@@ -23,6 +19,42 @@ const CONS_ITEM_TYPE = 0;
 const CONS_TOKEN = 1;
 const CONS_IDENTIFIER = 2;
 const CONS_AMOUNT = 3;
+
+// Seaport item types
+const ITEM_TYPE_NATIVE = 0; // ETH/BERA
+const ITEM_TYPE_ERC20 = 1;  // WETH/WBERA
+const ITEM_TYPE_ERC721 = 2;
+
+/**
+ * Tracked collection configuration
+ * Maps lowercase collection addresses to their chain and accepted payment tokens
+ */
+interface TrackedCollection {
+  chainId: number;
+  /** ERC20 payment token addresses (lowercase). Native payments (itemType 0) are always accepted. */
+  wrappedNativeToken: string;
+}
+
+const TRACKED_COLLECTIONS: Record<string, TrackedCollection> = {
+  // Berachain - Mibera Collection
+  "0x6666397dfe9a8c469bf65dc744cb1c733416c420": {
+    chainId: 80094,
+    wrappedNativeToken: "0x6969696969696969696969696969696969696969", // WBERA
+  },
+  // Base - Purupuru / THJ APAC collections
+  "0xcd3ab1b6e95cdb40a19286d863690eb407335b21": {
+    chainId: 8453,
+    wrappedNativeToken: "0x4200000000000000000000000000000000000006", // WETH on Base
+  },
+  "0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0": {
+    chainId: 8453,
+    wrappedNativeToken: "0x4200000000000000000000000000000000000006", // WETH on Base
+  },
+  "0x85a72eee14dcaa1ccc5616df39acde212280dccb": {
+    chainId: 8453,
+    wrappedNativeToken: "0x4200000000000000000000000000000000000006", // WETH on Base
+  },
+};
 
 /**
  * Handle OrderFulfilled - Track Seaport marketplace trades
@@ -50,49 +82,77 @@ export const handleSeaportOrderFulfilled = Seaport.OrderFulfilled.handler(
 
     const firstOffer = offer[0];
     const firstOfferToken = String(firstOffer[OFFER_TOKEN]).toLowerCase();
+    const firstOfferItemType = Number(firstOffer[OFFER_ITEM_TYPE]);
 
     let amountPaid = 0n;
     let tokenId: bigint | undefined;
     let seller: string | undefined;
     let buyer: string | undefined;
+    let collection: TrackedCollection | undefined;
+    let contractAddress: string | undefined;
 
-    // Scenario 1: WBERA offered (offerer is buyer paying BERA, recipient is seller)
-    if (firstOfferToken === WBERA_CONTRACT) {
-      amountPaid = BigInt(firstOffer[OFFER_AMOUNT].toString());
-
-      // Check if Mibera NFT is in consideration
-      if (
-        consideration &&
-        consideration.length > 0 &&
-        String(consideration[0][CONS_TOKEN]).toLowerCase() === MIBERA_CONTRACT
-      ) {
-        tokenId = BigInt(consideration[0][CONS_IDENTIFIER].toString());
-        buyer = offererLower;
-        seller = recipientLower;
-      }
-    }
-    // Scenario 2: Mibera NFT offered (offerer is seller, recipient is buyer)
-    else if (firstOfferToken === MIBERA_CONTRACT) {
+    // Scenario 1: NFT offered (offerer is seller listing their NFT)
+    const offeredCollection = TRACKED_COLLECTIONS[firstOfferToken];
+    if (offeredCollection && firstOfferItemType === ITEM_TYPE_ERC721) {
       tokenId = BigInt(firstOffer[OFFER_IDENTIFIER].toString());
       seller = offererLower;
       buyer = recipientLower;
+      collection = offeredCollection;
+      contractAddress = firstOfferToken;
 
-      // Sum up native token payments from consideration (itemType 0 = native ETH/BERA)
+      // Sum up payments from consideration (native + wrapped native)
       for (const item of consideration) {
-        if (Number(item[CONS_ITEM_TYPE]) === 0) {
+        const itemType = Number(item[CONS_ITEM_TYPE]);
+        if (itemType === ITEM_TYPE_NATIVE) {
+          amountPaid += BigInt(item[CONS_AMOUNT].toString());
+        } else if (
+          itemType === ITEM_TYPE_ERC20 &&
+          String(item[CONS_TOKEN]).toLowerCase() === offeredCollection.wrappedNativeToken
+        ) {
           amountPaid += BigInt(item[CONS_AMOUNT].toString());
         }
       }
     }
+    // Scenario 2: Payment offered (offerer is buyer paying for NFT)
+    else if (
+      firstOfferItemType === ITEM_TYPE_NATIVE ||
+      firstOfferItemType === ITEM_TYPE_ERC20
+    ) {
+      // Look for a tracked NFT in consideration
+      for (const item of consideration) {
+        const consToken = String(item[CONS_TOKEN]).toLowerCase();
+        const consItemType = Number(item[CONS_ITEM_TYPE]);
+        const trackedColl = TRACKED_COLLECTIONS[consToken];
 
-    // If we found a valid Mibera trade, create activity records
-    if (tokenId !== undefined && seller && buyer && amountPaid > 0n) {
+        if (trackedColl && consItemType === ITEM_TYPE_ERC721) {
+          tokenId = BigInt(item[CONS_IDENTIFIER].toString());
+          buyer = offererLower;
+          seller = recipientLower;
+          collection = trackedColl;
+          contractAddress = consToken;
+
+          // Payment amount comes from the offer
+          amountPaid = BigInt(firstOffer[OFFER_AMOUNT].toString());
+          break;
+        }
+      }
+    }
+
+    // If we found a valid tracked trade, create activity records
+    if (
+      tokenId !== undefined &&
+      seller &&
+      buyer &&
+      amountPaid > 0n &&
+      collection &&
+      contractAddress
+    ) {
       // Create SALE record for seller
       const saleId = `${txHash}_${tokenId}_${seller}_SALE`;
       const saleActivity: MintActivity = {
         id: saleId,
         user: seller,
-        contract: MIBERA_CONTRACT,
+        contract: contractAddress,
         tokenStandard: "ERC721",
         tokenId,
         quantity: 1n,
@@ -102,7 +162,7 @@ export const handleSeaportOrderFulfilled = Seaport.OrderFulfilled.handler(
         blockNumber,
         transactionHash: txHash,
         operator: undefined,
-        chainId: BERACHAIN_ID,
+        chainId: collection.chainId,
       };
       context.MintActivity.set(saleActivity);
 
@@ -111,7 +171,7 @@ export const handleSeaportOrderFulfilled = Seaport.OrderFulfilled.handler(
       const purchaseActivity: MintActivity = {
         id: purchaseId,
         user: buyer,
-        contract: MIBERA_CONTRACT,
+        contract: contractAddress,
         tokenStandard: "ERC721",
         tokenId,
         quantity: 1n,
@@ -121,7 +181,7 @@ export const handleSeaportOrderFulfilled = Seaport.OrderFulfilled.handler(
         blockNumber,
         transactionHash: txHash,
         operator: undefined,
-        chainId: BERACHAIN_ID,
+        chainId: collection.chainId,
       };
       context.MintActivity.set(purchaseActivity);
     }
