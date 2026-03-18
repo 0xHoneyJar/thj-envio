@@ -638,36 +638,31 @@ networks:
         address:
           - 0x120756ccc6f0cefb43a753e1f2534377c2694bb4 # MiberaMaker333
         start_block: 33657372 # MiberaMaker333 deployment
-      # THJ APAC / Purupuru ERC-721 collections (party.app mints)
-      - name: TrackedErc721
+      # THJ APAC / Purupuru ERC-1155 collections (party.app mints + Zora)
+      - name: PuruApiculture1155
         address:
+          - 0x6cfb9280767a3596ee6af887d900014a755ffc75 # Apiculture Szn 0 (Zora, token ID 4 = Purupuru edition)
           - 0xcd3ab1B6E95cdB40A19286d863690Eb407335B21 # puru_elemental_jani
           - 0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0 # puru_boarding_passes
           - 0x85A72EEe14dcaA1CCC5616DF39AcdE212280DcCB # puru_introducing_kizuna
-        start_block: 20521993 # puru_boarding_passes deployment (earliest of the 3)
-      # Apiculture Szn 0 - Zora ERC-1155 (token ID 4 = Purupuru edition)
-      - name: PuruApiculture1155
-        address:
-          - 0x6cfb9280767a3596ee6af887d900014a755ffc75 # Apiculture Szn 0
-        start_block: 13803165 # Apiculture Szn 0 deployment
-      # Seaport - OpenSea marketplace for secondary sales
-      - name: Seaport
-        address:
-          - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
-        start_block: 11872655 # Seaport v1.6 deployment
+        start_block: 13803165 # Apiculture Szn 0 deployment (earliest of the 4)
+      # Seaport on Base REMOVED — handler is hardcoded to Berachain + Mibera only,
+      # so all Base Seaport events were silently dropped. Removing eliminates ~5M wasted block scans.
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
-    start_block: 866405 # Preserve existing THJ coverage; fatBERA-specific contracts use their own start_block
+    start_block: 8221 # BgtToken deployment — earliest contract on Berachain
     contracts:
       # AquaberaVault forwarder on Berachain Mainnet
       - name: AquaberaVault
         address:
           - 0xc0c6D4178410849eC9765B4267A73F4F64241832 # Aquabera forwarder (user deposits through UI)
+        start_block: 784898 # AquaberaVault forwarder deployment
       # Direct vault contract for wall deposits and withdrawals
       - name: AquaberaVaultDirect
         address:
           - 0x04fD6a7B02E2e48caedaD7135420604de5f834f8 # Aquabera HENLO/BERA vault (direct deposits/withdrawals)
+        start_block: 1871321 # AquaberaVaultDirect deployment
       # HoneyJar contracts on Berachain Mainnet
       - name: HoneyJar
         address:
@@ -677,19 +672,23 @@ networks:
           - 0xdb602ab4d6bd71c8d11542a9c8c936877a9a4f45 # HoneyJar4 Bera
           - 0x0263728e7f59f315c17d3c180aeade027a375f17 # HoneyJar5 Bera
           - 0xb62a9a21d98478f477e134e175fd2003c15cb83a # HoneyJar6 Bera
+        start_block: 2863795 # HoneyJar1 Bera deployment (earliest of the 6)
       # Honeycomb on Berachain Mainnet
       - name: Honeycomb
         address:
           - 0x886d2176d899796cd1affa07eff07b9b2b80f1be # Honeycomb Bera
+        start_block: 887123 # Honeycomb Bera deployment
       # MoneycombVault on Berachain Mainnet
       - name: MoneycombVault
         address:
           - 0x9279b2227b57f349a0ce552b25af341e735f6309
+        start_block: 6954915 # MoneycombVault deployment
 
       # Crayons Factory (deploys ERC721 Base collections)
       - name: CrayonsFactory
         address:
           - 0xF1c7d49B39a5aCa29ead398ad9A7024ed6837F87
+        start_block: 8702687 # CrayonsFactory deployment
 
       # Crayons ERC721 Collections (Transfer indexing)
       # NOTE: CrayonsCollection commented out — no addresses yet, empty definition adds overhead
@@ -720,6 +719,7 @@ networks:
           - 0xaaB7b4502251aE393D0590bAB3e208E2d58F4813 # fracture #8: mireveal_6_6
           - 0xc64126EA8dC7626c16daA2A29D375C33fcaa4C7c # fracture #9: mireveal_7_7
           - 0x24F4047d372139de8DACbe79e2fC576291Ec3ffc # fracture #10: mireveal_8_8
+        start_block: 4029732 # fracture #1 deployment (earliest TrackedErc721 on Berachain)
       # ============================================================
       # General ERC721 Mint tracking (quest/missions)
       # ============================================================
@@ -730,12 +730,14 @@ networks:
           - 0x048327A187b944ddac61c6e202BfccD20d17c008 # mibera_vm / mibera_shadows
           - 0x230945E0Ed56EF4dE871a6c0695De265DE23D8D8 # mibera_gif
           # NOTE: mibera_tarot handled by TrackedErc721 (which now creates mint actions too)
+        start_block: 4130866 # mibera_vm deployment (earliest GeneralMints on Berachain)
       # Mibera staking tracking - REMOVED: Now handled by TrackedErc721 handler
       # (was causing handler conflict where TrackedHolder entries were never created)
       # PaddleFi lending - BERA supply + NFT pawn tracking
       - name: PaddleFi
         address:
           - 0x242b7126F3c4E4F8CbD7f62571293e63E9b0a4E1 # PaddleFi MIBERA-WBERA vault
+        start_block: 5604652 # PaddleFi deployment
       # ============================================================
       # MIBERA CANDIES (aka "Mibera Drugs") - ERC1155 collections
       # Same thing, different names - candies and drugs are interchangeable terms
@@ -744,6 +746,7 @@ networks:
         address:
           - 0x80283fbF2b8E50f6Ddf9bfc4a90A8336Bc90E38F # mibera_drugs / mibera_candies (SilkRoad marketplace)
           - 0xeca03517c5195f1edd634da6d690d6c72407c40c # mibera_drugs / mibera_candies (secondary)
+        start_block: 3716959 # CandiesMarket secondary deployment (earliest of the 2)
       # MiberaTrade and CandiesTrade contracts commented out until handlers are implemented
       # - name: MiberaTrade
       #   address:
@@ -755,6 +758,7 @@ networks:
       - name: CubBadges1155
         address:
           - 0x574617ab9788e614b3eb3f7bd61334720d9e1aac # Cub Universal Badges (mainnet)
+        start_block: 1080991 # CubBadges1155 deployment
       - name: FatBeraDeposits
         address:
           - 0xBAE11292a3E693AF73651BDa350d752AE4A391d4
@@ -788,6 +792,7 @@ networks:
       - name: BgtToken
         address:
           - 0x656b95E550C07a9ffe548Bd4085c72418Ceb1dBa
+        start_block: 8221 # BgtToken deployment (earliest contract on Berachain)
       # Set & Forgetti Vaults (ERC4626)
       - name: SFVaultERC4626
         address:
@@ -796,6 +801,7 @@ networks:
           - 0x2e2bDfdD4b786703B374aEEAa44195698a699dD1 # HLKD420M Vault
           - 0x91F321A8791fB899c6b860B9F54940C68cB45AeD # HLKD330M Vault
           - 0xEe1087ec5D6A0a673C046b9ACb15C93B7aDB95CA # HLKD100M Vault
+        start_block: 14937664 # HLKD1B Vault deployment (earliest SF vault)
       # Set & Forgetti Strategy Wrappers (emits MultiRewardsUpdated)
       - name: SFVaultStrategyWrapper
         address:
@@ -804,6 +810,7 @@ networks:
           - 0xffa9dbbff80f736cde9e41427c0335f866854a9a # HLKD420M Strategy
           - 0x3032a263c651d9237b74cd6d47baf1345bf0930e # HLKD330M Strategy
           - 0xaee9aea23783057cbc890684464570ad9723be01 # HLKD100M Strategy
+        start_block: 14937670 # HLKD1B Strategy deployment (earliest SF strategy)
       # Set & Forgetti MultiRewards (Staking)
       - name: SFMultiRewards
         address:
@@ -812,10 +819,12 @@ networks:
           - 0x827b7EA9fDb4322DbC6f9bF72C04871Be859f20C # HLKD420M MultiRewards (new)
           - 0xACd0177BfcBC3760b03c87808b5423945f6bFAEC # HLKD330M MultiRewards (new)
           - 0xB5b312fbF7Eb145485Ece55B862db94d626eFa0f # HLKD100M MultiRewards (new)
+        start_block: 15407908 # HLKD1B MultiRewards deployment (earliest SF MultiRewards)
       # HenloVault for tracking HENLOCKED token mints
       - name: HenloVault
         address:
           - 0x42069E3BF367C403b632CF9cD5a8d61e2c0c44fC # HenloVault
+        start_block: 2041392 # HenloVault deployment
       # Tracked ERC-20 tokens for balance tracking (HENLO + HENLOCKED tiers)
       - name: TrackedErc20
         address:
@@ -825,26 +834,32 @@ networks:
           - 0xF07Fa3ECE9741D408d643748Ff85710BEdEF25bA # HLKD420M
           - 0x37DD8850919EBdCA911C383211a70839A94b0539 # HLKD330M
           - 0x7Bdf98DdeEd209cFa26bD2352b470Ac8b5485EC5 # HLKD100M
+        start_block: 839945 # HENLO token deployment (earliest TrackedErc20 on Berachain)
       # Mibera Liquid Backing - Loans, RFV, and marketplace
       - name: MiberaLiquidBacking
         address:
           - 0xaa04F13994A7fCd86F3BbbF4054d239b88F2744d # Mibera Liquid Backing
+        start_block: 3971122 # MiberaLiquidBacking deployment
       # Mibera Collection - NFT transfer tracking for mint activity
       - name: MiberaCollection
         address:
           - 0x6666397dfe9a8c469bf65dc744cb1c733416c420 # Mibera Collection
+        start_block: 3837808 # MiberaCollection deployment
       # Mibera Premint - Participation and refund tracking
       - name: MiberaPremint
         address:
           - 0xdd5F6f41B250644E5678D77654309a5b6A5f4D55 # Mibera Premint
+        start_block: 2731326 # MiberaPremint deployment
       # Seaport - OpenSea marketplace for secondary sales
       - name: Seaport
         address:
           - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
+        start_block: 3837808 # Use MiberaCollection deployment — no relevant trades before Mibera exists
       # APDAO Auction House (proxy contract — events emit from here)
       - name: ApdaoAuctionHouse
         address:
           - 0xE840929cd47c6a1cf0f5D9b6d0C6277075680A0b # APDAO Auction House Proxy
+        start_block: 5206807 # ApdaoAuctionHouse deployment
 
 # Enable multichain mode for cross-chain tracking
 unordered_multichain_mode: true
