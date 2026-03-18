@@ -44,6 +44,13 @@ const berachain = defineChain({
 
 const BERACHAIN_ID = 80094;
 
+// Singleton RPC client — avoids re-creating per effect call
+const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
+const rpcClient = createPublicClient({
+  chain: berachain,
+  transport: http(rpcUrl),
+});
+
 /**
  * Vault Configuration Mapping
  * Maps vault addresses to their initial (first) strategy, MultiRewards contract, and metadata
@@ -136,14 +143,8 @@ export const getMultiRewardsAddress = experimental_createEffect(
     const anyContext = context as any;
 
     // First try RPC call
-    const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
-    const client = createPublicClient({
-      chain: berachain,
-      transport: http(rpcUrl),
-    });
-
     try {
-      const multiRewards = await client.readContract({
+      const multiRewards = await rpcClient.readContract({
         address: input.strategyAddress as `0x${string}`,
         abi: parseAbi(["function multiRewardsAddress() view returns (address)"]),
         functionName: "multiRewardsAddress",
@@ -200,13 +201,7 @@ export const getVaultAddressFromMultiRewards = experimental_createEffect(
     cache: true,
   },
   async ({ input }) => {
-    const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
-    const client = createPublicClient({
-      chain: berachain,
-      transport: http(rpcUrl),
-    });
-
-    const stakingToken = await client.readContract({
+    const stakingToken = await rpcClient.readContract({
       address: input.multiRewardsAddress as `0x${string}`,
       abi: parseAbi(["function stakingToken() view returns (address)"]),
       functionName: "stakingToken",
@@ -390,14 +385,8 @@ SFVaultERC4626.StrategyUpdated.contractRegister(async ({ event, context }) => {
 
   // Query the new strategy's multiRewardsAddress at this block
   // Note: contractRegister doesn't have access to context.effect, so we make direct RPC call
-  const rpcUrl = process.env.ENVIO_RPC_URL || "https://rpc.berachain.com";
-  const client = createPublicClient({
-    chain: berachain,
-    transport: http(rpcUrl),
-  });
-
   try {
-    const multiRewards = await client.readContract({
+    const multiRewards = await rpcClient.readContract({
       address: newStrategy as `0x${string}`,
       abi: parseAbi(["function multiRewardsAddress() view returns (address)"]),
       functionName: "multiRewardsAddress",

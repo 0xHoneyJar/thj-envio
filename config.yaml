@@ -541,30 +541,36 @@ contracts:
 networks:
   # Ethereum Mainnet
   - id: 1
-    start_block: 13090020 # Earliest block - Milady contract deployment (was 16751283 for Honeycomb)
+    start_block: 13090020 # Earliest block - Milady contract deployment
     contracts:
       # Native HoneyJar contracts on Ethereum
       - name: HoneyJar
         address:
           - 0xa20cf9b0874c3e46b344deaeea9c2e0c3e1db37d # HoneyJar1
           - 0x98dc31a9648f04e23e4e36b0456d1951531c2a05 # HoneyJar6
+        start_block: 17085858 # HoneyJar1 deployment (HoneyJar6 deployed later at 21642710)
       # Honeycomb on Ethereum
       - name: Honeycomb
         address:
           - 0xcb0477d1af5b8b05795d89d59f4667b59eae9244
+        start_block: 16751283 # Honeycomb deployment
       # Layer Zero reminted HoneyJar contracts on Ethereum
       - name: HoneyJar2Eth
         address:
           - 0x3f4dd25ba6fb6441bfd1a869cbda6a511966456d # HoneyJar2 L0 remint
+        start_block: 17516342 # HoneyJar2 L0 remint deployment
       - name: HoneyJar3Eth
         address:
           - 0x49f3915a52e137e597d6bf11c73e78c68b082297 # HoneyJar3 L0 remint (was missing!)
+        start_block: 20463444 # HoneyJar3 L0 remint deployment
       - name: HoneyJar4Eth
         address:
           - 0x0b820623485dcfb1c40a70c55755160f6a42186d # HoneyJar4 L0 remint (was missing!)
+        start_block: 20814248 # HoneyJar4 L0 remint deployment
       - name: HoneyJar5Eth
         address:
           - 0x39eb35a84752b4bd3459083834af1267d276a54c # HoneyJar5 L0 remint (was missing!)
+        start_block: 21327296 # HoneyJar5 L0 remint deployment
       # Milady NFT collection on Ethereum (burn tracking)
       - name: MiladyCollection
         address:
@@ -631,20 +637,24 @@ networks:
       - name: TrackedErc20
         address:
           - 0x120756ccc6f0cefb43a753e1f2534377c2694bb4 # MiberaMaker333
+        start_block: 33657372 # MiberaMaker333 deployment
       # THJ APAC / Purupuru ERC-721 collections (party.app mints)
       - name: TrackedErc721
         address:
           - 0xcd3ab1B6E95cdB40A19286d863690Eb407335B21 # puru_elemental_jani
           - 0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0 # puru_boarding_passes
           - 0x85A72EEe14dcaA1CCC5616DF39AcdE212280DcCB # puru_introducing_kizuna
+        start_block: 20521993 # puru_boarding_passes deployment (earliest of the 3)
       # Apiculture Szn 0 - Zora ERC-1155 (token ID 4 = Purupuru edition)
       - name: PuruApiculture1155
         address:
           - 0x6cfb9280767a3596ee6af887d900014a755ffc75 # Apiculture Szn 0
+        start_block: 13803165 # Apiculture Szn 0 deployment
       # Seaport - OpenSea marketplace for secondary sales
       - name: Seaport
         address:
           - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
+        start_block: 11872655 # Seaport v1.6 deployment
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
@@ -682,8 +692,9 @@ networks:
           - 0xF1c7d49B39a5aCa29ead398ad9A7024ed6837F87
 
       # Crayons ERC721 Collections (Transfer indexing)
-      - name: CrayonsCollection
-        address: []
+      # NOTE: CrayonsCollection commented out — no addresses yet, empty definition adds overhead
+      # - name: CrayonsCollection
+      #   address: []
       # ============================================================
       # Static tracked ERC721 collections
       # ============================================================

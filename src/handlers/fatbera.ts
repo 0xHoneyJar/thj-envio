@@ -257,8 +257,10 @@ export const handleBlockRewardProcessed = BlockRewardController.BlockRewardProce
       return;
     }
 
-    const previousRewards = await getLatestValidatorReward(context, validatorInfo.pubkey);
-    const depositRecord = await getLatestValidatorDeposit(context, validatorInfo.pubkey);
+    const [previousRewards, depositRecord] = await Promise.all([
+      getLatestValidatorReward(context, validatorInfo.pubkey),
+      getLatestValidatorDeposit(context, validatorInfo.pubkey),
+    ]);
     if (!depositRecord || depositRecord.totalDeposited === 0n) {
       return;
     }
@@ -433,8 +435,10 @@ export const handleFatBeraWithdrawalRequested =
 export const handleFatBeraBatchStarted = FatBeraAccounting.BatchStarted.handler(
   async ({ event, context }) => {
     const batchId = event.params.batchId.toString();
-    const existingBatch = await context.WithdrawalBatch.get(batchId);
-    const batchRequests = await getWithdrawalRequestsForBatch(context, batchId);
+    const [existingBatch, batchRequests] = await Promise.all([
+      context.WithdrawalBatch.get(batchId),
+      getWithdrawalRequestsForBatch(context, batchId),
+    ]);
     const uniqueUsers = Array.from(
       new Set(batchRequests.map((request) => request.user))
     );

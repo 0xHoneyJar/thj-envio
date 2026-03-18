@@ -249,21 +249,21 @@ type Mint {
 
 type Holder {
   id: ID!
-  address: String!
+  address: String! @index
   balance: Int!
   totalMinted: Int!
   lastActivityTime: BigInt!
   firstMintTime: BigInt
-  collection: String!
+  collection: String! @index
   chainId: Int!
 }
 
 type TrackedHolder {
   id: ID!
   contract: String!
-  collectionKey: String!
+  collectionKey: String! @index
   chainId: Int!
-  address: String!
+  address: String! @index
   tokenCount: Int!
 }
 
@@ -437,7 +437,7 @@ type HenloGlobalBurnStats {
 
 type HenloHolder {
   id: ID!  # address (lowercase)
-  address: String!  # Holder address (lowercase)
+  address: String! @index  # Holder address (lowercase)
   balance: BigInt!  # Current balance
   firstTransferTime: BigInt  # First time they received HENLO
   lastActivityTime: BigInt!  # Last transfer activity
@@ -607,8 +607,8 @@ type TradeStats {
 # - totalShares: Total ownership = vaultShares + stakedShares
 type SFPosition {
   id: ID!                     # {chainId}_{user}_{vault}
-  user: String!               # User address (lowercase)
-  vault: String!              # SFVault address (lowercase)
+  user: String! @index        # User address (lowercase)
+  vault: String! @index       # SFVault address (lowercase)
   multiRewards: String!       # MultiRewards address (lowercase)
   kitchenToken: String!       # Underlying kitchen token address (lowercase)
   strategy: String!           # BeradromeStrategy address (lowercase)
@@ -657,7 +657,7 @@ type SFVaultStats {
 #   3. If inactive && stakedShares > 0, user needs to migrate to the new MultiRewards
 type SFMultiRewardsPosition {
   id: ID!                     # {chainId}_{user}_{multiRewards}
-  user: String!               # User address (lowercase)
+  user: String! @index        # User address (lowercase)
   vault: String!              # Vault address this MultiRewards belongs to
   multiRewards: String!       # MultiRewards contract address (lowercase)
   stakedShares: BigInt!       # Current shares staked in THIS specific MultiRewards contract
@@ -794,7 +794,7 @@ type MiberaLoan @entity {
   id: ID!                      # chainId_loanType_loanId (e.g., "80094_backing_1")
   loanId: BigInt!
   loanType: String!            # "backing" | "item"
-  user: String!                # User who took the loan
+  user: String! @index         # User who took the loan
   tokenIds: [BigInt!]!         # NFT token IDs used as collateral (backing loans have multiple)
   amount: BigInt!              # Loan amount (for backing loans)
   expiry: BigInt!              # Timestamp when loan expires
@@ -855,8 +855,8 @@ type MiberaOrder @entity {
 # Unified activity feed for liquid backing contributions (replaces mibera-squid MintActivity)
 type MintActivity @entity {
   id: ID!                      # txHash_tokenId_user_activityType
-  user: String!                # User address (lowercase)
-  contract: String!            # Contract address where activity occurred
+  user: String! @index         # User address (lowercase)
+  contract: String! @index     # Contract address where activity occurred
   tokenStandard: String!       # "ERC721" | "ERC1155"
   tokenId: BigInt              # Token ID (nullable for some activities)
   quantity: BigInt!            # Quantity (usually 1)
@@ -919,8 +919,8 @@ type TreasuryActivity {
 
 type TrackedTokenBalance {
   id: ID!  # {address}_{tokenAddress}_{chainId}
-  address: String!  # Holder address (lowercase)
-  tokenAddress: String!  # Token contract address (lowercase)
+  address: String! @index  # Holder address (lowercase)
+  tokenAddress: String! @index  # Token contract address (lowercase)
   tokenKey: String!  # Human-readable key (e.g., "henlo", "hlkd1b")
   chainId: Int!
   balance: BigInt!  # Current balance
@@ -952,7 +952,7 @@ type HenloVaultRound {
 # Individual deposit record
 type HenloVaultDeposit {
   id: ID!                      # {txHash}_{logIndex}
-  user: String!                # User address (lowercase)
+  user: String! @index         # User address (lowercase)
   strike: BigInt!              # Strike price
   epochId: BigInt!             # Epoch ID
   amount: BigInt!              # Deposit amount
@@ -1146,7 +1146,7 @@ type MirrorArticleStats {
 # Individual auction (one per seat token auctioned)
 type ApdaoAuction @entity {
   id: ID!                      # chainId_apdaoId (e.g., "80094_42")
-  apdaoId: BigInt!             # Seat token ID being auctioned
+  apdaoId: BigInt! @index      # Seat token ID being auctioned
   startTime: BigInt!           # Auction start timestamp
   endTime: BigInt!             # Auction end timestamp (may be extended)
   winner: String               # Winner address (null until settled)

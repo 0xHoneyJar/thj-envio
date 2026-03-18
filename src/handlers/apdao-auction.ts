@@ -101,18 +101,18 @@ export const handleAuctionBid =
 
       context.ApdaoBid.set(bid);
 
-      // Update auction bid count
+      // Update auction bid count + stats in parallel
       const auctionId = `${CHAIN_ID}_${apdaoId}`;
-      const auction = await context.ApdaoAuction.get(auctionId);
+      const [auction, stats] = await Promise.all([
+        context.ApdaoAuction.get(auctionId),
+        getOrCreateStats(context),
+      ]);
       if (auction) {
         context.ApdaoAuction.set({
           ...auction,
           bidCount: auction.bidCount + 1,
         });
       }
-
-      // Update stats
-      const stats = await getOrCreateStats(context);
       context.ApdaoAuctionStats.set({
         ...stats,
         totalBids: stats.totalBids + 1,
@@ -159,7 +159,10 @@ export const handleAuctionSettled =
       const settledAmount = BigInt(amount.toString());
 
       const auctionId = `${CHAIN_ID}_${apdaoId}`;
-      const auction = await context.ApdaoAuction.get(auctionId);
+      const [auction, stats] = await Promise.all([
+        context.ApdaoAuction.get(auctionId),
+        getOrCreateStats(context),
+      ]);
       if (auction) {
         context.ApdaoAuction.set({
           ...auction,
@@ -169,9 +172,6 @@ export const handleAuctionSettled =
           settledAt: timestamp,
         });
       }
-
-      // Update stats
-      const stats = await getOrCreateStats(context);
       context.ApdaoAuctionStats.set({
         ...stats,
         totalSettled: stats.totalSettled + 1,
@@ -229,10 +229,13 @@ export const handleTokensRemovedFromQueue =
         const { tokenIds } = event.params;
         const timestamp = BigInt(event.block.timestamp);
 
-        for (const tokenId of tokenIds) {
-          const queuedId = `${CHAIN_ID}_${tokenId}`;
-          const existing = await context.ApdaoQueuedToken.get(queuedId);
+        // Batch-fetch all tokens in parallel instead of sequential loop
+        const queuedIds = tokenIds.map((tokenId) => `${CHAIN_ID}_${tokenId}`);
+        const existingTokens = await Promise.all(
+          queuedIds.map((queuedId) => context.ApdaoQueuedToken.get(queuedId))
+        );
 
+        for (const existing of existingTokens) {
           if (existing) {
             context.ApdaoQueuedToken.set({
               ...existing,
