@@ -1,25 +1,45 @@
 /*
- * Purupuru Apiculture Szn 0 ERC-1155 tracking on Base.
+ * Purupuru ERC-1155 tracking on Base.
+ *
+ * Handles all THJ APAC / Purupuru ERC-1155 collections:
+ * - Apiculture Szn 0 (Zora platform, token ID 4 = Purupuru edition)
+ * - Elemental Jani (party.app, 13 token IDs)
+ * - Boarding Passes (party.app, 4 token IDs)
+ * - Introducing Kizuna (party.app, 11 token IDs)
  *
  * Tracks:
- * - Mints: transfers from zero address
- * - Transfers: all other transfers between users
- *
- * This is a Zora platform ERC-1155 collection.
- * Token ID 4 = Purupuru edition.
+ * - Mints: transfers from zero address (mint1155 action + Erc1155MintEvent)
+ * - Burns: transfers to zero/dead address (burn1155 action)
+ * - Transfers: all other transfers between users (transfer1155 action)
+ * - Holders: aggregate token count per wallet per contract (TrackedHolder + hold1155 action)
  */
 
-import { PuruApiculture1155, Erc1155MintEvent } from "generated";
+import {
+  PuruApiculture1155,
+  Erc1155MintEvent,
+  TrackedHolder as TrackedHolderEntity,
+} from "generated";
+import type { handlerContext } from "generated";
 
 import { recordAction } from "../lib/actions";
-import { isMintFromZero } from "../lib/mint-detection";
+import { isMintFromZero, isBurnAddress } from "../lib/mint-detection";
 
-// Collection key for action tracking
-const COLLECTION_KEY = "puru_apiculture";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+// Collection key mapping — each contract gets its own key for action tracking
+const PURU_COLLECTION_KEYS: Record<string, string> = {
+  "0x6cfb9280767a3596ee6af887d900014a755ffc75": "puru_apiculture",
+  "0xcd3ab1b6e95cdb40a19286d863690eb407335b21": "puru_elemental_jani",
+  "0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0": "puru_boarding_passes",
+  "0x85a72eee14dcaa1ccc5616df39acde212280dccb": "puru_introducing_kizuna",
+};
+
+function getCollectionKey(contractAddress: string): string {
+  return PURU_COLLECTION_KEYS[contractAddress] ?? contractAddress;
+}
 
 /**
  * Handle TransferSingle events
- * Tracks mints (from zero) and transfers (between users)
  */
 export const handlePuruApicultureSingle = PuruApiculture1155.TransferSingle.handler(
   async ({ event, context }) => {
@@ -35,41 +55,40 @@ export const handlePuruApicultureSingle = PuruApiculture1155.TransferSingle.hand
     }
 
     const contractAddress = event.srcAddress.toLowerCase();
+    const collectionKey = getCollectionKey(contractAddress);
     const operatorLower = operator.toLowerCase();
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
-    const eventId = `${event.transaction.hash}_${event.logIndex}`;
+    const txHash = event.transaction.hash;
+    const logIndex = event.logIndex;
+    const eventId = `${txHash}_${logIndex}`;
 
-    // Check if this is a mint or a transfer
-    const isMintEvent = isMintFromZero(fromLower);
+    const isMint = isMintFromZero(fromLower);
+    const isBurn = isBurnAddress(toLower) && !isMint;
 
-    if (isMintEvent) {
-      // Create mint event record
-      const mintEvent: Erc1155MintEvent = {
+    if (isMint) {
+      context.Erc1155MintEvent.set({
         id: eventId,
-        collectionKey: COLLECTION_KEY,
+        collectionKey,
         tokenId,
         value: quantity,
         minter: toLower,
         operator: operatorLower,
         timestamp,
         blockNumber: BigInt(event.block.number),
-        transactionHash: event.transaction.hash,
+        transactionHash: txHash,
         chainId,
-      };
+      });
 
-      context.Erc1155MintEvent.set(mintEvent);
-
-      // Record mint action
       recordAction(context, {
         id: eventId,
         actionType: "mint1155",
         actor: toLower,
-        primaryCollection: COLLECTION_KEY,
+        primaryCollection: collectionKey,
         timestamp,
         chainId,
-        txHash: event.transaction.hash,
-        logIndex: event.logIndex,
+        txHash,
+        logIndex,
         numeric1: quantity,
         numeric2: tokenId,
         context: {
@@ -79,17 +98,34 @@ export const handlePuruApicultureSingle = PuruApiculture1155.TransferSingle.hand
           from: fromLower,
         },
       });
+    } else if (isBurn) {
+      recordAction(context, {
+        id: eventId,
+        actionType: "burn1155",
+        actor: fromLower,
+        primaryCollection: collectionKey,
+        timestamp,
+        chainId,
+        txHash,
+        logIndex,
+        numeric1: quantity,
+        numeric2: tokenId,
+        context: {
+          tokenId: tokenId.toString(),
+          contract: contractAddress,
+          burnAddress: toLower,
+        },
+      });
     } else {
-      // Record transfer action (secondary market / user-to-user)
       recordAction(context, {
         id: eventId,
         actionType: "transfer1155",
         actor: toLower,
-        primaryCollection: COLLECTION_KEY,
+        primaryCollection: collectionKey,
         timestamp,
         chainId,
-        txHash: event.transaction.hash,
-        logIndex: event.logIndex,
+        txHash,
+        logIndex,
         numeric1: quantity,
         numeric2: tokenId,
         context: {
@@ -101,12 +137,42 @@ export const handlePuruApicultureSingle = PuruApiculture1155.TransferSingle.hand
         },
       });
     }
+
+    // Holder tracking — adjust sender and receiver counts
+    if (!isMint) {
+      await adjustHolder1155({
+        context,
+        contractAddress,
+        collectionKey,
+        chainId,
+        holderAddress: fromLower,
+        delta: -quantity,
+        txHash,
+        logIndex,
+        timestamp,
+        direction: "out",
+      });
+    }
+
+    if (!isBurnAddress(toLower)) {
+      await adjustHolder1155({
+        context,
+        contractAddress,
+        collectionKey,
+        chainId,
+        holderAddress: toLower,
+        delta: quantity,
+        txHash,
+        logIndex,
+        timestamp,
+        direction: "in",
+      });
+    }
   }
 );
 
 /**
  * Handle TransferBatch events
- * Tracks mints (from zero) and transfers (between users)
  */
 export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handler(
   async ({ event, context }) => {
@@ -115,17 +181,22 @@ export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handle
     const toLower = to.toLowerCase();
 
     const contractAddress = event.srcAddress.toLowerCase();
+    const collectionKey = getCollectionKey(contractAddress);
     const operatorLower = operator.toLowerCase();
     const timestamp = BigInt(event.block.timestamp);
     const chainId = event.chainId;
     const txHash = event.transaction.hash;
+    const logIndex = event.logIndex;
 
     const idsArray = Array.from(ids);
     const valuesArray = Array.from(values);
     const length = Math.min(idsArray.length, valuesArray.length);
 
-    // Check if this is a mint or a transfer
-    const isMintEvent = isMintFromZero(fromLower);
+    const isMint = isMintFromZero(fromLower);
+    const isBurn = isBurnAddress(toLower) && !isMint;
+
+    // Accumulate total quantity across all token IDs for holder tracking
+    let totalQuantity = 0n;
 
     for (let index = 0; index < length; index += 1) {
       const rawId = idsArray[index];
@@ -140,14 +211,15 @@ export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handle
         continue;
       }
 
-      const tokenId = BigInt(rawId.toString());
-      const eventId = `${txHash}_${event.logIndex}_${index}`;
+      totalQuantity += quantity;
 
-      if (isMintEvent) {
-        // Create mint event record
-        const mintEvent: Erc1155MintEvent = {
+      const tokenId = BigInt(rawId.toString());
+      const eventId = `${txHash}_${logIndex}_${index}`;
+
+      if (isMint) {
+        context.Erc1155MintEvent.set({
           id: eventId,
-          collectionKey: COLLECTION_KEY,
+          collectionKey,
           tokenId,
           value: quantity,
           minter: toLower,
@@ -156,20 +228,17 @@ export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handle
           blockNumber: BigInt(event.block.number),
           transactionHash: txHash,
           chainId,
-        };
+        });
 
-        context.Erc1155MintEvent.set(mintEvent);
-
-        // Record mint action
         recordAction(context, {
           id: eventId,
           actionType: "mint1155",
           actor: toLower,
-          primaryCollection: COLLECTION_KEY,
+          primaryCollection: collectionKey,
           timestamp,
           chainId,
           txHash,
-          logIndex: event.logIndex,
+          logIndex,
           numeric1: quantity,
           numeric2: tokenId,
           context: {
@@ -180,17 +249,35 @@ export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handle
             batchIndex: index,
           },
         });
+      } else if (isBurn) {
+        recordAction(context, {
+          id: eventId,
+          actionType: "burn1155",
+          actor: fromLower,
+          primaryCollection: collectionKey,
+          timestamp,
+          chainId,
+          txHash,
+          logIndex,
+          numeric1: quantity,
+          numeric2: tokenId,
+          context: {
+            tokenId: tokenId.toString(),
+            contract: contractAddress,
+            burnAddress: toLower,
+            batchIndex: index,
+          },
+        });
       } else {
-        // Record transfer action (secondary market / user-to-user)
         recordAction(context, {
           id: eventId,
           actionType: "transfer1155",
           actor: toLower,
-          primaryCollection: COLLECTION_KEY,
+          primaryCollection: collectionKey,
           timestamp,
           chainId,
           txHash,
-          logIndex: event.logIndex,
+          logIndex,
           numeric1: quantity,
           numeric2: tokenId,
           context: {
@@ -204,5 +291,119 @@ export const handlePuruApicultureBatch = PuruApiculture1155.TransferBatch.handle
         });
       }
     }
+
+    // Holder tracking — adjust once per batch using accumulated total
+    if (totalQuantity > 0n) {
+      if (!isMint) {
+        await adjustHolder1155({
+          context,
+          contractAddress,
+          collectionKey,
+          chainId,
+          holderAddress: fromLower,
+          delta: -totalQuantity,
+          txHash,
+          logIndex,
+          timestamp,
+          direction: "out",
+        });
+      }
+
+      if (!isBurnAddress(toLower)) {
+        await adjustHolder1155({
+          context,
+          contractAddress,
+          collectionKey,
+          chainId,
+          holderAddress: toLower,
+          delta: totalQuantity,
+          txHash,
+          logIndex,
+          timestamp,
+          direction: "in",
+        });
+      }
+    }
   }
 );
+
+// --- Holder tracking ---
+
+interface AdjustHolder1155Args {
+  context: handlerContext;
+  contractAddress: string;
+  collectionKey: string;
+  chainId: number;
+  holderAddress: string;
+  delta: bigint;
+  txHash: string;
+  logIndex: number;
+  timestamp: bigint;
+  direction: "in" | "out";
+}
+
+async function adjustHolder1155({
+  context,
+  contractAddress,
+  collectionKey,
+  chainId,
+  holderAddress,
+  delta,
+  txHash,
+  logIndex,
+  timestamp,
+  direction,
+}: AdjustHolder1155Args) {
+  if (delta === 0n) {
+    return;
+  }
+
+  const address = holderAddress.toLowerCase();
+  if (address === ZERO_ADDRESS) {
+    return;
+  }
+
+  const id = `${contractAddress}_${chainId}_${address}`;
+  const existing = await context.TrackedHolder.get(id);
+  const currentCount = BigInt(existing?.tokenCount ?? 0);
+  const nextCount = currentCount + delta;
+  const tokenCount = nextCount < 0n ? 0 : Number(nextCount);
+
+  const actionId = `${txHash}_${logIndex}_${direction}`;
+
+  recordAction(context, {
+    id: actionId,
+    actionType: "hold1155",
+    actor: address,
+    primaryCollection: collectionKey.toLowerCase(),
+    timestamp,
+    chainId,
+    txHash,
+    logIndex,
+    numeric1: BigInt(tokenCount),
+    context: {
+      contract: contractAddress,
+      collectionKey: collectionKey.toLowerCase(),
+      tokenCount,
+      direction,
+    },
+  });
+
+  if (nextCount <= 0n) {
+    if (existing) {
+      context.TrackedHolder.deleteUnsafe(id);
+    }
+    return;
+  }
+
+  const holder: TrackedHolderEntity = {
+    id,
+    contract: contractAddress,
+    collectionKey,
+    chainId,
+    address,
+    tokenCount: Number(nextCount),
+  };
+
+  context.TrackedHolder.set(holder);
+}

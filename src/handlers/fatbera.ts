@@ -45,7 +45,7 @@ async function getLatestValidatorDeposit(
   context: handlerContext,
   pubkey: string
 ): Promise<ValidatorDeposits | undefined> {
-  const rows = await context.ValidatorDeposits.getWhere.pubkey.eq(pubkey);
+  const rows = await context.ValidatorDeposits.getWhere({ pubkey: { _eq: pubkey } });
   return rows.reduce<ValidatorDeposits | undefined>((latest, row) => {
     if (!latest || row.blockHeight >= latest.blockHeight) {
       return row;
@@ -58,7 +58,7 @@ async function getLatestValidatorReward(
   context: handlerContext,
   pubkey: string
 ): Promise<ValidatorBlockRewards | undefined> {
-  const rows = await context.ValidatorBlockRewards.getWhere.pubkey.eq(pubkey);
+  const rows = await context.ValidatorBlockRewards.getWhere({ pubkey: { _eq: pubkey } });
   return rows.reduce<ValidatorBlockRewards | undefined>((latest, row) => {
     if (!latest || row.blockHeight >= latest.blockHeight) {
       return row;
@@ -71,7 +71,7 @@ async function getWithdrawalRequestsForBatch(
   context: handlerContext,
   batchId: string
 ): Promise<WithdrawalRequest[]> {
-  return context.WithdrawalRequest.getWhere.batch_id.eq(batchId);
+  return context.WithdrawalRequest.getWhere({ batch_id: { _eq: batchId } });
 }
 
 function buildValidatorDepositRecord(args: {
