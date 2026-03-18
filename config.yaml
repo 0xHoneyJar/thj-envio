@@ -646,11 +646,12 @@ chains:
           - 0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0 # puru_boarding_passes
           - 0x85A72EEe14dcaA1CCC5616DF39AcdE212280DcCB # puru_introducing_kizuna
         start_block: 13803165 # Apiculture Szn 0 deployment (earliest of the 4)
-      # Seaport - OpenSea marketplace for secondary sales (Purupuru collections)
-      - name: Seaport
-        address:
-          - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
-        start_block: 20521993 # puru_boarding_passes deployment (earliest tracked Base collection)
+      # Seaport on Base — DEFERRED until downstream repos add chainId filters
+      # See: grimoires/loa/NOTES.md for required downstream changes
+      # - name: Seaport
+      #   address:
+      #     - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
+      #   start_block: 20521993 # puru_boarding_passes deployment
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094
