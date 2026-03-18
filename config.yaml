@@ -234,6 +234,18 @@ contracts:
         field_selection:
           transaction_fields:
             - hash
+  # PuruApiculture1155 - ERC1155 collection on Base (Zora platform, Purupuru edition)
+  - name: PuruApiculture1155
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)
+        field_selection:
+          transaction_fields:
+            - hash
   # MiberaZora1155 - ERC1155 collection on Optimism (Zora platform)
   - name: MiberaZora1155
     handler: src/EventHandlers.ts
@@ -619,6 +631,20 @@ networks:
       - name: TrackedErc20
         address:
           - 0x120756ccc6f0cefb43a753e1f2534377c2694bb4 # MiberaMaker333
+      # THJ APAC / Purupuru ERC-721 collections (party.app mints)
+      - name: TrackedErc721
+        address:
+          - 0xcd3ab1B6E95cdB40A19286d863690Eb407335B21 # puru_elemental_jani
+          - 0x154a563ab6c037bd0f041ac91600ffa9fe2f5fa0 # puru_boarding_passes
+          - 0x85A72EEe14dcaA1CCC5616DF39AcdE212280DcCB # puru_introducing_kizuna
+      # Apiculture Szn 0 - Zora ERC-1155 (token ID 4 = Purupuru edition)
+      - name: PuruApiculture1155
+        address:
+          - 0x6cfb9280767a3596ee6af887d900014a755ffc75 # Apiculture Szn 0
+      # Seaport - OpenSea marketplace for secondary sales
+      - name: Seaport
+        address:
+          - "0x0000000000000068F116a894984e2DB1123eB395" # Seaport v1.6
 
   # Berachain Mainnet (DO NOT CHANGE THIS ID)
   - id: 80094

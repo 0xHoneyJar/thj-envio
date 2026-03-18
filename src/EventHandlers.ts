@@ -128,6 +128,12 @@ import {
   handleMiberaZoraBatch,
 } from "./handlers/mibera-zora";
 
+// Purupuru Apiculture handlers (ERC-1155 on Base via Zora platform)
+import {
+  handlePuruApicultureSingle,
+  handlePuruApicultureBatch,
+} from "./handlers/puru-apiculture1155";
+
 // Mirror Observability handlers (article purchases on Optimism)
 import { handleWritingEditionPurchased } from "./handlers/mirror-observability";
 
@@ -274,6 +280,10 @@ export { handleMiberaSetsBatch };
 // Mibera Zora handlers (ERC-1155 on Optimism via Zora platform)
 export { handleMiberaZoraSingle };
 export { handleMiberaZoraBatch };
+
+// Purupuru Apiculture handlers (ERC-1155 on Base via Zora platform)
+export { handlePuruApicultureSingle };
+export { handlePuruApicultureBatch };
 
 // Mirror Observability handlers (article purchases on Optimism)
 export { handleWritingEditionPurchased };
