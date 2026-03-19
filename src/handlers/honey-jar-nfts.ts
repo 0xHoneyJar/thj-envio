@@ -84,18 +84,24 @@ export async function handleTransfer(
     chainId
   );
 
-  // Load holders once to avoid duplicate queries
+  // Load holders once to avoid duplicate queries — batch reads for preload
   const fromLower = from.toLowerCase();
   const toLower = to.toLowerCase();
   const fromHolderId = `${collection}_${chainId}_${fromLower}`;
   const toHolderId = `${collection}_${chainId}_${toLower}`;
 
-  let fromHolder = fromLower !== ZERO_ADDRESS.toLowerCase()
-    ? await context.Holder.get(fromHolderId)
-    : null;
-  let toHolder = toLower !== ZERO_ADDRESS.toLowerCase()
-    ? await context.Holder.get(toHolderId)
-    : null;
+  // Batch holder reads with Promise.all for preload cache priming
+  const [fromHolder, toHolder] = await Promise.all([
+    fromLower !== ZERO_ADDRESS.toLowerCase()
+      ? context.Holder.get(fromHolderId)
+      : Promise.resolve(null),
+    toLower !== ZERO_ADDRESS.toLowerCase()
+      ? context.Holder.get(toHolderId)
+      : Promise.resolve(null),
+  ]);
+
+  // Skip writes during preload — reads above prime the batch cache
+  if ((context as any).isPreload) return;
 
   // Update holder balances (returns updated holders)
   const updatedHolders = await updateHolderBalances(

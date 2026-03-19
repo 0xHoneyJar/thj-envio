@@ -36,6 +36,23 @@ export const handleTrackedErc20Transfer = TrackedErc20.Transfer.handler(
     const toLower = to.toLowerCase();
     const zeroAddress = ZERO_ADDRESS.toLowerCase();
 
+    // Preload: prime balance reads for sender and receiver
+    const fromId = `${fromLower}_${tokenAddress}_${chainId}`;
+    const toId = `${toLower}_${tokenAddress}_${chainId}`;
+    if (fromLower !== zeroAddress && toLower !== zeroAddress) {
+      await Promise.all([
+        context.TrackedTokenBalance.get(fromId),
+        context.TrackedTokenBalance.get(toId),
+      ]);
+    } else if (fromLower !== zeroAddress) {
+      await context.TrackedTokenBalance.get(fromId);
+    } else if (toLower !== zeroAddress) {
+      await context.TrackedTokenBalance.get(toId);
+    }
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     // 1. Balance tracking (ALL tokens)
     await updateBalance(
       context,

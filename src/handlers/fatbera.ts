@@ -334,7 +334,8 @@ export const handleBlockRewardProcessed = BlockRewardController.BlockRewardProce
     writeValidatorReward(context, reward);
   },
   {
-    eventFilters: VALIDATORS.map((v) => ({ pubkey: v.id })),
+    // Use raw pubkey — Envio applies keccak256() internally for bytes indexed topics
+    eventFilters: VALIDATORS.map((v) => ({ pubkey: v.pubkey })),
   }
 );
 
@@ -428,7 +429,8 @@ export const handleAutomatedStakeExecution =
       );
     },
     {
-      eventFilters: VALIDATORS.map((v) => ({ pubkey: v.id })),
+      // Use raw pubkey — Envio applies keccak256() internally for bytes indexed topics
+      eventFilters: VALIDATORS.map((v) => ({ pubkey: v.pubkey })),
     }
   );
 
@@ -619,7 +621,8 @@ export const handleValidatorWithdrawalRequested =
       );
     },
     {
-      eventFilters: VALIDATORS.map((v) => ({ cometBFTPublicKey: v.id })),
+      // Use raw pubkey — Envio applies keccak256() internally for bytes indexed topics
+      eventFilters: VALIDATORS.map((v) => ({ cometBFTPublicKey: v.pubkey })),
     }
   );
 

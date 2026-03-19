@@ -49,6 +49,23 @@ export const handleMiberaCollectionTransfer = MiberaCollection.Transfer.handler(
     const isMint = isMintFromZero(from);
     const isBurn = isBurnTransfer(from, to);
 
+    // Preload: prime holder reads + burn stats
+    if (from !== ZERO && !isBurnAddress(to)) {
+      const fromHolderId = `${MIBERA_COLLECTION_ADDRESS}_${BERACHAIN_ID}_${from}`;
+      const toHolderId = `${MIBERA_COLLECTION_ADDRESS}_${BERACHAIN_ID}_${to}`;
+      await Promise.all([
+        context.TrackedHolder.get(fromHolderId),
+        context.TrackedHolder.get(toHolderId),
+      ]);
+    }
+    if (isBurn) {
+      const statsId = `${BERACHAIN_ID}_${MIBERA_COLLECTION_KEY}`;
+      await context.NftBurnStats.get(statsId);
+    }
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     // Get transaction value (BERA paid) for mints
     // Cast to `any` required because Envio's generated Transaction type doesn't
     // include `value` by default. The field is available at runtime when

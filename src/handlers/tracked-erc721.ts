@@ -35,6 +35,19 @@ export const handleTrackedErc721Transfer = TrackedErc721.Transfer.handler(
     const timestamp = BigInt(event.block.timestamp);
     const blockNumber = BigInt(event.block.number);
 
+    // Preload: prime holder reads for from and to
+    if (from !== ZERO && to !== ZERO) {
+      const fromId = `${contractAddress}_${chainId}_${from}`;
+      const toId = `${contractAddress}_${chainId}_${to}`;
+      await Promise.all([
+        context.TrackedHolder.get(fromId),
+        context.TrackedHolder.get(toId),
+      ]);
+    }
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     // If this is a mint (from zero address), also create a mint action
     if (from === ZERO) {
       const mintActionId = `${txHash}_${logIndex}`;
