@@ -640,8 +640,9 @@ export const handleValidatorDepositRequested =
       }
 
       // Preload: prime singleton reads for target + all active validators
+      const activeValidators = getActiveValidators(event.block.number);
       const allDeposits = await Promise.all(
-        getActiveValidators(event.block.number).map((validator) =>
+        activeValidators.map((validator) =>
           context.LatestValidatorDeposit.get(validator.pubkey)
         )
       );
@@ -649,7 +650,9 @@ export const handleValidatorDepositRequested =
       // Skip calculations and writes during preload
       if ((context as any).isPreload) return;
 
-      const previousDeposit = await context.LatestValidatorDeposit.get(validatorInfo.pubkey);
+      // Use pre-fetched deposit from allDeposits (avoid redundant DB read)
+      const targetIdx = activeValidators.findIndex(v => v.pubkey === validatorInfo.pubkey);
+      const previousDeposit = targetIdx >= 0 ? allDeposits[targetIdx] : undefined;
       if (!previousDeposit) {
         return;
       }
@@ -684,7 +687,6 @@ export const handleValidatorDepositRequested =
         return;
       }
 
-      const activeValidators = getActiveValidators(event.block.number);
       const states = activeValidators
         .map((validator, i) => {
           const latestDeposit = allDeposits[i];
