@@ -140,6 +140,36 @@ type ValidatorBlockRewards {
   outstandingStakerRewards: BigInt!
 }
 
+# Singleton per validator — latest deposit state (O(1) lookup optimization)
+type LatestValidatorDeposit {
+  id: ID!                    # = validator pubkey (consensus key)
+  pubkey: String!
+  blockHeight: Int!
+  timestamp: Timestamp!
+  depositAmount: BigInt!
+  totalDeposited: BigInt!
+  depositCount: Int!
+  outstandingFatBERA: BigInt!
+}
+
+# Singleton per validator — latest reward state (O(1) lookup optimization)
+type LatestValidatorReward {
+  id: ID!                    # = validator pubkey (consensus key)
+  pubkey: String!
+  blockHeight: Int!
+  totalBlockRewards: BigInt!
+  timestamp: Timestamp!
+  nextTimestamp: BigInt!
+  baseRate: BigInt!
+  rewardRate: BigInt!
+  rewardCount: Int!
+  stakerReward: BigInt!
+  validatorReward: BigInt!
+  totalStakerRewards: BigInt!
+  totalValidatorRewards: BigInt!
+  outstandingStakerRewards: BigInt!
+}
+
 type ValidatorWithdrawalTotals {
   id: ID!
   cometBFTPublicKey: String! @index
@@ -681,6 +711,17 @@ type SFVaultStrategy {
   activeFrom: BigInt!         # Block timestamp when this strategy became active
   activeTo: BigInt            # Block timestamp when replaced (null if current)
   isActive: Boolean!          # True if this is the current strategy
+  chainId: Int!
+}
+
+# Singleton per vault — current active strategy (O(1) lookup optimization)
+type LatestVaultStrategy {
+  id: ID!                    # = vault address (lowercase)
+  vault: String!
+  strategy: String!
+  multiRewards: String! @index
+  kitchenToken: String!
+  kitchenTokenSymbol: String!
   chainId: Int!
 }
 

@@ -16,6 +16,7 @@ import {
   SFVaultStrategy,
   SFMultiRewardsPosition,
   SFVaultStrategyWrapper,
+  LatestVaultStrategy,
 } from "generated";
 
 import { createEffect, S } from "envio";
@@ -111,6 +112,17 @@ const VAULT_CONFIGS: Record<string, VaultConfig> = {
  * Lookup table mapping strategy addresses to their known multiRewards addresses
  * Used as fallback when RPC calls fail (e.g., contract doesn't exist at historical block)
  */
+// --- Module-level reverse lookup Maps (derived from constants, safe across preload) ---
+const MULTI_REWARDS_TO_VAULT = new Map<string, { vault: string; config: VaultConfig }>();
+for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
+  MULTI_REWARDS_TO_VAULT.set(config.multiRewards, { vault: vaultAddr, config });
+}
+
+const STRATEGY_TO_VAULT_MAP = new Map<string, { vault: string; config: VaultConfig }>();
+for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
+  STRATEGY_TO_VAULT_MAP.set(config.strategy, { vault: vaultAddr, config });
+}
+
 const STRATEGY_TO_MULTI_REWARDS: Record<string, string> = {
   "0x39748c56511c02eb7be22225c4699f59fbb55b8f": "0x34b3668e2ad47ccfe3c53e24a0606b911d1f6a8f", // HLKD1B
   "0x447d56af16a0cfaff96536c7fd54f46bf56e160e": "0xd1cbf8f7f310947a7993abbd7fd6113794e353da", // HLKD690M
@@ -223,32 +235,27 @@ async function getVaultFromMultiRewards(
   multiRewardsAddress: string,
   blockNumber: bigint
 ): Promise<{ vault: string; config: VaultConfig } | null> {
-  // First check hardcoded configs (for initial MultiRewards)
-  for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
-    if (config.multiRewards === multiRewardsAddress) {
-      return { vault: vaultAddr, config };
-    }
-  }
+  // 1. Module-level Map lookup (O(1), covers initial + runtime-updated configs)
+  const cached = MULTI_REWARDS_TO_VAULT.get(multiRewardsAddress);
+  if (cached) return cached;
 
-  // Then search SFVaultStrategy records for dynamically registered MultiRewards
-  const strategies = await context.SFVaultStrategy.getWhere({ multiRewards: { _eq: multiRewardsAddress } });
-
-  if (strategies && strategies.length > 0) {
-    const strategyRecord = strategies[0];
-    const baseConfig = VAULT_CONFIGS[strategyRecord.vault];
+  // 2. Search LatestVaultStrategy singleton by multiRewards (indexed, fast)
+  const latestStrategies = await context.LatestVaultStrategy.getWhere({ multiRewards: { _eq: multiRewardsAddress } });
+  if (latestStrategies && latestStrategies.length > 0) {
+    const record = latestStrategies[0];
+    const baseConfig = VAULT_CONFIGS[record.vault];
     if (baseConfig) {
-      return {
-        vault: strategyRecord.vault,
-        config: {
-          ...baseConfig,
-          strategy: strategyRecord.strategy,
-          multiRewards: strategyRecord.multiRewards,
-        },
+      const result = {
+        vault: record.vault,
+        config: { ...baseConfig, strategy: record.strategy, multiRewards: record.multiRewards },
       };
+      // Cache for future lookups in this batch
+      MULTI_REWARDS_TO_VAULT.set(multiRewardsAddress, result);
+      return result;
     }
   }
 
-  // Fallback: derive the vault from MultiRewards.stakingToken()
+  // 3. Fallback: derive the vault from MultiRewards.stakingToken() via RPC (cached effect)
   try {
     const vaultAddress = await context.effect(getVaultAddressFromMultiRewards, {
       multiRewardsAddress,
@@ -257,7 +264,9 @@ async function getVaultFromMultiRewards(
 
     const config = VAULT_CONFIGS[vaultAddress];
     if (config) {
-      return { vault: vaultAddress, config };
+      const result = { vault: vaultAddress, config };
+      MULTI_REWARDS_TO_VAULT.set(multiRewardsAddress, result);
+      return result;
     }
   } catch (error) {
     context.log.warn(
@@ -276,7 +285,11 @@ async function getVaultFromStrategy(
   context: any,
   strategyAddress: string
 ): Promise<{ vault: string; config: VaultConfig } | null> {
-  // First attempt: find via SFVaultStrategy records
+  // 1. Module-level Map lookup (O(1))
+  const cached = STRATEGY_TO_VAULT_MAP.get(strategyAddress);
+  if (cached) return cached;
+
+  // 2. Fallback: find via SFVaultStrategy records
   const strategies = await context.SFVaultStrategy.getWhere({ strategy: { _eq: strategyAddress } });
   if (strategies && strategies.length > 0) {
     const activeRecord = strategies.find((s: any) => s.isActive) ?? strategies[0];
@@ -290,13 +303,6 @@ async function getVaultFromStrategy(
           multiRewards: activeRecord.multiRewards,
         },
       };
-    }
-  }
-
-  // Fallback: scan hardcoded configs by strategy address
-  for (const [vaultAddr, config] of Object.entries(VAULT_CONFIGS)) {
-    if (config.strategy === strategyAddress) {
-      return { vault: vaultAddr, config };
     }
   }
 
@@ -331,44 +337,26 @@ async function ensureInitialStrategy(
       multiRewards: multiRewardsAtBlock,
       kitchenToken: config.kitchenToken,
       kitchenTokenSymbol: config.kitchenTokenSymbol,
-      activeFrom: BigInt(0), // Active from the beginning
+      activeFrom: BigInt(0),
       activeTo: undefined,
       isActive: true,
       chainId: BERACHAIN_ID,
     });
+
+    // Also write LatestVaultStrategy singleton
+    context.LatestVaultStrategy.set({
+      id: vaultAddress,
+      vault: vaultAddress,
+      strategy: config.strategy,
+      multiRewards: multiRewardsAtBlock,
+      kitchenToken: config.kitchenToken,
+      kitchenTokenSymbol: config.kitchenTokenSymbol,
+      chainId: BERACHAIN_ID,
+    });
+
+    // Update runtime Map
+    MULTI_REWARDS_TO_VAULT.set(multiRewardsAtBlock, { vault: vaultAddress, config: { ...config, multiRewards: multiRewardsAtBlock } });
   }
-}
-
-/**
- * Helper function to get the current active strategy for a vault
- */
-async function getActiveStrategy(
-  context: any,
-  vaultAddress: string
-): Promise<{ strategy: string; multiRewards: string } | null> {
-  const config = VAULT_CONFIGS[vaultAddress];
-  if (!config) return null;
-
-  // Query for active strategy
-  const strategies = await context.SFVaultStrategy.getWhere({ vault: { _eq: vaultAddress } });
-
-  if (strategies && strategies.length > 0) {
-    // Find the active one
-    for (const strategy of strategies) {
-      if (strategy.isActive) {
-        return {
-          strategy: strategy.strategy,
-          multiRewards: strategy.multiRewards,
-        };
-      }
-    }
-  }
-
-  // Fall back to hardcoded config
-  return {
-    strategy: config.strategy,
-    multiRewards: STRATEGY_TO_MULTI_REWARDS[config.strategy] || config.multiRewards,
-  };
 }
 
 /**
@@ -477,6 +465,22 @@ export const handleSFVaultStrategyUpdated = SFVaultERC4626.StrategyUpdated.handl
       });
     }
 
+    // Update LatestVaultStrategy singleton
+    context.LatestVaultStrategy.set({
+      id: vaultAddress,
+      vault: vaultAddress,
+      strategy: newStrategy,
+      multiRewards: newMultiRewards,
+      kitchenToken: config.kitchenToken,
+      kitchenTokenSymbol: config.kitchenTokenSymbol,
+      chainId: BERACHAIN_ID,
+    });
+
+    // Update runtime Maps for subsequent events in same batch
+    MULTI_REWARDS_TO_VAULT.delete(config.multiRewards);
+    MULTI_REWARDS_TO_VAULT.set(newMultiRewards, { vault: vaultAddress, config: { ...config, strategy: newStrategy, multiRewards: newMultiRewards } });
+    STRATEGY_TO_VAULT_MAP.set(newStrategy, { vault: vaultAddress, config: { ...config, strategy: newStrategy, multiRewards: newMultiRewards } });
+
     context.log.info(
       `Strategy updated for vault ${vaultAddress}: ${oldStrategy} -> ${newStrategy} (MultiRewards: ${newMultiRewards})`
     );
@@ -550,6 +554,21 @@ export const handleSFStrategyMultiRewardsUpdated =
       });
     }
 
+    // Update LatestVaultStrategy singleton with new multiRewards
+    context.LatestVaultStrategy.set({
+      id: vaultAddress,
+      vault: vaultAddress,
+      strategy: strategyAddress,
+      multiRewards: newMultiRewards,
+      kitchenToken: config.kitchenToken,
+      kitchenTokenSymbol: config.kitchenTokenSymbol,
+      chainId: BERACHAIN_ID,
+    });
+
+    // Update runtime Maps
+    MULTI_REWARDS_TO_VAULT.delete(oldMultiRewards);
+    MULTI_REWARDS_TO_VAULT.set(newMultiRewards, { vault: vaultAddress, config: { ...config, multiRewards: newMultiRewards } });
+
     // Keep vault stats pointing at the currently active multiRewards (if stats exists)
     const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
     const stats = await context.SFVaultStats.get(statsId);
@@ -580,13 +599,13 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
     const assets = event.params.assets; // Kitchen tokens deposited
     const shares = event.params.shares; // Vault shares received
 
-    // Ensure initial strategy record exists
+    // Ensure initial strategy record exists (effect runs during preload to cache RPC)
     await ensureInitialStrategy(context, vaultAddress, BigInt(event.block.number));
 
-    // Get the current active strategy for this vault
-    const activeStrategy = await getActiveStrategy(context, vaultAddress);
-    const strategyAddress = activeStrategy?.strategy || config.strategy;
-    const multiRewardsAddress = activeStrategy?.multiRewards || config.multiRewards;
+    // Get the current active strategy via singleton (O(1) instead of getWhere+scan)
+    const latestStrategy = await context.LatestVaultStrategy.get(vaultAddress);
+    const strategyAddress = latestStrategy?.strategy || config.strategy;
+    const multiRewardsAddress = latestStrategy?.multiRewards || config.multiRewards;
 
     // Create position ID
     const positionId = `${BERACHAIN_ID}_${owner}_${vaultAddress}`;
@@ -597,6 +616,9 @@ export const handleSFVaultDeposit = SFVaultERC4626.Deposit.handler(
       context.SFPosition.get(positionId),
       context.SFVaultStats.get(statsId),
     ]);
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
 
     // Update or create position
     const isNewPosition = !position;
@@ -727,6 +749,9 @@ export const handleSFVaultWithdraw = SFVaultERC4626.Withdraw.handler(
       context.SFVaultStats.get(statsId),
     ]);
 
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     // Update position if it exists
     if (position) {
       // When withdrawing, shares are burned from vault balance
@@ -823,6 +848,13 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
       context.SFVaultStats.get(statsId),
     ]);
 
+    // Track per-MultiRewards position (read for preload cache priming)
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     // Update position
     if (position) {
       const newStakedShares = position.stakedShares + amount;
@@ -858,10 +890,6 @@ export const handleSFMultiRewardsStaked = SFMultiRewards.Staked.handler(
         context.SFVaultStats.set(updatedStats);
       }
     }
-
-    // Track per-MultiRewards position
-    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
-    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
 
     const updatedMultiRewardsPosition = multiRewardsPosition ? {
       ...multiRewardsPosition,
@@ -932,11 +960,16 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
     const positionId = `${BERACHAIN_ID}_${user}_${vaultAddress}`;
     const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
 
-    // Fetch existing position and stats in parallel
-    const [position, stats] = await Promise.all([
+    // Fetch existing position, stats, and multiRewards position in parallel
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const [position, stats, multiRewardsPosition] = await Promise.all([
       context.SFPosition.get(positionId),
       context.SFVaultStats.get(statsId),
+      context.SFMultiRewardsPosition.get(multiRewardsPositionId),
     ]);
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
 
     // Update position
     if (position) {
@@ -973,10 +1006,6 @@ export const handleSFMultiRewardsWithdrawn = SFMultiRewards.Withdrawn.handler(
         context.SFVaultStats.set(updatedStats);
       }
     }
-
-    // Track per-MultiRewards position
-    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
-    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
 
     if (multiRewardsPosition) {
       let newStakedShares = multiRewardsPosition.stakedShares - amount;
@@ -1042,11 +1071,16 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
     const positionId = `${BERACHAIN_ID}_${user}_${vaultAddress}`;
     const statsId = `${BERACHAIN_ID}_${vaultAddress}`;
 
-    // Fetch existing position and stats in parallel
-    const [position, stats] = await Promise.all([
+    // Fetch existing position, stats, and multiRewards position in parallel
+    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
+    const [position, stats, multiRewardsPosition] = await Promise.all([
       context.SFPosition.get(positionId),
       context.SFVaultStats.get(statsId),
+      context.SFMultiRewardsPosition.get(multiRewardsPositionId),
     ]);
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
 
     // Update position's total claimed
     if (position) {
@@ -1071,9 +1105,6 @@ export const handleSFMultiRewardsRewardPaid = SFMultiRewards.RewardPaid.handler(
     }
 
     // Track per-MultiRewards position claims
-    const multiRewardsPositionId = `${BERACHAIN_ID}_${user}_${multiRewardsAddress}`;
-    const multiRewardsPosition = await context.SFMultiRewardsPosition.get(multiRewardsPositionId);
-
     if (multiRewardsPosition) {
       const updatedMultiRewardsPosition = {
         ...multiRewardsPosition,
@@ -1126,6 +1157,9 @@ export const handleSFMultiRewardsRebatePaid = SFMultiRewards.RebatePaid.handler(
       context.log.warn(`Unknown MultiRewards address for rebate: ${multiRewardsAddress}`);
       return;
     }
+
+    // Skip writes during preload (no entity reads needed for rebate)
+    if ((context as any).isPreload) return;
 
     const { vault: vaultAddress, config } = vaultInfo;
     const timestamp = BigInt(event.block.timestamp);

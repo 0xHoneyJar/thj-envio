@@ -41,6 +41,9 @@ const normalizePubkey = (raw: unknown): string | undefined => {
 
 export const handleBgtQueueBoost = BgtToken.QueueBoost.handler(
   async ({ event, context }) => {
+    // No entity reads needed — skip entire handler during preload
+    if ((context as any).isPreload) return;
+
     const { account, pubkey, amount } = event.params;
 
     if (amount === 0n) {

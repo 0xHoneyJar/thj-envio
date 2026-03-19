@@ -7,6 +7,8 @@ import {
   ValidatorDepositRouter,
   ValidatorWithdrawalModule,
   type FatBeraDeposit,
+  type LatestValidatorDeposit,
+  type LatestValidatorReward,
   type ValidatorBlockRewards,
   type ValidatorDeposits,
   type ValidatorWithdrawalTotals,
@@ -41,30 +43,46 @@ function isTrackedValidatorPubkey(pubkey: string) {
   return VALIDATORS.find((validator) => validator.pubkey === pubkey.toLowerCase());
 }
 
-async function getLatestValidatorDeposit(
+// --- Dual-write helpers: write to both history and singleton entities ---
+
+function writeValidatorDeposit(
   context: handlerContext,
-  pubkey: string
-): Promise<ValidatorDeposits | undefined> {
-  const rows = await context.ValidatorDeposits.getWhere({ pubkey: { _eq: pubkey } });
-  return rows.reduce<ValidatorDeposits | undefined>((latest, row) => {
-    if (!latest || row.blockHeight >= latest.blockHeight) {
-      return row;
-    }
-    return latest;
-  }, undefined);
+  record: ValidatorDeposits
+): void {
+  context.ValidatorDeposits.set(record);
+  context.LatestValidatorDeposit.set({
+    id: record.pubkey,
+    pubkey: record.pubkey,
+    blockHeight: record.blockHeight,
+    timestamp: record.timestamp,
+    depositAmount: record.depositAmount,
+    totalDeposited: record.totalDeposited,
+    depositCount: record.depositCount,
+    outstandingFatBERA: record.outstandingFatBERA,
+  });
 }
 
-async function getLatestValidatorReward(
+function writeValidatorReward(
   context: handlerContext,
-  pubkey: string
-): Promise<ValidatorBlockRewards | undefined> {
-  const rows = await context.ValidatorBlockRewards.getWhere({ pubkey: { _eq: pubkey } });
-  return rows.reduce<ValidatorBlockRewards | undefined>((latest, row) => {
-    if (!latest || row.blockHeight >= latest.blockHeight) {
-      return row;
-    }
-    return latest;
-  }, undefined);
+  record: ValidatorBlockRewards
+): void {
+  context.ValidatorBlockRewards.set(record);
+  context.LatestValidatorReward.set({
+    id: record.pubkey,
+    pubkey: record.pubkey,
+    blockHeight: record.blockHeight,
+    totalBlockRewards: record.totalBlockRewards,
+    timestamp: record.timestamp,
+    nextTimestamp: record.nextTimestamp,
+    baseRate: record.baseRate,
+    rewardRate: record.rewardRate,
+    rewardCount: record.rewardCount,
+    stakerReward: record.stakerReward,
+    validatorReward: record.validatorReward,
+    totalStakerRewards: record.totalStakerRewards,
+    totalValidatorRewards: record.totalValidatorRewards,
+    outstandingStakerRewards: record.outstandingStakerRewards,
+  });
 }
 
 async function getWithdrawalRequestsForBatch(
@@ -117,6 +135,19 @@ export const handleFatBeraDeposit = FatBeraDeposits.Deposit.handler(
     const timestamp = BigInt(event.block.timestamp);
     const blockHeight = event.block.number;
 
+    // Preload: prime reads for validators we'll need
+    let validatorDeposits: (LatestValidatorDeposit | undefined)[] = [];
+    if (blockHeight >= FATBERA_DEPOSIT_TRACKING_START_BLOCK && transactionTo !== VALIDATOR_DEPOSIT_ROUTER_ADDRESS) {
+      validatorDeposits = await Promise.all(
+        getActiveValidators(blockHeight).map((v) =>
+          context.LatestValidatorDeposit.get(v.pubkey)
+        )
+      );
+    }
+
+    // Skip writes and calculations during preload
+    if ((context as any).isPreload) return;
+
     const deposit: FatBeraDeposit = {
       id,
       collectionKey: COLLECTION_KEY,
@@ -158,15 +189,11 @@ export const handleFatBeraDeposit = FatBeraDeposits.Deposit.handler(
       return;
     }
 
-    const states = await Promise.all(
-      getActiveValidators(blockHeight).map(async (validatorInfo) => {
-        const previousDeposit = await getLatestValidatorDeposit(
-          context,
-          validatorInfo.pubkey
-        );
-        if (!previousDeposit) {
-          return undefined;
-        }
+    const activeValidators = getActiveValidators(blockHeight);
+    const states = activeValidators
+      .map((validatorInfo, i) => {
+        const previousDeposit = validatorDeposits[i];
+        if (!previousDeposit) return undefined;
         return {
           validatorInfo,
           totalDeposited: previousDeposit.totalDeposited,
@@ -174,15 +201,12 @@ export const handleFatBeraDeposit = FatBeraDeposits.Deposit.handler(
           previousDeposit,
         };
       })
-    );
+      .filter((state): state is NonNullable<typeof state> => state !== undefined);
 
-    const validStates = states.filter(
-      (state): state is NonNullable<typeof state> => state !== undefined
-    );
     const assignments = calculateDirectDepositAssignments({
       amount: assets,
       blockHeight,
-      states: validStates,
+      states,
     });
 
     for (const assignment of assignments) {
@@ -190,14 +214,15 @@ export const handleFatBeraDeposit = FatBeraDeposits.Deposit.handler(
         continue;
       }
 
-      const previousDeposit = validStates.find(
+      const previousDeposit = states.find(
         (state) => state.validatorInfo.pubkey === assignment.validatorInfo.pubkey
       )?.previousDeposit;
       if (!previousDeposit) {
         continue;
       }
 
-      context.ValidatorDeposits.set(
+      writeValidatorDeposit(
+        context,
         buildValidatorDepositRecord({
           pubkey: assignment.validatorInfo.pubkey,
           blockHeight,
@@ -220,7 +245,12 @@ export const handleBeaconDeposit = BeaconDeposit.Deposit.handler(
       return;
     }
 
-    const previousDeposit = await getLatestValidatorDeposit(context, validatorInfo.pubkey);
+    // Preload: prime singleton read
+    const previousDeposit = await context.LatestValidatorDeposit.get(validatorInfo.pubkey);
+
+    // Skip writes during preload
+    if ((context as any).isPreload) return;
+
     const currentOutstandingFatBERA =
       previousDeposit?.outstandingFatBERA ??
       (validatorInfo.pubkey === VALIDATORS[1].pubkey
@@ -229,7 +259,8 @@ export const handleBeaconDeposit = BeaconDeposit.Deposit.handler(
 
     const depositAmountWei = BigInt(event.params.amount.toString()) * GWEI_TO_WEI;
 
-    context.ValidatorDeposits.set(
+    writeValidatorDeposit(
+      context,
       buildValidatorDepositRecord({
         pubkey: validatorInfo.pubkey,
         blockHeight: event.block.number,
@@ -257,10 +288,15 @@ export const handleBlockRewardProcessed = BlockRewardController.BlockRewardProce
       return;
     }
 
+    // Preload: prime singleton reads
     const [previousRewards, depositRecord] = await Promise.all([
-      getLatestValidatorReward(context, validatorInfo.pubkey),
-      getLatestValidatorDeposit(context, validatorInfo.pubkey),
+      context.LatestValidatorReward.get(validatorInfo.pubkey),
+      context.LatestValidatorDeposit.get(validatorInfo.pubkey),
     ]);
+
+    // Skip calculations and writes during preload
+    if ((context as any).isPreload) return;
+
     if (!depositRecord || depositRecord.totalDeposited === 0n) {
       return;
     }
@@ -295,7 +331,10 @@ export const handleBlockRewardProcessed = BlockRewardController.BlockRewardProce
         rewardSplit.stakerReward,
     };
 
-    context.ValidatorBlockRewards.set(reward);
+    writeValidatorReward(context, reward);
+  },
+  {
+    eventFilters: VALIDATORS.map((v) => ({ pubkey: v.id })),
   }
 );
 
@@ -305,11 +344,15 @@ export const handleFatBeraRewardAdded = FatBeraAccounting.RewardAdded.handler(
       return;
     }
 
+    // Preload: prime singleton reads for all validators
     const latestRewards = (
       await Promise.all(
-        VALIDATORS.map((validator) => getLatestValidatorReward(context, validator.pubkey))
+        VALIDATORS.map((validator) => context.LatestValidatorReward.get(validator.pubkey))
       )
-    ).filter((reward): reward is ValidatorBlockRewards => reward !== undefined);
+    ).filter((reward): reward is LatestValidatorReward => reward !== undefined);
+
+    // Skip calculations and writes during preload
+    if ((context as any).isPreload) return;
 
     let totalOutstandingRewards = 0n;
     for (const reward of latestRewards) {
@@ -325,7 +368,7 @@ export const handleFatBeraRewardAdded = FatBeraAccounting.RewardAdded.handler(
       const validatorShare =
         (currentReward.outstandingStakerRewards * rewardAmount) /
         totalOutstandingRewards;
-      context.ValidatorBlockRewards.set({
+      writeValidatorReward(context, {
         ...currentReward,
         id: `${event.block.number}_${currentReward.pubkey}`,
         blockHeight: event.block.number,
@@ -355,7 +398,12 @@ export const handleAutomatedStakeExecution =
         return;
       }
 
-      const previousDeposit = await getLatestValidatorDeposit(context, validatorInfo.pubkey);
+      // Preload: prime singleton read
+      const previousDeposit = await context.LatestValidatorDeposit.get(validatorInfo.pubkey);
+
+      // Skip writes during preload
+      if ((context as any).isPreload) return;
+
       if (!previousDeposit) {
         return;
       }
@@ -366,7 +414,8 @@ export const handleAutomatedStakeExecution =
           ? previousDeposit.outstandingFatBERA - executedAmount
           : 0n;
 
-      context.ValidatorDeposits.set(
+      writeValidatorDeposit(
+        context,
         buildValidatorDepositRecord({
           pubkey: validatorInfo.pubkey,
           blockHeight: event.block.number,
@@ -377,6 +426,9 @@ export const handleAutomatedStakeExecution =
           outstandingFatBERA,
         })
       );
+    },
+    {
+      eventFilters: VALIDATORS.map((v) => ({ pubkey: v.id })),
     }
   );
 
@@ -519,9 +571,15 @@ export const handleValidatorWithdrawalRequested =
         return;
       }
 
-      const existingTotals = await context.ValidatorWithdrawalTotals.get(
-        validatorInfo.pubkey
-      );
+      // Preload: prime reads
+      const [existingTotals, previousDeposit] = await Promise.all([
+        context.ValidatorWithdrawalTotals.get(validatorInfo.pubkey),
+        context.LatestValidatorDeposit.get(validatorInfo.pubkey),
+      ]);
+
+      // Skip writes during preload
+      if ((context as any).isPreload) return;
+
       const withdrawalAmount = BigInt(event.params.withdrawAmount.toString());
       const feeAmount = BigInt(event.params.fee.toString());
 
@@ -539,13 +597,13 @@ export const handleValidatorWithdrawalRequested =
       };
       context.ValidatorWithdrawalTotals.set(totals);
 
-      const previousDeposit = await getLatestValidatorDeposit(context, validatorInfo.pubkey);
       if (!previousDeposit) {
         return;
       }
 
       const totalAmountRemoved = withdrawalAmount + feeAmount;
-      context.ValidatorDeposits.set(
+      writeValidatorDeposit(
+        context,
         buildValidatorDepositRecord({
           pubkey: validatorInfo.pubkey,
           blockHeight: event.block.number,
@@ -559,6 +617,9 @@ export const handleValidatorWithdrawalRequested =
           outstandingFatBERA: previousDeposit.outstandingFatBERA,
         })
       );
+    },
+    {
+      eventFilters: VALIDATORS.map((v) => ({ cometBFTPublicKey: v.id })),
     }
   );
 
@@ -575,7 +636,17 @@ export const handleValidatorDepositRequested =
         return;
       }
 
-      const previousDeposit = await getLatestValidatorDeposit(context, validatorInfo.pubkey);
+      // Preload: prime singleton reads for target + all active validators
+      const allDeposits = await Promise.all(
+        getActiveValidators(event.block.number).map((validator) =>
+          context.LatestValidatorDeposit.get(validator.pubkey)
+        )
+      );
+
+      // Skip calculations and writes during preload
+      if ((context as any).isPreload) return;
+
+      const previousDeposit = await context.LatestValidatorDeposit.get(validatorInfo.pubkey);
       if (!previousDeposit) {
         return;
       }
@@ -592,7 +663,8 @@ export const handleValidatorDepositRequested =
       const amountToRedistribute = depositAmount - amountToAdd;
 
       if (amountToAdd > 0n) {
-        context.ValidatorDeposits.set(
+        writeValidatorDeposit(
+          context,
           buildValidatorDepositRecord({
             pubkey: validatorInfo.pubkey,
             blockHeight: event.block.number,
@@ -609,12 +681,11 @@ export const handleValidatorDepositRequested =
         return;
       }
 
-      const states = await Promise.all(
-        getActiveValidators(event.block.number).map(async (validator) => {
-          const latestDeposit = await getLatestValidatorDeposit(context, validator.pubkey);
-          if (!latestDeposit) {
-            return undefined;
-          }
+      const activeValidators = getActiveValidators(event.block.number);
+      const states = activeValidators
+        .map((validator, i) => {
+          const latestDeposit = allDeposits[i];
+          if (!latestDeposit) return undefined;
           return {
             validatorInfo: validator,
             totalDeposited: latestDeposit.totalDeposited,
@@ -622,16 +693,13 @@ export const handleValidatorDepositRequested =
             previousDeposit: latestDeposit,
           };
         })
-      );
+        .filter((state): state is NonNullable<typeof state> => state !== undefined);
 
-      const validStates = states.filter(
-        (state): state is NonNullable<typeof state> => state !== undefined
-      );
       const assignments = calculateRouterRedistributionAssignments({
         amountToRedistribute,
         blockHeight: event.block.number,
         targetValidatorIndex: validatorIndex,
-        states: validStates,
+        states,
       });
 
       for (const assignment of assignments) {
@@ -639,14 +707,15 @@ export const handleValidatorDepositRequested =
           continue;
         }
 
-        const previousState = validStates.find(
+        const previousState = states.find(
           (state) => state.validatorInfo.pubkey === assignment.validatorInfo.pubkey
         );
         if (!previousState) {
           continue;
         }
 
-        context.ValidatorDeposits.set(
+        writeValidatorDeposit(
+          context,
           buildValidatorDepositRecord({
             pubkey: assignment.validatorInfo.pubkey,
             blockHeight: event.block.number,
@@ -661,6 +730,14 @@ export const handleValidatorDepositRequested =
           })
         );
       }
+    },
+    {
+      eventFilters: [
+        { validatorIndex: 0n },
+        { validatorIndex: 1n },
+        { validatorIndex: 2n },
+        { validatorIndex: 3n },
+      ],
     }
   );
 
