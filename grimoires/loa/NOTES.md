@@ -1,3 +1,37 @@
+# cycle-050 Notes
+
+## Canary Test Results (Sprint 105, T1.1)
+
+**Status**: PASS
+**Date**: 2026-03-19
+**Skill**: enhancing-prompts
+**Fields added**: `capabilities:` (schema_version: 1, explicit map) + `cost-profile: lightweight`
+**Result**: Claude Code loaded the skill successfully. Frontmatter parsed correctly via yq. Skill listed in available skills with updated description.
+**Conclusion**: Claude Code's SKILL.md parser tolerates unknown frontmatter fields. Proceed with bulk annotation.
+
+## Cross-Repo Issues (Sprint 105, T1.2)
+
+| Repo | Issue | Title |
+|------|-------|-------|
+| loa-hounfour | [#49](https://github.com/0xHoneyJar/loa-hounfour/issues/49) | Consume Skill Capability Taxonomy |
+| loa-freeside | [#138](https://github.com/0xHoneyJar/loa-freeside/issues/138) | Consume Skill Cost Profiles |
+| loa-dixie | [#80](https://github.com/0xHoneyJar/loa-dixie/issues/80) | Rule Lifecycle Governance |
+
+## Decisions
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-03-19 | Fail-closed defaults for capabilities | Flatline SKP-001: fail-open = privilege escalation |
+| 2026-03-19 | No `capabilities: all` sentinel | Flatline SKP-003: structured always, no ambiguity |
+| 2026-03-19 | Strict execute_commands grammar | Flatline IMP-003/SKP-004: tokenized, no raw shell |
+| 2026-03-19 | Cross-repo issues before implementation | Flatline SKP-001 SDD: committed consumers |
+
+## Blockers
+
+None.
+
+---
+
 # cycle-040 Notes
 
 ## Rollback Plan (Multi-Model Adversarial Review Upgrade)

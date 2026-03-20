@@ -485,8 +485,48 @@
           "status": "planned"
         }
       ]
+    },
+    {
+      "id": "cycle-050",
+      "label": "Multi-Model Permission Architecture — Ecosystem-Wide Governance Primitives",
+      "status": "active",
+      "created": "2026-03-19T00:00:00Z",
+      "prd": "grimoires/loa/prd.md",
+      "sdd": "grimoires/loa/sdd.md",
+      "sprints": [
+        {
+          "local_id": 0,
+          "global_id": 105,
+          "label": "Cross-Repo Issues + Canary Test",
+          "status": "completed"
+        },
+        {
+          "local_id": 1,
+          "global_id": 106,
+          "label": "Foundation — Schema Design + Validation Tooling",
+          "status": "completed"
+        },
+        {
+          "local_id": 2,
+          "global_id": 107,
+          "label": "Skill Annotation — Two-Wave Rollout",
+          "status": "completed"
+        },
+        {
+          "local_id": 3,
+          "global_id": 108,
+          "label": "Compliance Hook + Rule Lifecycle",
+          "status": "planned"
+        },
+        {
+          "local_id": 4,
+          "global_id": 109,
+          "label": "Mount Conflict Detection + Integration + E2E",
+          "status": "planned"
+        }
+      ]
     }
   ],
-  "active_cycle": "cycle-049",
-  "global_sprint_counter": 104
+  "active_cycle": "cycle-050",
+  "global_sprint_counter": 109
 }

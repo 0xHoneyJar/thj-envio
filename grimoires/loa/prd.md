@@ -1,327 +1,359 @@
-# PRD: Upstream Platform Alignment — Claude Code Feature Adoption
+# PRD: Multi-Model Permission Architecture — Ecosystem-Wide Governance Primitives
 
-**Cycle**: cycle-049
-**Created**: 2026-03-17
-**Sources**: Oracle Analysis 2026-03-17, Oracle Analysis 2026-01-29, Skills Audit, Model Adapter Audit, Hooks Infrastructure Audit
-**Status**: ACTIVE
-**Flatline Review**: Passed — 4 HIGH_CONSENSUS integrated, 5 BLOCKERS addressed, 1 DISPUTED acknowledged
-**Red Team Review**: 20 attack scenarios analyzed, 3 CRITICAL addressed
+**Cycle**: cycle-050
+**Created**: 2026-03-19
+**Sources**: Bridgebuilder Review (PR #451), Hounfour RFC (loa-finn #31), Freeside Billing RFC (loa-freeside #62), Freeside Economic Proof of Life (loa-freeside #90), Dixie Constitutional Governance (loa-dixie #5), Launch Readiness (loa-finn #66)
+**Status**: DRAFT
+**Predecessor**: cycle-049 (Upstream Platform Alignment — PR #451)
+**Flatline Review**: 3-model (Opus + GPT-5.3-codex + Gemini 2.5 Pro) — 5 HIGH_CONSENSUS integrated, 7 BLOCKERS addressed
+**Red Team Review**: 5 attacks analyzed, 4 theoretical, 0 confirmed
 
 ## 1. Problem Statement
 
-Loa v1.39.0 underutilizes Claude Code's platform capabilities. The March 2026 oracle analysis identified 11 concrete gaps where Anthropic provides features that Loa either doesn't use or implements with custom shell scripts instead of native platform primitives.
+PR #451 (cycle-049) established Loa's permission layer using Claude Code-native primitives: `allowed-tools` frontmatter on 13 skills, path-scoped `.claude/rules/` files, and an ADVISORY compliance hook. These primitives work within Claude Code but **do not compose across the multi-model, multi-repo ecosystem**.
 
-**Quantified gaps**:
-- **Skills**: Only 1/25 (4%) skills declare `allowed-tools` or `context: fork`. 11 skills have zero frontmatter metadata.
-- **Model Adapter**: `claude-opus-4-0` and `claude-opus-4-1` are missing from all four associative arrays, causing exit-code-2 failures if any downstream config references them.
-- **Hooks**: 5/21 (24%) Claude Code hook events are registered. 15 events including `InstructionsLoaded`, `ConfigChange`, `TaskCompleted`, `TeammateIdle` are unused.
-- **Rules**: No `.claude/rules/` directory exists. All instructions load at session start via monolithic CLAUDE.loa.md, regardless of relevance to the current task.
-- **Memory**: Two parallel memory systems (`grimoires/loa/memory/observations.jsonl` and `~/.claude/projects/.../memory/`) with undefined ownership boundaries.
+**Concrete gaps**:
 
-> Sources: grimoires/pub/research/anthropic-updates-2026-03-17.md, grimoires/loa/context/oracle-analysis.md (Jan 2026)
+- **Tool names are Claude Code-specific**: `allowed-tools: Read, Grep, Glob, Bash(git diff *)` has no meaning when a skill routes through Hounfour to Kimi-K2-Thinking or Qwen3-Coder-Next. The Hounfour adapter (loa-finn #31, §5.6 "Skill Decomposition for Portability") needs a model-agnostic capability declaration to enforce sandboxing on non-Claude backends.
+
+- **No cost attribution per skill**: Freeside's conservation invariants (`committed + reserved + available = limit`, loa-freeside #90) enforce budget limits at the aggregate level, but cannot differentiate between a lightweight `Read, Grep, Glob` skill and a heavy `Write, Edit, Bash(*)` skill. Without cost profiles, budget enforcement is all-or-nothing.
+
+- **Rule files have no governance lifecycle**: `.claude/rules/zone-system.md` is *de facto* constitutional (governs agent behavior) but has no provenance, version, or amendment process. loa-dixie's 73 constraint files all have `ConstraintOrigin` with `origin`, `version`, and governance metadata. Loa's rules are orphaned from this lifecycle.
+
+- **ADVISORY compliance hook is heuristic-only**: `implement-gate.sh` reads `.run/` state files because the platform doesn't expose which skill is executing. A full implementation with feature detection and dual-mode support (heuristic fallback + authoritative when available) would close this gap properly.
+
+- **Permissions don't propagate across repos**: When Loa mounts onto a downstream project via `/mount`, there's no defined merge semantic for when the project has its own `.claude/rules/` files. No conflict detection, no precedence rules.
+
+- **12 skills remain unannotated**: The 12 skills not touched by cycle-049 (including high-privilege skills like `/implement`, `/run-mode`, `/autonomous`) lack `name`, `description`, `allowed-tools`, or `capabilities` metadata.
+
+> Sources: PR #451 Bridgebuilder Review (BB-049-001 through BB-049-012), loa-finn #31 §5.6, loa-freeside #62 §Current State, loa-freeside #90 §Conservation Invariants, loa-dixie #5 §ConstraintOrigin
 
 ## 2. Goals & Success Criteria
 
-| Goal | Metric | Source |
-|------|--------|--------|
-| All read-only skills declare `allowed-tools` | 11+ skills with frontmatter restricting tool access | Skills Audit |
-| Heavy skills run in isolated subagents | 6+ skills with `context: fork` and `agent` type | Skills Audit |
-| No model alias gaps cause startup failures | `validate_model_registry()` passes with `claude-opus-4-0`, `claude-opus-4-1`, `claude-opus-4.5` | Model Adapter Audit |
-| Path-scoped rules reduce baseline token load | `.claude/rules/` directory with 3+ scoped rule files; CLAUDE.loa.md reduced by >20% | Hooks/Rules Audit |
-| Memory ownership clearly defined | Documentation updated, no functional overlap | Memory Audit |
-| Agent Teams hooks validated | `TeammateIdle` and `TaskCompleted` tested with Loa safety hooks | Oracle Analysis |
-| Agent-based compliance hook prototyped | At least 1 NEVER rule enforced via agent hook instead of shell regex | Oracle Analysis |
+| # | Goal | Metric | Source |
+|---|------|--------|--------|
+| G1 | Model-agnostic capability taxonomy | All 25 skills have `capabilities:` field; validation script confirms consistency with `allowed-tools` | BB-049-007, loa-finn #31 |
+| G2 | Rule file lifecycle metadata | All `.claude/rules/` files have `origin`, `version`, `enacted_by` fields | BB-049 review, loa-dixie pattern |
+| G3 | Cost-aware skill profiles | All 25 skills have `cost-profile:` field; queryable by external systems | BB-049 review, loa-freeside #62 |
+| G4 | Authoritative compliance hook | `implement-gate.sh` supports dual-mode (heuristic + authoritative); feature detection script works | BB-049-008 |
+| G5 | Cross-repo permission propagation | `/mount` skill detects and resolves rule file conflicts; merge semantics documented | BB-049 review |
+| G6 | Complete skill annotation | All 25 skills have `name`, `description`, `capabilities`, `cost-profile` | BB-049-006 |
+| G7 | Cross-repo issues created | Issues filed in loa-hounfour, loa-freeside, loa-dixie with integration context | Phase 2 interview |
+
+**Loa-side acceptance**: All goals are validated within the Loa repo via tests and validation scripts. Cross-repo integration is tracked via issues in respective repos.
 
 ## 3. User Context
 
-**Primary persona**: Loa framework operator running development cycles across multiple downstream projects (loa-constructs, loa-finn, loa-hounfour, loa-freeside, loa-dixie).
+### Primary Persona: Loa Framework Operator
 
-**Pain points** (from oracle + audits):
-- Skills consume full tool access even when read-only, requiring unnecessary HITL permission prompts
-- Heavy skills (`/ride`, `/audit`, `/bridgebuilder-review`) bloat the main conversation context
-- Shell-based compliance hooks use regex pattern matching, which can't understand code semantics (e.g., can't verify "is this inside an /implement invocation?")
-- Every session loads full CLAUDE.loa.md (~260 lines) even when working only on shell scripts or only on TypeScript
-- Model adapter failures are opaque when legacy model IDs are used
+Runs development cycles across 5+ downstream projects. Needs permission primitives that work regardless of which model backend executes a skill. Pain points from cycle-049: skills consume full tool access on non-Claude backends because `allowed-tools` is Claude-specific.
+
+### Secondary Persona: Hounfour Adapter Developer
+
+Consumes skill frontmatter to enforce sandboxing when routing to non-Claude models. Currently has no portable contract — must parse Claude Code tool names and guess equivalents. Needs a `capabilities:` field with model-agnostic semantics.
+
+### Tertiary Persona: Downstream Project Maintainer
+
+Mounts Loa onto their project. When their project already has `.claude/rules/` files, there's no defined behavior — Loa's rules may conflict with or override project rules silently.
+
+> Sources: Existing PRD cycle-049 §3, loa-finn #31 §Preamble, loa-finn #66 §Launch Readiness
 
 ## 4. Functional Requirements
 
-### FR-1: Skill Frontmatter — `allowed-tools` for Read-Only Skills
+### FR-1: Tool Capability Taxonomy
 
-**Problem**: 14 skills with analytical/review behavior have no tool restrictions. They can invoke Write, Edit, Bash without constraint, requiring HITL permission prompts even for read-only operations.
+**Problem**: `allowed-tools: Read, Grep, Glob, Bash(git diff *)` is meaningful only within Claude Code. Non-Claude model backends (via Hounfour) have different tool schemas.
 
-**Affected skills** (prioritized by risk):
+**Solution**: Add a `capabilities:` field to SKILL.md frontmatter as a model-agnostic intermediate representation. `allowed-tools` remains the Claude Code-specific surface; `capabilities` is the portable contract.
 
-| Skill | Nature | Recommended `allowed-tools` |
-|-------|--------|---------------------------|
-| `auditing-security` | Analysis | `Read, Grep, Glob, WebFetch, WebSearch` |
-| `reviewing-code` | Analysis | `Read, Grep, Glob, WebFetch, Bash(git log *), Bash(git diff *)` |
-| `discovering-requirements` | Interview | `Read, Grep, Glob, AskUserQuestion, WebFetch, Write, Bash(git log *), Bash(wc *)` |
-| `rtfm-testing` | Testing | `Read, Grep, Glob, Bash(bats tests/*), Bash(npm test *)` |
-| `flatline-knowledge` | Query | `Read, Grep, Glob` |
-| `translating-for-executives` | Synthesis | `Read, Grep, Glob, Write` |
-| `enhancing-prompts` | Transformation | `Read, Grep, Glob` |
-| `browsing-constructs` | Browsing | `Read, Grep, Glob, WebFetch, Bash(gh repo *), Bash(gh release *)` |
-| `managing-credentials` | Audit | `Read, Grep, Glob, Bash(printenv LOA_*)` |
-| `eval-running` | Execution | `Read, Grep, Glob, Bash(evals/harness/*), Bash(bats tests/*)` |
-| `loa` | Status | `Read, Grep, Glob, Bash(.claude/scripts/golden-path.sh *), Bash(.claude/scripts/beads/beads-health.sh *)` |
+**Capability categories**:
 
-**Security constraint** (Flatline SKP-003, Red Team ATK-001/ATK-014): `Bash(pattern *)` patterns MUST use specific subcommands, never broad prefixes. `Bash(git *)` is PROHIBITED — use `Bash(git log *), Bash(git diff *)` instead. `Bash(gh *)` is PROHIBITED — use `Bash(gh repo view *), Bash(gh release list *)`. Bare `Bash` is PROHIBITED for all skills (Red Team ATK-004). See risk table for known bypass vectors.
+| Capability | Description | Maps to (Claude Code) |
+|------------|-------------|----------------------|
+| `read_files` | Read file contents | `Read` |
+| `search_code` | Search file names and content | `Grep`, `Glob` |
+| `write_files` | Create or modify files | `Write`, `Edit` |
+| `execute_commands` | Run shell commands (with patterns) | `Bash(pattern)` |
+| `web_access` | Fetch URLs, search web | `WebFetch`, `WebSearch` |
+| `user_interaction` | Ask user questions | `AskUserQuestion` |
+| `agent_spawn` | Launch subagents | `Agent` |
+| `task_management` | Create/update tasks | `TaskCreate`, `TaskUpdate` |
 
-**Fix**:
-- Add `allowed-tools` frontmatter to each skill's SKILL.md
-- Skills that also need write access (e.g., `translating-for-executives` writes to grimoires) get scoped Bash patterns
-- Skills with zero frontmatter also need `name`, `description` fields added
+**Schema** (in SKILL.md frontmatter):
+```yaml
+capabilities:
+  schema_version: 1              # Flatline IMP-001: explicit versioning
+  read_files: true
+  search_code: true
+  write_files: false
+  execute_commands:               # Flatline IMP-003/SKP-004: strict grammar
+    allowed:
+      - command: "git"
+        args: ["diff", "*"]
+      - command: "git"
+        args: ["log", "*"]
+    deny_raw_shell: true          # No unstructured shell evaluation
+  web_access: false
+  user_interaction: false
+  agent_spawn: false
+  task_management: false
+```
 
-**Rollout strategy** (Flatline SKP-001): Phased canary deployment. Enable `allowed-tools` on 2-3 low-risk skills first (`flatline-knowledge`, `enhancing-prompts`, `loa`), validate across downstream projects, then expand to remaining skills. Rollback: remove `allowed-tools` line from frontmatter to restore unrestricted access.
+**Strict `execute_commands` grammar** (Flatline IMP-003, SKP-004):
+- Commands are tokenized: `command` + `args` array, NOT raw shell strings
+- `deny_raw_shell: true` prevents unstructured shell evaluation by adapters
+- Glob wildcards (`*`) only in the final argument position
+- No shell operators (`|`, `&&`, `;`, `` ` ``), subshells, or variable expansion
+- Adapters MUST validate against this grammar; raw pattern pass-through is forbidden
 
-**Conflict handling** (Flatline IMP-004): When a skill needs a tool not in its `allowed-tools` list, the agent receives a tool permission error. The skill should surface this to the user with guidance to either: (1) override via `/config` for the session, or (2) file a PR to update the skill's `allowed-tools`.
+**`capabilities: all` is PROHIBITED** (Flatline SKP-003): Unrestricted skills MUST use an explicit expanded map with all capabilities set to `true`. No sentinel values — always structured, always parseable.
 
-**Acceptance criteria**:
-- 11+ skills have `allowed-tools` declared in frontmatter
-- Read-only skills cannot invoke Write, Edit, or unrestricted Bash
-- No skill uses bare `Bash` — all use subcommand-scoped patterns
-- All skills have `name` and `description` frontmatter (prerequisite for Claude Code discovery)
-- Existing skill behavior unchanged (tool restrictions don't block legitimate operations)
-- Canary skills validated on at least 2 downstream projects before full rollout
-- Negative security tests: verify `Bash(git log *)` blocks `git -c core.pager=evil log` patterns
+**Default for unannotated skills: DENY** (Flatline SKP-001): If a skill's SKILL.md lacks a `capabilities` field, the default is deny-all (no capabilities granted), NOT unbounded. This inverts the fail-open default to fail-closed. Unannotated skills will fail validation and must be annotated before use.
 
-### FR-2: Skill Frontmatter — `context: fork` for Heavy Skills
+**Taxonomy versioning** (Flatline IMP-001): The `schema_version` field enables backward-compatible evolution. Adapters MUST check `schema_version` and reject unknown versions rather than guessing.
 
-**Problem**: Long-running skills that produce large outputs run in the main conversation context, consuming tokens from the shared budget. Context compaction during `/ride` (which already uses `context: fork`) demonstrates the pattern works.
-
-**Candidate skills**:
-
-| Skill | Est. Output | Recommended Config |
-|-------|------------|-------------------|
-| `auditing-security` | Large | `context: fork`, `agent: Explore` |
-| `designing-architecture` | Large | `context: fork`, `agent: Plan` |
-| `planning-sprints` | Large | `context: fork`, `agent: Plan` |
-| `bug-triaging` | Medium | `context: fork`, `agent: general-purpose` |
-
-**Agent type constraint** (Red Team ATK-017, ATK-020): Read-only analysis skills (`auditing-security`) MUST use `agent: Explore`, not `general-purpose`. The `general-purpose` agent type in a forked context creates a "shadow lead" with full tool access that may bypass safety hooks. `Explore` agent type has inherent read-only restrictions at the platform level. Only `bug-triaging` uses `general-purpose` because it needs Write for triage handoff files.
-
-**Hook inheritance prerequisite** (Red Team ATK-017): Before implementing `context: fork`, VERIFY that forked subagent contexts inherit the parent's hook configuration (PreToolUse guards, audit loggers). If they do NOT, restrict all forked skills to `agent: Explore` only. This is a BLOCKING prerequisite — do not fork with `general-purpose` until hook inheritance is confirmed.
-| `implementing-tasks` | XLarge | Already orchestrated via `/run`; skip |
-| `run-bridge` | XLarge | Already orchestrated via `/run`; skip |
-
-**Fix**:
-- Add `context: fork` and appropriate `agent` type to 4+ heavy skills
-- Use `agent: Plan` for skills that primarily reason about architecture (architect, sprint-plan)
-- Use `agent: general-purpose` for skills that need full tool access (audit, bug)
-- Do NOT fork `/implement` or `/run-bridge` — they are orchestration skills that manage subagent lifecycles already
-
-**Rollout strategy** (Flatline SKP-001): Canary on `designing-architecture` (Plan agent, low risk) first. Validate output quality, then expand to remaining skills.
+**Validation**: Script that checks every skill's `capabilities` is consistent with its `allowed-tools`. Runs in `--strict` mode by default on CI (warnings are errors). A skill with `write_files: false` must not have `Write` or `Edit` in `allowed-tools`.
 
 **Acceptance criteria**:
-- 4+ heavy skills run in forked subagent context
-- Forked skills produce equivalent output to unforked versions — measured by: artifact completeness (all required sections present), acceptance criteria coverage (≥90% of PRD criteria addressed), and no regression in Flatline review scores (Flatline IMP-002)
-- Hook inheritance verified for forked contexts (Red Team ATK-017 prerequisite)
-- Main conversation context usage measurably reduced after forking (manual verification via `/context`)
-- Skills that are orchestration points (`implementing-tasks`, `run-bridge`, `run-mode`, `simstim-workflow`) are NOT forked
-- No forked skill uses `agent: general-purpose` unless hook inheritance is confirmed
+- [ ] All 25 skills have `capabilities:` field with `schema_version: 1`
+- [ ] No skill uses `capabilities: all` — all use explicit expanded maps
+- [ ] `execute_commands` uses tokenized grammar (command + args), not raw patterns
+- [ ] Validation script (`validate-skill-capabilities.sh`) passes in `--strict` mode
+- [ ] `capabilities` and `allowed-tools` consistency check passes
+- [ ] Unannotated skills fail validation (deny-by-default verified)
+- [ ] Schema documented in `.claude/loa/reference/` with provider conformance test guidance
+- [ ] Taxonomy versioning documented with migration rules
 
-### FR-3: Model Adapter — Backward Compatibility Aliases
+> Sources: BB-049-007, loa-finn #31 §5.6, Flatline IMP-001/IMP-003/SKP-001/SKP-002/SKP-003/SKP-004
 
-**Problem**: `claude-opus-4-0` and `claude-opus-4-1` are missing from all four associative arrays in `model-adapter.sh.legacy`. Anthropic removed these models from first-party API with auto-migration to 4.6. Any downstream `.loa.config.yaml` referencing these IDs causes `validate_model_registry()` to fail with exit code 2.
+### FR-2: Rule File Lifecycle Metadata
 
-**Current state** in `model-adapter.sh.legacy`:
-- `claude-opus-4.5` → `claude-opus-4-6` (alias exists)
-- `claude-opus-4-0` → **MISSING**
-- `claude-opus-4-1` → **MISSING**
+**Problem**: `.claude/rules/` files are constitutional constraints without provenance, versioning, or governance metadata. loa-dixie's 73 constraint files all have structured lifecycle metadata.
 
-**Fix**:
-- Add `claude-opus-4-0` and `claude-opus-4-1` entries to all four maps (MODEL_PROVIDERS, MODEL_IDS, COST_INPUT, COST_OUTPUT)
-- Both should resolve to `claude-opus-4-6` with current Opus 4.6 pricing
-- Also add dot-notation variants (`claude-opus-4.0`, `claude-opus-4.1`) for format consistency
-- Also add `claude-opus-4-5` (hyphenated) alongside existing `claude-opus-4.5` (dotted)
-- Update `MODEL_TO_ALIAS` map in `model-adapter.sh` (the v2 shim) if applicable
+**Solution**: Add `origin`, `version`, `enacted_by` to all rule file frontmatter, mirroring loa-dixie's `ConstraintOrigin` pattern.
 
-**Alias resolution warning** (Flatline SKP-002): When a deprecated model ID is resolved via alias, emit a one-time stderr warning: `[model-adapter] Warning: claude-opus-4-0 is deprecated, resolved to claude-opus-4-6`. This surfaces the substitution to operators who may not realize their config references a removed model.
-
-**Lookup precedence** (Flatline IMP-005): When both `claude-opus-4.0` (dotted) and `claude-opus-4-0` (hyphenated) exist, the map key is an exact match — no ambiguity. Document that the adapter does NOT perform format normalization; each variant is a distinct key.
-
-**Acceptance criteria**:
-- `validate_model_registry()` passes with no exit-code-2 errors
-- All four maps have consistent entries for `claude-opus-4-0`, `claude-opus-4-1`, `claude-opus-4.0`, `claude-opus-4.1`, `claude-opus-4-5`
-- Existing aliases (`claude-opus-4.5` → `claude-opus-4-6`) remain unchanged
-- Deprecated model resolution emits stderr warning (one-time per session)
-- BATS test covers all deprecated model ID lookups
-
-### FR-4: Path-Scoped Rules via `.claude/rules/`
-
-**Problem**: CLAUDE.loa.md is ~260 lines loaded into every session regardless of relevance. Shell scripting conventions, TypeScript patterns, security checks, and zone permissions all load at once, consuming baseline context tokens.
-
-**Fix**:
-- Create `.claude/rules/` directory with path-scoped rule files
-- Extract file-type-specific guidance from CLAUDE.loa.md into scoped rules:
-
-| Rule File | Paths Scope | Content Extracted From |
-|-----------|-------------|----------------------|
-| `shell-conventions.md` | `*.sh, *.bats` | Shell scripting patterns (POSIX ERE, fail-open, compat-lib) |
-| `typescript-conventions.md` | `*.ts, *.tsx, *.js` | TypeScript patterns (dist/ rebuild, config.ts regex) |
-| `zone-system.md` | `.claude/**` | System Zone NEVER-edit rules |
-| `zone-state.md` | `grimoires/**, .beads/**, .run/**` | State Zone read/write conventions |
-| `test-conventions.md` | `tests/**, *.bats, *.test.ts` | Test patterns (BATS isolation, hermetic CLI tests) |
-
-- Reduce CLAUDE.loa.md to framework-level instructions only (workflow phases, golden path, key protocols, compliance rules)
-- Each rule file uses `paths:` frontmatter for on-demand loading
-
-**Safety constraint** (Flatline SKP-005): Critical safeguards (NEVER rules, process compliance, zone model summary) MUST remain in CLAUDE.loa.md for always-on loading. Only file-type-specific conventions (shell heredocs, zone detail) are extractable. The SDD analysis confirmed only ~8.5% extraction is achievable (revised from >20%).
+**Schema** (added to existing frontmatter):
+```yaml
+---
+paths:
+  - "grimoires/**"
+  - ".beads/**"
+  - ".ck/**"
+  - ".run/**"
+origin: enacted        # genesis | enacted | migrated
+enacted_by: cycle-049  # which cycle created this rule
+version: 1             # monotonically increasing
+---
+```
 
 **Acceptance criteria**:
-- `.claude/rules/` directory exists with 3+ path-scoped rule files (revised from 5 per SDD analysis)
-- Each rule file has valid `paths:` frontmatter with glob patterns
-- CLAUDE.loa.md reduced by ~8.5% (~25 lines extracted, with 1-line references replacing them)
-- All NEVER/ALWAYS/MAY compliance rules remain in CLAUDE.loa.md (not extracted)
-- Rules load on-demand (verified by checking `/context` with different file types active)
-- No behavioral regression — same guidance available when working on matching file types
-- Rule file frontmatter validated against strict schema (no YAML anchors/aliases — Red Team ATK-016)
+- [ ] All `.claude/rules/` files have `origin`, `version`, `enacted_by`
+- [ ] Validation script checks required fields
+- [ ] Schema matches loa-dixie's `ConstraintOrigin` type
+- [ ] Documentation in `.claude/loa/reference/hooks-reference.md`
 
-### FR-5: Memory System Ownership Boundary
+> Sources: BB-049 review §IV, loa-dixie #5 §ConstraintOrigin
 
-**Problem**: Loa has two memory systems that could diverge:
-1. **Framework memory**: `grimoires/loa/memory/observations.jsonl` — session-spanning observations, queried via `memory-query.sh`
-2. **Auto-memory**: `~/.claude/projects/.../memory/MEMORY.md` — Claude Code native auto-memory with markdown index
+### FR-3: Cost-Aware Skill Profiles
 
-**Fix**:
-- Document clear ownership boundaries in `.claude/loa/reference/memory-reference.md`:
-  - **Auto-memory** (Claude Code native): User preferences, working style, project structure knowledge, tooling preferences. Managed by Claude Code automatically.
-  - **Framework memory** (observations.jsonl): Framework-level learnings (patterns, anti-patterns, debugging discoveries), cross-session technical context. Managed by Loa hooks.
-- Add a note to CLAUDE.loa.md memory section clarifying the boundary
-- Ensure `memory-writer.sh` hook does NOT write observations that overlap with auto-memory scope (user preferences, project structure)
+**Problem**: Freeside's conservation guard enforces budget limits at the aggregate level but can't differentiate between skill cost profiles. A `Read, Grep, Glob` skill and a `Write, Edit, Bash(*)` skill consume budget identically.
 
-**Acceptance criteria**:
-- `memory-reference.md` updated with clear ownership table
-- CLAUDE.loa.md memory section references the boundary
-- `memory-writer.sh` has skip-list for auto-memory topics (project structure, user preferences)
-- No duplicate content between observations.jsonl and auto-memory MEMORY.md
+**Solution**: Add `cost-profile:` field to SKILL.md frontmatter. Four tiers:
 
-### FR-6: Agent Teams Hook Validation
+| Profile | Description | Typical `capabilities` | Example Skills |
+|---------|-------------|----------------------|----------------|
+| `lightweight` | Read-only analysis, minimal tokens | `read_files`, `search_code` | `/flatline-knowledge`, `/enhance` |
+| `moderate` | Read + limited write, medium tokens | Above + `write_files` (scoped) | `/review-sprint`, `/translate` |
+| `heavy` | Full tool access, high token usage | Most capabilities enabled | `/implement`, `/ride`, `/audit` |
+| `unbounded` | Autonomous multi-skill orchestration | All capabilities | `/run-bridge`, `/autonomous` |
 
-**Problem**: Loa v1.39.0 added Agent Teams compatibility (C-TEAM-001 through C-TEAM-005) but hasn't validated against Claude Code's `TeammateIdle` and `TaskCompleted` hook events. The safety hooks (`team-role-guard.sh`, `team-skill-guard.sh`) need to confirm they don't interfere with these upstream events.
+**Schema** (in SKILL.md):
+```yaml
+cost-profile: lightweight  # lightweight | moderate | heavy | unbounded
+```
 
-**Fix**:
-- Create BATS test file `tests/unit/agent-teams-hooks.bats` that validates:
-  - Safety hooks pass through `TeammateIdle` events (don't block)
-  - Safety hooks pass through `TaskCompleted` events (don't block)
-  - Team role guards correctly block teammate operations under `LOA_TEAM_MEMBER=true`
-  - Team role guards allow lead operations without `LOA_TEAM_MEMBER`
-- Document tested compatibility in `.claude/loa/reference/agent-teams-reference.md`
+**Default**: Unannotated skills default to `denied` — validation fails until a cost-profile is explicitly assigned (Flatline SKP-001: fail-closed, not fail-open). This prevents metadata drift from silently granting maximum cost allowance.
 
 **Acceptance criteria**:
-- BATS test suite for Agent Teams hook interactions exists and passes
-- `TeammateIdle` and `TaskCompleted` events don't trigger false blocks
-- Safety hooks remain functional with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
-- Reference doc updated with tested compatibility matrix
-- Test covers `LOA_TEAM_MEMBER` environment variable unset bypass (Red Team ATK-011): verify `unset LOA_TEAM_MEMBER && br create` and `env -u LOA_TEAM_MEMBER git push` are blocked
+- [ ] All 25 skills have `cost-profile:` field
+- [ ] Validation script checks field is one of 4 valid values
+- [ ] `cost-profile` correlates with `capabilities` (lightweight skills should not have `write_files: true`)
+- [ ] Cross-reference documented for Freeside integration
 
-### FR-7: Agent-Based Compliance Hook (Advisory Prototype)
+> Sources: BB-049 review §IV, loa-freeside #62 §Agent Billing, loa-freeside #90 §Conservation Invariants
 
-**Problem**: Loa's NEVER rules (e.g., "NEVER write application code outside of `/implement` skill invocation") are enforced via shell hooks using regex pattern matching. These can't understand semantic context — they can't verify whether code is being written inside an `/implement` skill invocation or not.
+### FR-4: ADVISORY → AUTHORITATIVE Compliance Hook
 
-**Scope clarification** (Flatline SKP-002, Red Team ATK-005/ATK-006): This prototype is **advisory-only**, not enforcement. Detection relies on heuristic `.run/` state files, not authoritative skill execution context (which Claude Code does not expose). The hook is explicitly labeled as ADVISORY in its output messages and documentation.
+**Problem**: `implement-gate.sh` reads `.run/` state files heuristically. When the platform doesn't expose skill execution context, this is the best available approach. But the hook should be ready to use authoritative context when it becomes available.
 
-**Fix**:
-- Create ONE prototype agent-based hook that enforces a single NEVER rule
-- Target rule: "NEVER write application code outside of `/implement`" — the highest-impact compliance check
-- Hook type: `agent` (spawns verification subagent with Read, Grep, Glob access)
-- Subagent checks: Is an `/implement` or `/bug` skill currently active? Is the write target in the App Zone?
-- **Failure mode** (Flatline SKP-004): On hook errors (timeout, parse failure, subagent crash), default to `ask` (NOT `allow`) for App Zone writes. Fail-open is wrong for compliance hooks — unverifiable state should prompt the human, not silently allow.
-- **Input safety** (Red Team ATK-007): File path MUST NOT be template-interpolated into the agent prompt. Pass file path via structured JSON tool input that the subagent reads with the Read tool. This prevents indirect prompt injection via crafted file paths.
-- If compliance check fails: return `permissionDecision: "ask"` (soft block with explanation, not hard deny)
-- Document the pattern for future agent-hook migrations
+**Solution**: Full implementation with dual-mode support:
+
+1. **Feature detection script** (`detect-platform-features.sh`): Probes whether Claude Code exposes skill execution context to hooks (e.g., `tool_input.active_skill` field in hook stdin). Uses versioned feature flags with explicit capability handshake — never assumes presence from partial signals (Flatline SKP-006).
+2. **Dual-mode hook**: `implement-gate.sh` checks feature detection result at startup:
+   - Authoritative mode: reads `active_skill` from hook input — deterministic allow/deny. Trust boundary: `active_skill` is trusted ONLY when feature detection confirms the platform provides it with integrity guarantees (Flatline IMP-004). Mode pinning: once a mode is selected for a session, it does not silently downgrade.
+   - Heuristic mode (current): reads `.run/` state files — ADVISORY ask. Fail-closed for high-risk actions (App Zone writes default to ASK when heuristic mode active, even on detection failure). Telemetry: mode downgrades are logged to `.run/audit.jsonl` with operator-visible markers (Flatline SKP-006).
+3. **Portable date conversion**: Uses `compat-lib.sh` `_date_to_epoch()` (addressing BB-049-001)
+4. **Path normalization**: Normalizes absolute paths relative to `PROJECT_ROOT` before zone classification (addressing BB-049-004)
 
 **Acceptance criteria**:
-- Agent-based hook defined in settings configuration (labeled ADVISORY)
-- Hook fires on Write/Edit to App Zone paths (e.g., `src/`, `lib/`, `app/`)
-- Subagent reads file path from structured input, NOT from template interpolation
-- Returns `ask` (not `deny`) on compliance violation — human can override
-- Returns `ask` (not `allow`) on hook errors — fail-ask for compliance hooks
-- Hook runs in <5 seconds (agent hooks are blocking)
-- Circuit breaker: after 3 consecutive `allow` results for same sprint state, cache result for 60s
-- BATS test validates hook behavior with mocked skill context
-- Negative tests: state file tampering (Red Team ATK-005), file path with injection payload (ATK-007), missing state files return `ask` not `allow` (ATK-006)
-- Pattern documented as ADVISORY for replication to other NEVER rules
+- [ ] `detect-platform-features.sh` correctly reports feature availability
+- [ ] `implement-gate.sh` operates in heuristic mode when feature unavailable
+- [ ] `implement-gate.sh` operates in authoritative mode when feature available
+- [ ] All existing compliance-hook.bats tests pass
+- [ ] New tests for: simstim-state.json scenarios, state.json scenarios, authoritative mode, path normalization
+- [ ] Portable date conversion works on GNU and macOS
 
-## 5. Technical & Non-Functional
+> Sources: BB-049-001, BB-049-004, BB-049-005, BB-049-008
 
-- **System Zone writes required**: FR-1, FR-2, FR-4, FR-7 modify `.claude/` files. Safety hooks must account for authorized System Zone writes.
-- **No new runtime dependencies**: All changes use existing Claude Code primitives (frontmatter, rules, hook types)
-- **Backward compatibility**: All changes are additive. Existing behavior preserved for skills, hooks, and model adapter.
-- **Cross-platform**: Shell changes (FR-3, FR-6, FR-7) must work on macOS and Linux
-- **Testing**: Each FR includes BATS or integration tests. New tests must be runnable in isolation.
-- **Token budget**: FR-4 (path-scoped rules) should measurably reduce baseline context consumption. Verify via `/context` command before and after.
+### FR-5: Cross-Repo Permission Propagation
 
-## 6. Scope
+**Problem**: When Loa mounts onto a downstream project via `/mount`, and the project already has `.claude/rules/` files, there's no defined behavior. Rules may conflict or silently override each other.
 
-### In scope (P1 + P2)
-- FR-1: `allowed-tools` for 11+ read-only skills
-- FR-2: `context: fork` for 4+ heavy skills
-- FR-3: Model adapter backward compat aliases (6+ new entries)
-- FR-4: Path-scoped `.claude/rules/` directory (5+ rule files)
-- FR-5: Memory system ownership documentation
-- FR-6: Agent Teams hook validation (BATS tests)
-- FR-7: Agent-based compliance hook prototype (1 rule)
+**Solution**: Define merge semantics and add conflict detection to `/mount`:
 
-### Out of scope (P3 — Future Considerations)
+**Precedence** (like CSS specificity):
+1. Project-specific rules (highest priority)
+2. Loa framework rules
+3. Claude Code default behavior (lowest)
 
-These items are documented for strategic planning but will NOT be sprint-planned in this cycle:
+**Conflict detection** (Flatline SKP-007: deterministic algorithm): When `/mount` finds existing `.claude/rules/` files in the target project:
+1. Parse `paths:` frontmatter from both Loa and project rules
+2. Identify overlapping path patterns using deterministic ordering (alphabetical by filename, then by path pattern)
+3. For each overlap: determine if directives conflict (different permissions for same path)
+4. Report conflicts with dry-run output showing exactly what would happen
+5. **Require explicit user confirmation on ambiguous merges** — never auto-merge conflicting rules
+6. Non-conflicting rules merged with clear provenance annotations
 
-| Item | Rationale for Deferral | Estimated Effort |
-|------|----------------------|-----------------|
-| **Plugin distribution for constructs** | Requires architecture decision on construct packaging format. Plugin API may still evolve. | High |
-| **HTTP hooks for audit trail** | No external observability system configured yet. Value depends on deployment platform. | Medium |
-| **Native scheduled tasks** | GitHub Actions cron works. Migration adds complexity without clear benefit. | Low |
-| **`modelOverrides` as model-adapter replacement** | model-adapter.sh serves the Flatline routing use case that `modelOverrides` doesn't cover. | Medium |
-| **Additional hook events** (InstructionsLoaded, ConfigChange, etc.) | No immediate use case beyond audit logging. Evaluate when external observability exists. | Low |
+**Tie-breaking rules** (Flatline SKP-007):
+- Same path, different directives → project rule wins (project > Loa > default)
+- Same path, same directive → keep project version, log Loa version as superseded
+- Multi-file overlap (path appears in 3+ rule files) → hard-fail, require manual resolution
+- Transitive mounts (project already has mounted Loa rules from another version) → version check, warn on downgrades
+
+**Documentation**: Reference doc explaining merge semantics, conflict resolution, tie-breaking, and examples.
+
+**Acceptance criteria**:
+- [ ] `/mount` detects existing `.claude/rules/` files in target project
+- [ ] Overlapping path patterns identified with deterministic ordering
+- [ ] Dry-run output shows exact merge result before execution
+- [ ] Ambiguous merges require explicit user confirmation
+- [ ] Merge semantics documented in `.claude/loa/reference/`
+- [ ] Non-conflicting rules merged correctly with provenance
+- [ ] Tests for: no existing rules, non-overlapping rules, conflicting rules, multi-file overlap, transitive mount
+
+> Sources: BB-049 review §IV, `/mount` skill
+
+### FR-6: Complete Skill Annotation
+
+**Problem**: 12 skills lack frontmatter metadata. High-privilege skills (`/implement`, `/run-mode`, `/autonomous`) have no explicit `capabilities` or `cost-profile`, making the absence of restrictions invisible rather than intentional.
+
+**Solution**: Annotate all remaining unannotated skills with `name`, `description`, `capabilities`, `cost-profile`, and `allowed-tools` where appropriate. For unrestricted skills, use explicit expanded `capabilities` maps with all fields set to `true` — no `capabilities: all` sentinel (Flatline SKP-003).
+
+**Migration rollout** (Flatline IMP-006): Annotate in two waves:
+1. **Wave 1 (low-risk)**: Skills that already have partial frontmatter — add missing fields only
+2. **Wave 2 (high-risk)**: Fully unannotated skills (`implementing-tasks`, `autonomous-agent`, `run-mode`, `run-bridge`, `simstim-workflow`) — requires careful capability mapping and regression testing
+
+**Affected skills**: `mounting-framework`, `continuous-learning`, `deploying-infrastructure`, `butterfreezone-gen`, `red-teaming`, `bridgebuilder-review`, `riding-codebase`, `implementing-tasks`, `autonomous-agent`, `simstim-workflow`, `run-mode`, `run-bridge`
+
+**Also update already-annotated skills** (Flatline IMP-006): The 13 skills annotated in cycle-049 need `capabilities` and `cost-profile` fields added. This is a separate migration step from new annotation.
+
+**Acceptance criteria**:
+- [ ] All 25 skills have `name`, `description`, `capabilities` (explicit map), `cost-profile`
+- [ ] No skill uses `capabilities: all` sentinel — all use expanded maps
+- [ ] Validation script passes in `--strict` mode for all 25 skills
+- [ ] Migration executed in two waves with regression testing between waves
+- [ ] No functional regression — skills load and execute correctly
+
+> Sources: BB-049-006, Flatline IMP-006/SKP-003
+
+## 5. Technical & Non-Functional Requirements
+
+### NFR-1: Backward Compatibility
+
+Existing `allowed-tools` continues to work unchanged. New frontmatter fields (`capabilities`, `cost-profile`) are additive. **Breaking change**: absence of `capabilities` now defaults to deny-all (fail-closed), not unbounded. This is an intentional security posture change (Flatline SKP-001). All 25 skills will be annotated in this cycle, so no skill should be affected by the deny default.
+
+### NFR-2: Frontmatter Safety
+
+Claude Code's SKILL.md parser must not reject unknown frontmatter fields. Verify with canary skill before bulk annotation. If parser rejects unknown fields, use comment-based metadata as fallback.
+
+### NFR-3: Minimum Runtime Enforcement
+
+While `capabilities` and `cost-profile` are primarily consumed at planning/routing time, the compliance hook (`implement-gate.sh`) provides **minimum runtime enforcement at the hook boundary** (Flatline SKP-003/SKP-005). Deny-by-default behavior when metadata is missing or invalid. This is NOT full runtime authorization — it is a defense-in-depth layer that catches the most dangerous cases (App Zone writes without active implementation context).
+
+### NFR-4: Security — Capability/Tool Consistency (Strict Mode)
+
+A skill's `capabilities` must never grant more access than its `allowed-tools`. Validation runs in `--strict` mode on CI by default — warnings are promoted to errors on protected branches (Flatline IMP-002). Explicit exception waivers via `.loa.config.yaml` for skills that intentionally overclaim capabilities.
+
+### NFR-5: Cross-Platform Portability
+
+All new shell scripts must work on GNU/Linux and macOS. Use `compat-lib.sh` for date conversion, flock, and other platform-divergent operations. (Addresses BB-049-001 pattern.)
+
+### NFR-6: Metadata Integrity (Flatline SKP-008 SDD)
+
+Permission-affecting files (`.claude/rules/*.md`, `.claude/skills/*/SKILL.md`) should be protected by CODEOWNERS and require review for changes. CI checks validate that capability/rule changes are authorized by appropriate reviewers. The `enacted_by` field on rules provides audit trail.
+
+## 6. Scope & Prioritization
+
+### In Scope (cycle-050)
+
+| Priority | FR | Description | Effort |
+|----------|-----|-------------|--------|
+| P0 | — | Cross-repo issue creation (hounfour, freeside, dixie) — before implementation (Flatline SKP-001 SDD) | Low |
+| P0 | FR-1 | Tool capability taxonomy (versioned, strict grammar, fail-closed) | Medium |
+| P0 | FR-6 | Complete skill annotation (25/25, two-wave rollout) | Medium |
+| P1 | FR-2 | Rule file lifecycle metadata | Low |
+| P1 | FR-3 | Cost-aware skill profiles (fail-closed defaults) | Low |
+| P1 | FR-4 | ADVISORY → AUTHORITATIVE full impl (trust boundaries, mode pinning) | Medium |
+| P2 | FR-5 | Cross-repo permission propagation (deterministic merge, dry-run) | Medium |
+
+### Out of Scope
+
+- Hounfour adapter implementation consuming `capabilities` (tracked via issue in loa-hounfour)
+- Freeside conservation guard integration with `cost-profile` (tracked via issue in loa-freeside)
+- loa-dixie `ConstraintOrigin` schema extension for Loa rules (tracked via issue in loa-dixie)
+- Actual multi-model routing (Hounfour RFC implementation)
+- Billing activation (loa-freeside #62 — separate cycle)
 
 ## 7. Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| `allowed-tools` may be too restrictive, blocking legitimate skill operations | Phased canary rollout on 2-3 low-risk skills first. Rollback by removing `allowed-tools` line. |
-| `Bash(pattern *)` patterns may be bypassable via shell metacharacters, git -c flags, or argument injection (Red Team ATK-001, ATK-002, ATK-014) | Use specific subcommands (`Bash(git log *)` not `Bash(git *)`). Add negative security tests for known bypass vectors. Treat pattern-based restrictions as defense-in-depth, not sole enforcement. |
-| `context: fork` changes skill behavior (no access to conversation history) | Regression test with measurable thresholds. Canary on 1 skill first. |
-| Forked contexts may not inherit hook configurations (Red Team ATK-017) | BLOCKING prerequisite: verify hook inheritance before forking any `general-purpose` skills. If not inherited, restrict to `Explore` agent type. |
-| Path-scoped rules may not trigger for complex multi-file operations | Keep all critical safeguards in CLAUDE.loa.md. Rules are supplementary context, not exclusive. |
-| Agent-based compliance hook relies on heuristic state files, not authoritative context (Flatline SKP-002, Red Team ATK-005) | Label as ADVISORY. Fail to `ask` (not `allow`) on errors. Add state file integrity checks. |
-| Agent hook prompt injection via user-controlled file paths (Red Team ATK-007) | Never template-interpolate file paths into agent prompts. Use structured JSON input. |
-| `LOA_TEAM_MEMBER` env var can be unset to bypass all team guards (Red Team ATK-011) | Block `unset LOA_TEAM_MEMBER` and `env -u` patterns in team-role-guard. |
-| Cycle-048 may introduce changes that conflict with FR-1/FR-2 frontmatter | Minimal overlap — cycle-048 touches review scripts, this cycle touches skill frontmatter. |
-| `.claude/rules/` interacts with CLAUDE.md loading — possible token double-counting | Verify via `/context` that extracted rules don't load alongside CLAUDE.loa.md references |
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|------------|------------|
+| Claude Code rejects unknown SKILL.md frontmatter fields | All capability/cost annotations break skill loading | Low | Test with canary skill first; fallback to comment metadata |
+| `capabilities` and `allowed-tools` drift out of sync | Security — model gets more tools than intended | Medium | CI validation script; both fields in same file |
+| Hounfour RFC not yet implemented — capability taxonomy has no consumer | Speculative design | Medium | Ground taxonomy in Hounfour RFC's `ModelPort` interface; field is self-documenting regardless |
+| ADVISORY→AUTHORITATIVE migration assumes future Claude Code feature | Hook architecture may need refactoring | Low | Feature detection ensures graceful degradation; heuristic mode always available |
+| Cross-repo issues may stall | Interfaces defined but never consumed | Medium | Track in loa-finn #66 launch readiness dashboard |
+| Rule lifecycle metadata not consumed by Claude Code | Metadata is dead weight | Low | Useful for Loa governance; Dixie integration is primary consumer |
 
-## 8. Dependency on Cycle-048
+### Dependencies
 
-This PRD is **queued** behind cycle-048 ("Community Feedback — Review Pipeline Hardening"). Cycle-048 fixes real user-reported bugs in the review pipeline. Implementation of this PRD begins after cycle-048 is archived.
+| Dependency | Type | Status | Impact if Blocked |
+|------------|------|--------|-------------------|
+| PR #451 merged | Hard | Open (under review) | Cannot start cycle-050 on same branch |
+| Claude Code SKILL.md parser tolerance | Soft | [ASSUMPTION] tolerant | Fallback to comment metadata |
+| `compat-lib.sh` portable date function | Soft | Partial (BB-049-001 fix landed) | Extend existing pattern |
+| loa-finn #31 Hounfour RFC finalized | Soft | Draft v4 | Capability taxonomy still useful as documentation |
 
-**No blocking dependencies**: The oracle findings are independent of cycle-048's review pipeline fixes. The only shared surface is `.claude/scripts/` System Zone, and the changes don't overlap (cycle-048 touches review scripts, this cycle touches skill frontmatter and rules).
+## 8. Cross-Repo Integration Plan
 
-## 9. Quality Gate Review Log
+After Loa-side implementation, file issues in downstream repos with integration context:
 
-### Flatline PRD Review (2026-03-17)
-**Reviewers**: Opus + GPT-5.3-codex + Gemini 2.5 Pro (3-model)
-**HIGH_CONSENSUS (4)**: IMP-001 (rollback steps), IMP-002 (dependency ordering), IMP-003 (measurable criteria), IMP-004 (conflict handling) — all integrated
-**DISPUTED (1)**: IMP-005 (FR-7 feasibility without platform context signal) — acknowledged, FR-7 scoped as advisory
-**BLOCKERS (5)**: SKP-001 (phased rollout), SKP-002 (model alias behavior), SKP-003 (Bash pattern security), SKP-004 (FR-7 failure modes), SKP-005 (rules extraction safety) — all addressed
+### loa-hounfour: Consume Skill Capability Taxonomy
 
-### Flatline SDD Review (2026-03-17)
-**Reviewers**: Opus + GPT-5.3-codex + Gemini 2.5 Pro (3-model)
-**HIGH_CONSENSUS (6)**: All integrated into SDD
-**BLOCKERS (5)**: SKP-001 (fail-open→fail-ask), SKP-002 (heuristic detection→advisory), SKP-003 (eval bare Bash), SKP-004 (automated tests), SKP-006 (broad patterns) — all addressed
+- **What**: Hounfour adapters read `capabilities:` from SKILL.md to enforce tool sandboxing on non-Claude backends
+- **Interface**: YAML `capabilities` field with boolean flags + execute_commands patterns
+- **Context**: Link to Loa's `validate-skill-capabilities.sh` as reference implementation
 
-### Red Team Analysis (2026-03-18)
-**Mode**: Manual (20 attack scenarios, Severity 4-9)
-**CRITICAL (3)**: ATK-004 (eval bare Bash→scoped), ATK-007 (prompt injection→structured input), ATK-017 (fork hook inheritance→blocking prerequisite)
-**HIGH (4)**: ATK-001 (git -c→specific subcommands), ATK-005 (state tampering→integrity checks), ATK-011 (env unset→blocked), ATK-014 (gh auth→scoped)
+### loa-freeside: Consume Skill Cost Profiles
 
-## 10. Oracle Source References
+- **What**: Conservation guard uses `cost-profile:` to set per-invocation budget limits
+- **Interface**: `cost-profile: lightweight | moderate | heavy | unbounded`
+- **Context**: Link to Freeside's existing `evaluateEconomicBoundary()` as integration point
 
-| Finding | Oracle Report | Section |
-|---------|--------------|---------|
-| Skills `allowed-tools` gap | 2026-03-17 | Best Practices §1 |
-| Skills `context: fork` gap | 2026-03-17 | Best Practices §2, also identified 2026-01-29 §Feature 4 |
-| Model adapter aliases | 2026-03-17 | Deprecations — Opus 4.0/4.1 |
-| Path-scoped rules | 2026-03-17 | Best Practices §3, Gaps Analysis |
-| Memory reconciliation | 2026-03-17 | Gaps Analysis |
-| Agent Teams hooks | 2026-03-17 | Priority 1 §1 |
-| Agent-based hooks | 2026-03-17 | Priority 2 §4, Gaps Analysis |
+### loa-dixie: Rule Lifecycle Governance
+
+- **What**: Loa's `.claude/rules/` files participate in constitutional governance using Dixie's `ConstraintOrigin` pattern
+- **Interface**: `origin: genesis | enacted | migrated`, `version: N`, `enacted_by: cycle-NNN`
+- **Context**: Link to Dixie's existing constraint lifecycle documentation
+
+> Sources: Phase 2 interview response — "make issues in the respective repos so that they can implement locally"

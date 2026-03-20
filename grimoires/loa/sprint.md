@@ -1,350 +1,486 @@
-# Sprint Plan: Upstream Platform Alignment — Claude Code Feature Adoption
+# Sprint Plan: Multi-Model Permission Architecture
 
-**Cycle**: cycle-049
+**Cycle**: cycle-050
 **PRD**: grimoires/loa/prd.md
 **SDD**: grimoires/loa/sdd.md
-**Created**: 2026-03-17
-**Status**: ACTIVE — registered as sprints 102-104
-**Sprints**: 3
-**Estimated Total**: ~350 lines across 23 files + 54 tests
-**Quality Gates**: Flatline PRD (4 HIGH, 5 BLOCKERS addressed), Flatline SDD (6 HIGH, 5 BLOCKERS addressed), Red Team (20 attacks, 7 critical/high addressed)
+**Created**: 2026-03-19
+**Status**: ACTIVE — registered as sprints 105-109
+**Sprints**: 5
+**Estimated Total**: ~40 files, ~30 tests
+**Quality Gates**: Flatline PRD (5 HIGH, 7 BLOCKERS addressed), Flatline SDD (8 BLOCKERS addressed), Red Team (5 attacks, 0 confirmed)
 
 ---
 
-## Sprint 1: Foundation — Model Aliases, Memory Docs, Agent Teams Validation
+## Sprint 105 (Global): Cross-Repo Issues + Canary Test
 
-**Goal**: Close the three lowest-risk gaps with zero cross-dependencies. All changes are additive with immediate verification.
+**Goal**: Validate Claude Code parser tolerance and create cross-repo issues before implementation.
 
-### T1.1: Model Adapter Backward Compat Aliases (FR-3)
+### T1.1: Canary Test — enhancing-prompts
 
-**Description**: Add `claude-opus-4-0`, `claude-opus-4-1`, `claude-opus-4.0`, `claude-opus-4.1`, `claude-opus-4-5` entries to all 5 model maps (MODEL_PROVIDERS, MODEL_IDS, COST_INPUT, COST_OUTPUT in legacy; MODEL_TO_ALIAS in v2 shim). All resolve to `claude-opus-4-6`.
+**Description**: Add `capabilities:` (schema_version: 1, read_files: true, search_code: true, all others false) and `cost-profile: lightweight` to `.claude/skills/enhancing-prompts/SKILL.md`. Invoke `/enhance` to verify loading.
 
-**Files**:
-- `.claude/scripts/model-adapter.sh.legacy` — add 5 keys × 4 maps = 20 entries
-- `.claude/scripts/model-adapter.sh` — add 5 keys to MODEL_TO_ALIAS
+**Files**: `.claude/skills/enhancing-prompts/SKILL.md`
 
 **Acceptance criteria**:
-- [ ] `validate_model_registry()` passes (exit 0)
-- [ ] `MODEL_IDS["claude-opus-4-0"]` resolves to `claude-opus-4-6`
-- [ ] `MODEL_IDS["claude-opus-4-1"]` resolves to `claude-opus-4-6`
-- [ ] `MODEL_IDS["claude-opus-4.0"]` resolves to `claude-opus-4-6`
-- [ ] `MODEL_IDS["claude-opus-4.1"]` resolves to `claude-opus-4-6`
-- [ ] `MODEL_IDS["claude-opus-4-5"]` resolves to `claude-opus-4-6`
-- [ ] Existing aliases unchanged (regression check)
+- [ ] Canary skill loads and executes with new frontmatter fields
+- [ ] `capabilities` uses explicit expanded map (no `all` sentinel)
+- [ ] `execute_commands` uses strict grammar or `false`
 
-**Testing**: `tests/unit/model-adapter-aliases.bats` — 8 tests
+**Effort**: Low
+**Dependencies**: PR #451 merged to main
+
+---
+
+### T1.2: File Cross-Repo Issues
+
+**Description**: Create integration issues in loa-hounfour, loa-freeside, loa-dixie with context from PRD section 8.
+
+**Acceptance criteria**:
+- [ ] loa-hounfour issue: "Consume Skill Capability Taxonomy" with owners, acceptance criteria, target version
+- [ ] loa-freeside issue: "Consume Skill Cost Profiles" with integration point reference
+- [ ] loa-dixie issue: "Rule Lifecycle Governance" with ConstraintOrigin mapping
+
 **Effort**: Low
 **Dependencies**: None
 
 ---
 
-### T1.2: Model Adapter BATS Tests (FR-3)
+### T1.3: Document Canary Results
 
-**Description**: Create BATS test file for model adapter alias verification.
-
-**Files**:
-- `tests/unit/model-adapter-aliases.bats` (new)
-
-**Tests**:
-1. Source model-adapter.sh.legacy → validate_model_registry() exits 0
-2. claude-opus-4-0 resolves in all 4 maps
-3. claude-opus-4-1 resolves in all 4 maps
-4. claude-opus-4.0 resolves in all 4 maps
-5. claude-opus-4.1 resolves in all 4 maps
-6. claude-opus-4-5 resolves in all 4 maps
-7. Existing claude-opus-4.5 alias unchanged
-8. MODEL_TO_ALIAS resolves for all new keys
+**Description**: Record canary test results in NOTES.md. If parser rejects fields, activate comment-metadata fallback.
 
 **Acceptance criteria**:
-- [ ] All 8 tests pass: `bats tests/unit/model-adapter-aliases.bats`
-- [ ] Tests runnable in isolation (no dependency on other test files)
+- [ ] Results documented with pass/fail status
+- [ ] If FAIL: comment-metadata fallback plan documented, cycle plan adjusted
 
 **Effort**: Low
 **Dependencies**: T1.1
 
 ---
 
-### T1.3: Memory System Ownership Boundary (FR-5)
+## Sprint 106 (Global): Foundation — Schema Design + Validation Tooling
 
-**Description**: Document clear ownership between Loa's observations.jsonl and Claude Code's auto-memory. Add skip-list to memory-writer.sh.
+**Goal**: Build validation infrastructure that all subsequent sprints depend on.
 
-**Files**:
-- `.claude/loa/reference/memory-reference.md` — add ownership table
-- `.claude/loa/CLAUDE.loa.md` — add 1-line reference at Persistent Memory section
-- `.claude/hooks/memory-writer.sh` — add SKIP_PATTERNS array
+### T2.1: validate-skill-capabilities.sh
+
+**Description**: Create validation script that reads SKILL.md frontmatter, validates capabilities schema (schema_version, 8 fields), checks consistency with allowed-tools per SDD mapping table, enforces no `capabilities: all` sentinel, validates execute_commands strict grammar.
+
+**Files**: `.claude/scripts/validate-skill-capabilities.sh` (new)
 
 **Acceptance criteria**:
-- [ ] memory-reference.md contains ownership table with 8 scope rows
-- [ ] CLAUDE.loa.md Persistent Memory section references ownership boundary
-- [ ] memory-writer.sh has SKIP_PATTERNS for auto-memory topics
-- [ ] Existing observation writes unaffected (skip-list only filters new writes)
+- [ ] Detects: missing capabilities, capabilities-vs-allowed-tools mismatch, `capabilities: all` sentinel, raw shell patterns
+- [ ] `--strict` mode promotes warnings to errors
+- [ ] `--json` output for CI
+- [ ] `--skill SKILL_NAME` for single-skill validation
+- [ ] Exit 0 pass, 1 errors, 2 script error
+
+**Effort**: Medium
+**Dependencies**: T1.1 (canary passed)
+
+---
+
+### T2.2: validate-rule-lifecycle.sh
+
+**Description**: Create validation script for rule file lifecycle metadata.
+
+**Files**: `.claude/scripts/validate-rule-lifecycle.sh` (new)
+
+**Acceptance criteria**:
+- [ ] Checks `origin` (genesis|enacted|migrated), `version` (integer), `enacted_by` (cycle reference)
+- [ ] `--json` output for CI
+- [ ] Exit 0 pass, 1 missing fields
 
 **Effort**: Low
 **Dependencies**: None
 
 ---
 
-### T1.4: Agent Teams Hook Validation Tests (FR-6)
+### T2.3: _date_to_epoch() in compat-lib.sh
 
-**Description**: Create BATS test suite validating that Loa safety hooks don't interfere with Claude Code's TeammateIdle and TaskCompleted hook events. Test team role guard behavior.
+**Description**: Portable ISO 8601 to epoch conversion. Tier 1: GNU `date -d`; Tier 2: macOS `date -jf`; Tier 3: perl fallback.
 
-**Files**:
-- `tests/unit/agent-teams-hooks.bats` (new)
-- `.claude/loa/reference/agent-teams-reference.md` — add compatibility matrix
+**Files**: `.claude/scripts/compat-lib.sh` (modify)
+
+**Acceptance criteria**:
+- [ ] Converts ISO 8601 timestamps on GNU Linux
+- [ ] Converts ISO 8601 timestamps on macOS (BSD date)
+- [ ] Returns epoch seconds as integer
+
+**Effort**: Low
+**Dependencies**: None
+
+---
+
+### T2.4: Permissions Reference Doc
+
+**Description**: Document capability taxonomy, cost profiles, schema versioning, strict execute_commands grammar, security invariants, provider conformance guidance.
+
+**Files**: `.claude/loa/reference/permissions-reference.md` (new)
+
+**Acceptance criteria**:
+- [ ] 8 capability categories with Claude Code tool mappings
+- [ ] 4 cost-profile tiers with correlation rules
+- [ ] Schema versioning with migration rules
+- [ ] Strict execute_commands grammar (tokenization rules, prohibited patterns)
+- [ ] Security invariants (ERROR vs WARNING classification)
+- [ ] Provider conformance test guidance for Hounfour adapters
+
+**Effort**: Medium
+**Dependencies**: None
+
+---
+
+### T2.5: skill-capabilities.bats (10 tests)
+
+**Description**: Unit tests for validate-skill-capabilities.sh.
+
+**Files**: `tests/unit/skill-capabilities.bats` (new)
 
 **Tests**:
-1. block-destructive-bash allows non-PreToolUse events (passthrough)
-2. team-role-guard blocks teammate br commands
-3. team-role-guard allows lead br commands
-4. team-skill-guard blocks teammate planning skills
-5. team-role-guard-write blocks teammate System Zone writes
-6. team-role-guard-write allows teammate App Zone writes
-7. team-role-guard blocks `unset LOA_TEAM_MEMBER && br create` (Red Team ATK-011)
-8. team-role-guard blocks `env -u LOA_TEAM_MEMBER git push` (Red Team ATK-011)
+1. Valid capabilities pass validation
+2. Missing capabilities fail (deny-all default)
+3. `capabilities: all` sentinel rejected
+4. Raw shell pattern in execute_commands rejected
+5. capabilities-vs-allowed-tools mismatch: ERROR case
+6. capabilities-vs-allowed-tools mismatch: WARNING case
+7. `--strict` mode promotes warnings to errors
+8. `--json` output is valid JSON
+9. schema_version validation (missing → error)
+10. cost-profile correlation check (lightweight + write_files → warning)
 
-**Acceptance criteria**:
-- [ ] All 8 tests pass: `bats tests/unit/agent-teams-hooks.bats`
-- [ ] Tests runnable in isolation
-- [ ] agent-teams-reference.md contains compatibility matrix (6 rows)
-- [ ] LOA_TEAM_MEMBER unset patterns are blocked by team-role-guard
-
-**Effort**: Low
-**Dependencies**: None
-
----
-
-## Sprint 2: Skill Frontmatter — Tool Restrictions & Subagent Isolation
-
-**Goal**: Add `allowed-tools` to 11 read-only skills and `context: fork` to 4 heavy skills. FR-1 before FR-2 (forked skills inherit tool restrictions).
-
-### T2.1: Add `name` and `description` to Skills Missing Frontmatter (FR-1 prerequisite)
-
-**Description**: 11 skills have no `name` or `description` frontmatter, which is a prerequisite for Claude Code skill discovery and for `allowed-tools` to function. Add these fields to all skills lacking them.
-
-**Files**: 11 SKILL.md files (skills identified in PRD §FR-1)
-
-**Acceptance criteria**:
-- [ ] All 25 skills have `name` and `description` in frontmatter
-- [ ] `name` matches the skill's slash command identifier
-- [ ] `description` is a single sentence explaining when Claude should use it
-- [ ] Existing custom frontmatter fields preserved (parallel_threshold, zones, etc.)
-
-**Effort**: Low (3 lines per file × 11 files)
-**Dependencies**: None
-
----
-
-### T2.2: Add `allowed-tools` to Read-Only Skills (FR-1)
-
-**Description**: Restrict tool access for 11 skills per SDD §2.1 tool restriction table. Each skill gets a tailored `allowed-tools` list based on its actual usage patterns.
-
-**Files**: 11 SKILL.md files
-
-| Skill | `allowed-tools` |
-|-------|-----------------|
-| `auditing-security` | `Read, Grep, Glob, WebFetch, WebSearch` |
-| `reviewing-code` | `Read, Grep, Glob, WebFetch, Bash(git diff *), Bash(git log *)` |
-| `discovering-requirements` | `Read, Grep, Glob, AskUserQuestion, WebFetch, Write, Bash(git log *), Bash(wc *)` |
-| `rtfm-testing` | `Read, Grep, Glob, Bash(bats tests/*), Bash(npm test *)` |
-| `flatline-knowledge` | `Read, Grep, Glob` |
-| `translating-for-executives` | `Read, Grep, Glob, Write` |
-| `enhancing-prompts` | `Read, Grep, Glob` |
-| `browsing-constructs` | `Read, Grep, Glob, WebFetch, Bash(gh repo *), Bash(gh release *)` |
-| `managing-credentials` | `Read, Grep, Glob, Bash(printenv LOA_*)` |
-| `eval-running` | `Read, Grep, Glob, Bash(evals/harness/*), Bash(bats tests/*)` |
-| `loa` (golden-path) | `Read, Grep, Glob, Bash(.claude/scripts/golden-path.sh *), Bash(.claude/scripts/beads/beads-health.sh *)` |
-
-**Rollout**: Canary on `flatline-knowledge`, `enhancing-prompts`, `loa` first. Validate on 2 downstream projects. Then expand.
-
-**Acceptance criteria**:
-- [ ] 11 skills have `allowed-tools` in frontmatter
-- [ ] No skill uses bare `Bash`, `Bash(git *)`, `Bash(gh *)`, or `Bash(.claude/scripts/*)`
-- [ ] Read-only skills (flatline-knowledge, enhancing-prompts) cannot invoke Write or Edit
-- [ ] Negative security tests: `Bash(git log *)` blocks `git -c core.pager=evil log`; `Bash(gh repo *)` blocks `gh auth token`
-- [ ] Canary skills validated on 2 downstream projects
-- [ ] Each skill completes its primary workflow without tool permission errors
-
-**Effort**: Medium (1 line per file, but requires validation testing)
+**Effort**: Medium
 **Dependencies**: T2.1
 
 ---
 
-### T2.3: Add `context: fork` to Heavy Skills (FR-2)
+### T2.6: rule-lifecycle.bats (4 tests)
 
-**Description**: Fork 4 heavy skills into isolated subagent contexts per SDD §2.2. Each gets appropriate agent type.
+**Description**: Unit tests for validate-rule-lifecycle.sh.
 
-**Files**: 4 SKILL.md files
-
-| Skill | `context` | `agent` |
-|-------|-----------|---------|
-| `auditing-security` | `fork` | `Explore` |
-| `designing-architecture` | `fork` | `Plan` |
-| `planning-sprints` | `fork` | `Plan` |
-| `bug-triaging` | `fork` | `general-purpose` |
-
-**BLOCKING PREREQUISITE**: Before this task, verify that forked subagent contexts inherit hook configurations (Red Team ATK-017). Test by forking a skill and checking if PreToolUse hooks fire within the fork. If hooks are NOT inherited, change `bug-triaging` from `general-purpose` to `Explore`.
-
-**Canary**: Fork `designing-architecture` first (Plan agent, lowest risk). Validate output quality.
-
-**Acceptance criteria**:
-- [ ] Hook inheritance verified for forked contexts
-- [ ] 4 skills have `context: fork` and `agent` in frontmatter
-- [ ] `auditing-security` uses `Explore` (not `general-purpose`) — read-only analysis
-- [ ] Forked skills produce equivalent output (artifact completeness ≥90%, all required sections present)
-- [ ] Orchestration skills (`implementing-tasks`, `run-bridge`, `run-mode`, `simstim-workflow`) are NOT forked
-- [ ] Main context usage reduced after forking (manual `/context` check)
-
-**Effort**: Low (2 lines per file × 4)
-**Dependencies**: T2.2 (tool restrictions must exist before forking)
-
----
-
-## Sprint 3: Rules Extraction & Compliance Prototype
-
-**Goal**: Create path-scoped rules directory and prototype agent-based compliance hook. Most exploratory sprint — FR-7 is a prototype with known limitations.
-
-### T3.1: Create `.claude/rules/` with Path-Scoped Rules (FR-4)
-
-**Description**: Extract shell conventions, zone-system, and zone-state content from CLAUDE.loa.md into path-scoped rule files per SDD §2.4.
-
-**Files created**:
-- `.claude/rules/shell-conventions.md` — File Creation Safety content (paths: `*.sh`, `*.bats`)
-- `.claude/rules/zone-system.md` — System Zone NEVER-edit rules (paths: `.claude/**`)
-- `.claude/rules/zone-state.md` — State Zone conventions (paths: `grimoires/**`, `.beads/**`, `.run/**`)
-
-**Files modified**:
-- `.claude/loa/CLAUDE.loa.md` — replace extracted sections with 1-line references
-
-**Acceptance criteria**:
-- [ ] `.claude/rules/` directory exists with 3 rule files
-- [ ] Each rule file has valid `paths:` frontmatter with YAML list format
-- [ ] CLAUDE.loa.md reduced by ~25 lines (~8.5%)
-- [ ] Extracted content matches source verbatim (no paraphrasing)
-- [ ] One-line references in CLAUDE.loa.md point to correct rule files
-- [ ] `/context` shows rules loading on-demand when editing matching file types
-
-**Effort**: Medium
-**Dependencies**: None (can parallel with sprint 2)
-
----
-
-### T3.2: Agent-Based ADVISORY Compliance Hook — Implement Gate Prototype (FR-7)
-
-**Description**: Create an ADVISORY prototype agent-type hook that checks Write/Edit operations to App Zone files against `.run/` state to verify an active `/implement` or `/bug` invocation. Fail-ask for App Zone writes (not fail-open). File path passed via structured JSON input (not template interpolation).
-
-**Files created**:
-- `.claude/hooks/compliance/implement-gate.json` — hook configuration template
-- `tests/unit/compliance-hook.bats` — BATS tests with mocked state files
-
-**Files modified**: None (hook configuration is a template, user merges into settings.json)
-
-**Hook behavior**:
-1. File NOT in App Zone → `allow` (immediate)
-2. File in App Zone + state=RUNNING + valid plan_id + fresh timestamp → `allow`
-3. File in App Zone + state=JACKED_OUT or HALTED → `ask`
-4. File in App Zone + no active implementation → `ask`
-5. State files missing/unreadable → `ask` (FAIL-ASK for compliance)
-6. Subagent error/timeout → `ask` (FAIL-ASK for compliance)
-7. Circuit breaker: cache `allow` for 60s keyed by state hash
+**Files**: `tests/unit/rule-lifecycle.bats` (new)
 
 **Tests**:
-1. State file absent → `ask` (fail-ask)
-2. State file with RUNNING + valid plan_id + fresh timestamp → `allow`
-3. State file with JACKED_OUT → `ask`
-4. State file with HALTED → `ask`
-5. State file with RUNNING but stale timestamp (>24h) → `ask` (integrity)
-6. State file with missing plan_id → `ask` (integrity)
-7. File path with injection payload → `ask` (path read from file, not prompt)
-
-**Acceptance criteria**:
-- [ ] Hook configuration file exists at `.claude/hooks/compliance/implement-gate.json`
-- [ ] Hook labeled as ADVISORY in all output messages
-- [ ] File path passed via `.run/.compliance-check-input.json` (NOT template interpolation)
-- [ ] Template includes installation instructions for merging into settings.json
-- [ ] Hook fires on Write/Edit to `src/`, `lib/`, `app/` paths
-- [ ] Returns `allow` when implementation is active with valid state
-- [ ] Returns `ask` (not `allow`) on ALL error conditions for App Zone writes
-- [ ] Circuit breaker caches result for 60s
-- [ ] All 7 BATS tests pass
-- [ ] Pattern documented as ADVISORY in hook template
-
-**Effort**: Medium-High (prototype with known limitations)
-**Dependencies**: T1.4 (understanding from Agent Teams validation informs hook design)
-
----
-
-### T3.3: Documentation — Agent Hook Pattern Guide
-
-**Description**: Document the agent-based compliance hook pattern for future replication. Include known limitations, performance characteristics, and migration path from shell hooks.
-
-**Files modified**:
-- `.claude/loa/reference/hooks-reference.md` — add Agent Hook section
-
-**Content**:
-- When to use agent hooks vs. shell hooks (decision tree)
-- Agent hook configuration schema
-- Performance expectations (<5s for read-only checks)
-- Fail-open design requirements
-- Known limitations (can't detect direct skill invocations without `/run` state)
-- Migration path for other NEVER rules
-
-**Acceptance criteria**:
-- [ ] hooks-reference.md contains Agent Hook section
-- [ ] Decision tree: shell hook (pattern matching) vs. agent hook (semantic context)
-- [ ] At least 2 examples: the implement-gate prototype and a hypothetical second rule
-- [ ] Performance and fail-open requirements documented
+1. Valid lifecycle passes
+2. Missing origin fails
+3. Missing version fails
+4. Missing enacted_by fails
 
 **Effort**: Low
-**Dependencies**: T3.2
+**Dependencies**: T2.2
 
 ---
 
-## Sprint Summary
+## Sprint 107 (Global): Skill Annotation (Two-Wave Rollout)
 
-| Sprint | Tasks | FRs Covered | Effort | Dependencies |
-|--------|-------|-------------|--------|-------------|
-| **Sprint 1** | T1.1, T1.2, T1.3, T1.4 | FR-3, FR-5, FR-6 | Low | None |
-| **Sprint 2** | T2.1, T2.2, T2.3 | FR-1, FR-2 | Medium | Sprint 1 not required |
-| **Sprint 3** | T3.1, T3.2, T3.3 | FR-4, FR-7 | Medium-High | T1.4 informs T3.2 |
+**Goal**: Annotate all 25 skills with explicit expanded `capabilities` maps and `cost-profile` fields.
 
-**Parallelization**: Sprints 1 and 2 can run in parallel if resources allow. Sprint 3 should follow Sprint 1 (T1.4 → T3.2 dependency). Within each sprint, tasks are sequential unless noted.
+### T3.1: Wave 1A — 7 Read-Only/Low-Risk Skills
 
----
+**Description**: Add `capabilities` + `cost-profile` to: auditing-security (heavy), browsing-constructs (moderate), enhancing-prompts (canary'd), eval-running (moderate), flatline-knowledge (lightweight), managing-credentials (lightweight), rtfm-testing (moderate).
 
-## Risk Assessment
+**Files**: 7 SKILL.md files
 
-| Risk | Sprint | Mitigation |
-|------|--------|------------|
-| `allowed-tools` blocks legitimate skill operations | S2 | Validate each skill manually after restriction; use scoped `Bash(pattern *)` |
-| `context: fork` degrades output quality | S2 | Compare forked output against prior cycle artifacts; rollback if quality drops |
-| Agent hook API syntax may differ from docs | S3 | Verify `{{tool_input.file_path}}` template against actual Claude Code behavior; fall back to command hook if needed |
-| Path-scoped rules don't trigger reliably | S3 | Keep critical rules in CLAUDE.loa.md; rules are supplementary, not exclusive |
-| Cycle-048 conflicts with System Zone changes | All | Minimal overlap — cycle-048 touches review scripts, this cycle touches skill frontmatter and rules |
+**Acceptance criteria**:
+- [ ] All 7 skills have `capabilities:` with `schema_version: 1`
+- [ ] All use explicit expanded maps (no sentinel)
+- [ ] `execute_commands` uses strict grammar where applicable
+
+**Effort**: Low
+**Dependencies**: T2.1 (validation script)
 
 ---
 
-## Success Metrics
+### T3.2: Wave 1B — 6 Write-Capable Skills
 
-| Metric | Target | How to Measure |
-|--------|--------|---------------|
-| Skills with `allowed-tools` | 12+ (11 new + 1 existing) | `grep -l "allowed-tools" .claude/skills/*/SKILL.md \| wc -l` |
-| Skills with no bare `Bash` | 12/12 | `grep -l 'allowed-tools.*[^(]Bash[^(]' .claude/skills/*/SKILL.md` should return 0 |
-| Skills with `context: fork` | 5+ (4 new + 1 existing) | `grep -l "context: fork" .claude/skills/*/SKILL.md \| wc -l` |
-| Hook inheritance verified | Yes/No | Manual test of PreToolUse firing in forked context |
-| Model adapter validation | 0 errors | `.claude/scripts/model-adapter.sh.legacy && echo OK` |
-| Path-scoped rule files | 3+ | `ls .claude/rules/*.md \| wc -l` |
-| BATS test coverage | 54 new tests | All test files pass in isolation |
-| Negative security tests | 4+ passing | Bypass vectors from Red Team confirmed blocked |
-| CLAUDE.loa.md reduction | ~8.5% | `wc -l .claude/loa/CLAUDE.loa.md` (target: <270 lines) |
+**Description**: Add `capabilities` + `cost-profile` to: discovering-requirements (moderate), reviewing-code (moderate), riding-codebase (heavy), translating-for-executives (lightweight), designing-architecture (moderate), planning-sprints (moderate).
+
+**Files**: 6 SKILL.md files
+
+**Effort**: Low
+**Dependencies**: T2.1
 
 ---
 
-## Ledger Registration
+### T3.3: Wave 1 Regression Test
 
-**Deferred**: Cycle-049 sprints will be registered in `grimoires/loa/ledger.json` when cycle-048 is archived and this cycle becomes active. Expected global sprint IDs: 102-104 (based on current counter at 101).
+**Description**: Run `validate-skill-capabilities.sh --strict` for all 13 Wave 1 skills. Invoke 2-3 representative skills.
+
+**Acceptance criteria**:
+- [ ] Validation passes for all 13 Wave 1 skills
+- [ ] 2-3 skills invoked successfully
+
+**Effort**: Low
+**Dependencies**: T3.1, T3.2
+
+---
+
+### T3.4: Wave 2A — 6 Partially-Annotated Skills
+
+**Description**: Full frontmatter for: bridgebuilder-review (heavy), bug-triaging (heavy), butterfreezone-gen (lightweight), continuous-learning (moderate), implementing-tasks (heavy), run-bridge (unbounded).
+
+**Files**: 6 SKILL.md files
+
+**Effort**: Medium
+**Dependencies**: T3.3 (Wave 1 regression passed)
+
+---
+
+### T3.5: Wave 2B — 6 Fully-Unannotated Skills
+
+**Description**: Full frontmatter creation for: autonomous-agent (unbounded), deploying-infrastructure (heavy), mounting-framework (heavy), red-teaming (heavy), run-mode (unbounded), simstim-workflow (unbounded). Explicit expanded capability maps.
+
+**Files**: 6 SKILL.md files
+
+**Effort**: Medium
+**Dependencies**: T3.3
+
+---
+
+### T3.6: Wave 2 Regression Test
+
+**Description**: Validate all 12 Wave 2 skills. Invoke 2-3 representative skills.
+
+**Acceptance criteria**:
+- [ ] Validation passes for all 12 Wave 2 skills
+- [ ] 2-3 high-privilege skills invoked successfully
+
+**Effort**: Low
+**Dependencies**: T3.4, T3.5
+
+---
+
+### T3.7: Full Validation (25/25)
+
+**Description**: Run `validate-skill-capabilities.sh --strict` for all 25 skills.
+
+**Acceptance criteria**:
+- [ ] Zero errors, zero warnings across all 25 skills
+- [ ] No `capabilities: all` sentinel anywhere
+
+**Effort**: Low
+**Dependencies**: T3.6
+
+---
+
+### T3.8: Update SDD Annotation Matrix
+
+**Description**: Add `bug-triaging` (missing from SDD section 9) with cost-profile: heavy.
+
+**Files**: `grimoires/loa/sdd.md`
+
+**Effort**: Low
+**Dependencies**: None
+
+---
+
+## Sprint 108 (Global): Compliance Hook + Rule Lifecycle
+
+**Goal**: Add lifecycle metadata to rule files and upgrade compliance hook to dual-mode.
+
+### T4.1: Rule Lifecycle — zone-system.md
+
+**Description**: Add `origin: genesis`, `version: 1`, `enacted_by: cycle-049` to `.claude/rules/zone-system.md`.
+
+**Files**: `.claude/rules/zone-system.md`
+
+**Effort**: Low
+**Dependencies**: None
+
+---
+
+### T4.2: Rule Lifecycle — zone-state.md + shell-conventions.md
+
+**Description**: Add lifecycle metadata to remaining 2 rule files.
+
+**Files**: `.claude/rules/zone-state.md`, `.claude/rules/shell-conventions.md`
+
+**Effort**: Low
+**Dependencies**: None
+
+---
+
+### T4.3: detect-platform-features.sh
+
+**Description**: Feature detection script with versioned capability handshake. Probes hook stdin for `tool_input.active_skill`. Outputs `.run/platform-features.json`. Cached per session.
+
+**Files**: `.claude/scripts/detect-platform-features.sh` (new)
+
+**Acceptance criteria**:
+- [ ] Outputs valid JSON with `active_skill_available`, `detected_at`, `schema_version`
+- [ ] Caches result (reuses existing file if fresh)
+- [ ] No assumption from partial signals (Flatline SKP-006)
+
+**Effort**: Medium
+**Dependencies**: None
+
+---
+
+### T4.4: implement-gate.sh — Dual-Mode Upgrade
+
+**Description**: Source `compat-lib.sh` for `_date_to_epoch()`. Check platform features at startup. Authoritative mode: read `active_skill`, deterministic allow/deny. Heuristic mode: existing logic. Mode pinning via `.compliance-mode` file. Audit logging for mode downgrades.
+
+**Files**: `.claude/hooks/compliance/implement-gate.sh` (modify)
+
+**Acceptance criteria**:
+- [ ] Dual-mode operation (authoritative + heuristic)
+- [ ] Mode pinning — no silent downgrade within session
+- [ ] Mode downgrades logged to `.run/audit.jsonl`
+- [ ] Fail-closed on detection failure (ASK, not allow)
+- [ ] All 7 existing tests pass unchanged
+
+**Effort**: Medium
+**Dependencies**: T2.3 (_date_to_epoch), T4.3 (feature detection)
+
+---
+
+### T4.5: implement-gate.sh — Path Normalization
+
+**Description**: Resolve absolute paths relative to `PROJECT_ROOT` before zone classification.
+
+**Files**: `.claude/hooks/compliance/implement-gate.sh` (modify)
+
+**Acceptance criteria**:
+- [ ] `/home/user/project/src/file.ts` correctly classified as App Zone
+- [ ] Relative paths still work unchanged
+
+**Effort**: Low
+**Dependencies**: T4.4
+
+---
+
+### T4.6: Compliance Hook + Rule Lifecycle Tests (11 tests)
+
+**Description**: 7 new compliance-hook tests + 4 rule-lifecycle tests on updated files.
+
+**Files**: `tests/unit/compliance-hook.bats` (extend), `tests/unit/rule-lifecycle.bats` (update fixtures)
+
+**Tests** (compliance-hook):
+1. Authoritative mode allows skill-active write
+2. Authoritative mode blocks non-skill write
+3. Mode pinning prevents downgrade
+4. Stale feature detection re-probes
+5. Path normalization (absolute → relative)
+6. Date conversion via _date_to_epoch()
+7. Audit log records mode downgrade
+
+**Effort**: Medium
+**Dependencies**: T4.4, T4.5
+
+---
+
+## Sprint 109 (Global): Mount Conflict Detection + Integration + E2E
+
+**Goal**: Add conflict detection to `/mount`, run integration tests, validate all PRD goals.
+
+### T5.1: Mount Conflict Detection Logic
+
+**Description**: After copying Loa files, scan target `.claude/rules/` for pre-existing rules. Parse `paths:` frontmatter. Identify overlaps with deterministic ordering. Classify: non-conflicting, conflicting, multi-file overlap.
+
+**Files**: `.claude/skills/mounting-framework/SKILL.md` (modify)
+
+**Acceptance criteria**:
+- [ ] Detects existing `.claude/rules/` files
+- [ ] Overlaps identified with deterministic ordering
+- [ ] Dry-run output before any changes
+- [ ] Multi-file overlap (3+ files) hard-fails
+
+**Effort**: Medium
+**Dependencies**: Sprint 108 (rule files have lifecycle metadata)
+
+---
+
+### T5.2: Mount Merge Execution
+
+**Description**: Non-conflicting rules merge with provenance. Conflicting rules require user confirmation. Multi-file overlaps halt.
+
+**Files**: `.claude/skills/mounting-framework/SKILL.md` (modify)
+
+**Effort**: Medium
+**Dependencies**: T5.1
+
+---
+
+### T5.3: Permissions Reference — Merge Semantics
+
+**Description**: Extend permissions-reference.md with mount merge docs: precedence, tie-breaking, transitive mounts, examples.
+
+**Files**: `.claude/loa/reference/permissions-reference.md` (extend)
+
+**Effort**: Low
+**Dependencies**: T5.1
+
+---
+
+### T5.4: mount-conflicts.bats (5 tests)
+
+**Description**: Unit tests for mount conflict detection.
+
+**Files**: `tests/unit/mount-conflicts.bats` (new)
+
+**Tests**:
+1. No existing rules → clean mount
+2. Non-overlapping rules → merge without conflict
+3. Conflicting rules → detected and reported
+4. Multi-file overlap → hard-fail
+5. Transitive mount → version check
+
+**Effort**: Medium
+**Dependencies**: T5.1, T5.2
+
+---
+
+### T5.5: Integration Tests (5 tests)
+
+**Description**: Cross-component integration validation.
+
+**Files**: `tests/integration/test_skill_metadata.bats` (new)
+
+**Tests**:
+1. All 25 skills have complete frontmatter
+2. Capabilities-vs-allowed-tools consistency across all skills
+3. Cost-profile-vs-capabilities correlation
+4. Rule lifecycle metadata complete
+5. Both validation scripts interoperate (run both, zero errors)
+
+**Effort**: Medium
+**Dependencies**: All previous sprints
+
+---
+
+### T5.E2E: End-to-End Goal Validation
+
+**Description**: Validate all 7 PRD goals with documented evidence.
+
+| Goal | Validation | Expected |
+|------|------------|----------|
+| G-1 | `validate-skill-capabilities.sh --strict --json` | Exit 0, 25/25 |
+| G-2 | `validate-rule-lifecycle.sh --json` | Exit 0, 3/3 |
+| G-3 | grep `cost-profile:` across all SKILL.md | 25 matches |
+| G-4 | compliance-hook.bats (14 tests) | 14/14 pass |
+| G-5 | mount-conflicts.bats (5 tests) | 5/5 pass |
+| G-6 | `validate-skill-capabilities.sh --strict` | Zero missing |
+| G-7 | `gh issue list` across repos | 3 issues exist |
+
+**Effort**: Low
+**Dependencies**: All previous tasks
+
+---
+
+## Dependencies Map
 
 ```
-Sprint 1 → global sprint-102
-Sprint 2 → global sprint-103
-Sprint 3 → global sprint-104
+Sprint 105 (Canary + Issues)
+     │
+     ▼
+Sprint 106 (Validation Tooling) ──────────────────────┐
+     │                                                  │
+     ▼                                                  │
+Sprint 107 (Skill Annotation) ──── Sprint 108 (Hook + Rules)
+     │                                    │
+     └──────────────┬─────────────────────┘
+                    ▼
+            Sprint 109 (Mount + Integration + E2E)
 ```
+
+Note: Sprint 107 and 108 can partially overlap (both depend on 106, not on each other).
