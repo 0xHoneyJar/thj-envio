@@ -5,6 +5,56 @@ All notable changes to Loa will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.65.0] - 2026-03-23
+
+### Added
+
+- **cycle-049**: Upstream Platform Alignment — Claude Code Feature Adoption (#451)
+  - `allowed-tools` restrictions on 13 read-only/analytical skills (principle of least privilege)
+  - `context: fork` + `agent` type for 6 heavy skills (/ride, /audit, /bridgebuilder-review)
+  - `name` and `description` metadata on 13 skills for Claude Code discoverability
+  - Path-scoped `.claude/rules/` directory with 3 zone rule files (zone-system, zone-state, shell-conventions)
+  - ADVISORY compliance hook prototype (`implement-gate.sh`) — warns on App Zone writes outside /implement
+  - Model adapter backward-compat aliases (claude-opus-4-0, 4-1, 4.0, 4.1, 4-5)
+  - Memory system ownership boundary (auto-memory vs observations.jsonl)
+  - Agent Teams hook validation + ATK-011 mitigation (blocks unset LOA_TEAM_MEMBER)
+- **cycle-050**: Multi-Model Permission Architecture — Ecosystem-Wide Governance Primitives (#451)
+  - **Capability taxonomy**: Model-agnostic `capabilities:` field on all 25 skills with `schema_version: 1`, 8 capability categories, strict tokenized `execute_commands` grammar (no raw shell strings)
+  - **Cost profiles**: `cost-profile:` field on all 25 skills (lightweight/moderate/heavy/unbounded) for Freeside conservation guard integration
+  - **Rule lifecycle metadata**: `origin`, `version`, `enacted_by` on all `.claude/rules/` files (mirrors loa-dixie ConstraintOrigin pattern)
+  - **Dual-mode compliance hook**: `implement-gate.sh` supports authoritative mode (platform-detected) + heuristic fallback with mode pinning and audit logging
+  - **Feature detection**: `detect-platform-features.sh` for versioned capability handshake
+  - **Mount conflict detection**: `mount-conflict-detect.sh` with CSS-specificity precedence (project > Loa > default), dry-run output, deterministic ordering
+  - **Validation tooling**: `validate-skill-capabilities.sh` (--strict, --json, deny-all default) and `validate-rule-lifecycle.sh`
+  - **Portable date conversion**: `_date_to_epoch()` in compat-lib.sh v1.1.0 (GNU/macOS/perl fallback)
+  - **Permissions reference doc**: Complete taxonomy documentation with cross-repo integration guidance
+  - 38 new tests across 7 test suites (skill-capabilities, rule-lifecycle, compliance-hook, mount-conflicts, model-adapter, agent-teams, integration)
+  - Cross-repo integration issues: loa-hounfour#49, loa-freeside#138, loa-dixie#80
+
+### Changed
+
+- **Fail-closed defaults**: Unannotated skills get deny-all capabilities (inverted from fail-open, per Flatline SKP-001)
+- **`capabilities: all` prohibited**: Must use explicit expanded maps (Flatline SKP-003)
+- **Strict execute_commands grammar**: Tokenized command+args, no raw shell patterns (Flatline IMP-003/SKP-004)
+- **Validation in --strict mode**: Warnings promoted to errors on CI (Flatline IMP-002)
+- `compat-lib.sh` bumped to v1.1.0
+- `implement-gate.sh` path normalization resolves absolute paths relative to PROJECT_ROOT
+
+### Fixed
+
+- `has_tool()` word-boundary matching prevents substring false positives (CRIT-1)
+- `_date_to_epoch("")` rejects empty string instead of returning current time (CRIT-3)
+- `validate-skill-capabilities.sh` counter bug in strict mode (CRIT-2)
+- `.claude/rules/zone-state.md` missing `.ck/**` path (BB-049-002)
+- Portable date conversion in implement-gate.sh (BB-049-001)
+
+### Security
+
+- Flatline 3-model review (Opus + GPT-5.3-codex + Gemini 2.5 Pro): 5 HIGH_CONSENSUS integrated, 15 BLOCKERS addressed
+- Red Team: 5 attack scenarios analyzed, 0 confirmed vulnerabilities
+- Security audit: APPROVED — no CRITICAL/HIGH findings
+- ATK-011: Blocks `unset LOA_TEAM_MEMBER` and `env -u` privilege escalation in Agent Teams
+
 ## [Unreleased]
 
 ### Added
