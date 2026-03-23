@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "active_cycle": "cycle-049",
+  "active_cycle": "cycle-048",
   "cycles": [
     {
       "id": "cycle-036",
@@ -425,10 +425,8 @@
     {
       "id": "cycle-048",
       "label": "Community Feedback — Review Pipeline Hardening",
-      "status": "archived",
+      "status": "active",
       "created": "2026-02-28T08:50:00Z",
-      "archived": "2026-03-18T00:00:00Z",
-      "archive_path": "grimoires/loa/archive/2026-02-28-cycle-048-review-pipeline-hardening",
       "prd": "grimoires/loa/prd.md",
       "sdd": "grimoires/loa/sdd.md",
       "sprints": [
@@ -436,97 +434,28 @@
           "local_id": 1,
           "global_id": 98,
           "label": "Foundation — Curl Guard, Error Surfacing, YAML Regex",
-          "status": "completed"
+          "status": "planned"
         },
         {
           "local_id": 2,
           "global_id": 99,
           "label": "Verdict Centralization & Flatline Readiness",
-          "status": "completed"
+          "status": "planned"
         },
         {
           "local_id": 3,
           "global_id": 100,
           "label": "Timeout Consolidation & Migration",
-          "status": "completed"
+          "status": "planned"
         },
         {
           "local_id": 4,
           "global_id": 101,
           "label": "Integration Testing, CI Lint, Protocol Docs",
-          "status": "completed"
-        }
-      ]
-    },
-    {
-      "id": "cycle-049",
-      "label": "Upstream Platform Alignment — Claude Code Feature Adoption",
-      "status": "active",
-      "created": "2026-03-18T00:00:00Z",
-      "prd": "grimoires/loa/prd.md",
-      "sdd": "grimoires/loa/sdd.md",
-      "sprints": [
-        {
-          "local_id": 1,
-          "global_id": 102,
-          "label": "Foundation — Model Aliases, Memory Docs, Agent Teams Validation",
           "status": "planned"
-        },
-        {
-          "local_id": 2,
-          "global_id": 103,
-          "label": "Skill Frontmatter — Tool Restrictions & Subagent Isolation",
-          "status": "planned"
-        },
-        {
-          "local_id": 3,
-          "global_id": 104,
-          "label": "Rules Extraction & Compliance Prototype",
-          "status": "planned"
-        }
-      ]
-    },
-    {
-      "id": "cycle-050",
-      "label": "Multi-Model Permission Architecture — Ecosystem-Wide Governance Primitives",
-      "status": "active",
-      "created": "2026-03-19T00:00:00Z",
-      "prd": "grimoires/loa/prd.md",
-      "sdd": "grimoires/loa/sdd.md",
-      "sprints": [
-        {
-          "local_id": 0,
-          "global_id": 105,
-          "label": "Cross-Repo Issues + Canary Test",
-          "status": "completed"
-        },
-        {
-          "local_id": 1,
-          "global_id": 106,
-          "label": "Foundation — Schema Design + Validation Tooling",
-          "status": "completed"
-        },
-        {
-          "local_id": 2,
-          "global_id": 107,
-          "label": "Skill Annotation — Two-Wave Rollout",
-          "status": "completed"
-        },
-        {
-          "local_id": 3,
-          "global_id": 108,
-          "label": "Compliance Hook + Rule Lifecycle",
-          "status": "completed"
-        },
-        {
-          "local_id": 4,
-          "global_id": 109,
-          "label": "Mount Conflict Detection + Integration + E2E",
-          "status": "completed"
         }
       ]
     }
   ],
-  "active_cycle": "cycle-050",
-  "global_sprint_counter": 109
+  "global_sprint_counter": 101
 }
