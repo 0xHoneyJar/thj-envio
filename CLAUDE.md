@@ -7,10 +7,13 @@
 
 ## Team & Ownership
 
-- **Primary maintainer**: @janitooor
-- **Default PR reviewer**: @janitooor — always request review from them
-- **Repo**: 0xHoneyJar/loa
-- **CODEOWNERS**: `.github/CODEOWNERS` handles auto-assignment on GitHub
+- **Primary maintainer**: zerker
+- **Repo**: 0xHoneyJar/thj-envio
+- **Upstream**: moose-code/thj.git (Envio indexer)
+
+## Project Overview
+
+THJ Envio is a blockchain indexer built with the Envio framework for indexing on-chain events related to The Honey Jar ecosystem on Berachain.
 
 ## How This Works
 
