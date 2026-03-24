@@ -244,7 +244,7 @@ write_decision() {
     if ! grep -q "## Decisions" "$NOTES_FILE"; then
         # Add section before Blockers or at end
         if grep -q "## Blockers" "$NOTES_FILE"; then
-            sed -i '/## Blockers/i ## Decisions\n\n| Date | Decision | Rationale |\n|------|----------|-----------|' "$NOTES_FILE"
+            sed '/## Blockers/i ## Decisions\n\n| Date | Decision | Rationale |\n|------|----------|-----------|' "$NOTES_FILE" > "${NOTES_FILE}.tmp" && mv "${NOTES_FILE}.tmp" "$NOTES_FILE"
         else
             echo -e "\n## Decisions\n\n| Date | Decision | Rationale |\n|------|----------|-----------|" >> "$NOTES_FILE"
         fi
@@ -261,7 +261,7 @@ write_decision() {
 
     if [[ -n "$table_header_line" ]]; then
         local new_row="| $date | $escaped_message | Source: $source |"
-        sed -i "${table_header_line}a\\${new_row}" "$NOTES_FILE"
+        sed "${table_header_line}a\\${new_row}" "$NOTES_FILE" > "${NOTES_FILE}.tmp" && mv "${NOTES_FILE}.tmp" "$NOTES_FILE"
         print_success "Decision logged to NOTES.md"
 
         # Also update active bead if enabled
@@ -282,6 +282,9 @@ write_trajectory() {
     local date
     date=$(date +"%Y-%m-%d")
 
+    # Get session ID from environment (available in Claude Code 2.1.9+)
+    local session_id="${CLAUDE_SESSION_ID:-unknown}"
+
     mkdir -p "$TRAJECTORY_DIR"
 
     local trajectory_file="$TRAJECTORY_DIR/${agent}-${date}.jsonl"
@@ -289,11 +292,13 @@ write_trajectory() {
     local entry
     entry=$(jq -n \
         --arg ts "$timestamp" \
+        --arg session_id "$session_id" \
         --arg agent "$agent" \
         --arg action "$action" \
         --arg grounding "synthesis_trigger" \
         '{
             timestamp: $ts,
+            session_id: $session_id,
             agent: $agent,
             action: $action,
             grounding: {type: $grounding}

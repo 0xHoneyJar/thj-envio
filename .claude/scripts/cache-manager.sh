@@ -5,6 +5,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck source=lib/normalize-json.sh
+source "$SCRIPT_DIR/lib/normalize-json.sh"
+
 # Allow environment variable overrides for testing
 CONFIG_FILE="${CONFIG_FILE:-${SCRIPT_DIR}/../../.loa.config.yaml}"
 CACHE_DIR="${CACHE_DIR:-${SCRIPT_DIR}/../cache}"
@@ -344,7 +347,8 @@ cmd_get() {
 
     if ! is_cache_enabled; then
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"disabled","key":"'"$key"'"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "disabled" --arg key "$key" '{status: $status, key: $key}'
         fi
         return 1
     fi
@@ -360,7 +364,8 @@ cmd_get() {
         jq --arg key "$key" '.stats.misses += 1' "$CACHE_INDEX" > "${CACHE_INDEX}.tmp" && mv "${CACHE_INDEX}.tmp" "$CACHE_INDEX"
 
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"miss","key":"'"$key"'"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "miss" --arg key "$key" '{status: $status, key: $key}'
         fi
         return 1
     fi
@@ -391,7 +396,9 @@ cmd_get() {
         rm -f "${RESULTS_DIR}/${key}.json" 2>/dev/null
 
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"invalidated","key":"'"$key"'","reason":"source_modified"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "invalidated" --arg key "$key" --arg reason "source_modified" \
+                '{status: $status, key: $key, reason: $reason}'
         fi
         return 1
     fi
@@ -412,7 +419,8 @@ cmd_get() {
         rm -f "${RESULTS_DIR}/${key}.json" 2>/dev/null
 
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"expired","key":"'"$key"'"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "expired" --arg key "$key" '{status: $status, key: $key}'
         fi
         return 1
     fi
@@ -424,7 +432,8 @@ cmd_get() {
         jq --arg key "$key" '.stats.misses += 1 | del(.entries[$key])' "$CACHE_INDEX" > "${CACHE_INDEX}.tmp" && mv "${CACHE_INDEX}.tmp" "$CACHE_INDEX"
 
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"corrupt","key":"'"$key"'"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "corrupt" --arg key "$key" '{status: $status, key: $key}'
         fi
         return 1
     fi
@@ -444,7 +453,9 @@ cmd_get() {
         rm -f "$result_file" 2>/dev/null
 
         if [[ "$json_output" == "true" ]]; then
-            echo '{"status":"corrupt","key":"'"$key"'","reason":"integrity_mismatch"}'
+            # HIGH-004 FIX: Use jq for safe JSON generation
+            jq -n --arg status "corrupt" --arg key "$key" --arg reason "integrity_mismatch" \
+                '{status: $status, key: $key, reason: $reason}'
         fi
         return 1
     fi
@@ -568,9 +579,9 @@ cmd_set() {
         fi
     elif is_auto_synthesize_enabled; then
         # Auto-synthesize: extract verdict from condensed JSON if available
-        local auto_msg=""
-        if echo "$condensed" | jq -e '.verdict' &>/dev/null; then
-            auto_msg="Cache: $(echo "$condensed" | jq -r '.verdict // "stored"') [key: ${key:0:8}...]"
+        local auto_msg="" _cache_verdict=""
+        if _cache_verdict=$(extract_verdict "$condensed"); then
+            auto_msg="Cache: ${_cache_verdict} [key: ${key:0:8}...]"
         else
             auto_msg="Cache: result stored [key: ${key:0:8}...]"
         fi

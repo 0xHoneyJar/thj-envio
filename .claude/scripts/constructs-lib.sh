@@ -76,7 +76,7 @@ get_registry_config() {
 # Returns: Registry API URL
 get_registry_url() {
     local config_url
-    config_url=$(get_registry_config 'default_url' 'https://loa-constructs-api.fly.dev/v1')
+    config_url=$(get_registry_config 'default_url' 'https://api.constructs.network/v1')
     echo "${LOA_REGISTRY_URL:-$config_url}"
 }
 
@@ -94,6 +94,90 @@ get_registry_url() {
 # Returns: 0 if THJ member (API key present and non-empty), 1 otherwise
 is_thj_member() {
     [[ -n "${LOA_CONSTRUCTS_API_KEY:-}" ]]
+}
+
+# =============================================================================
+# Security Functions
+# =============================================================================
+
+# Check if file permissions are secure (Issue #104 fix)
+# Args: $1 - file path
+# Returns: 0 if secure, 1 if too permissive
+check_file_permissions() {
+    local file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        return 0  # File doesn't exist, nothing to check
+    fi
+
+    # Cross-platform permission check using ls -l
+    # This avoids stat format differences between GNU and BSD
+    local perms
+    perms=$(ls -l "$file" 2>/dev/null | awk '{print $1}')
+
+    # Check that file is not readable by group or others
+    # Good: -rw------- (600) or -r-------- (400)
+    # Bad: anything with r in positions 5-10 (group/other read)
+    case "$perms" in
+        -rw-------)  # 600 - owner read/write only
+            return 0
+            ;;
+        -r--------)  # 400 - owner read only
+            return 0
+            ;;
+        *)
+            # Check if group or others have any permissions
+            local group_other="${perms:4:6}"
+            if [[ "$group_other" != "------" ]]; then
+                echo "WARNING: Credentials file has insecure permissions: $file" >&2
+                echo "  Current: $perms" >&2
+                echo "  Required: -rw------- (600) or -r-------- (400)" >&2
+                echo "  Fix with: chmod 600 $file" >&2
+                return 1
+            fi
+            return 0
+            ;;
+    esac
+}
+
+# Get API key from environment or credentials file (Issue #104 fix)
+# Returns: API key or empty string
+get_api_key() {
+    # Check environment variable first
+    if [[ -n "${LOA_CONSTRUCTS_API_KEY:-}" ]]; then
+        echo "$LOA_CONSTRUCTS_API_KEY"
+        return 0
+    fi
+
+    # Check credentials file
+    local creds_file="${HOME}/.loa/credentials.json"
+    if [[ -f "$creds_file" ]]; then
+        # SECURITY: Warn if file permissions are too open
+        check_file_permissions "$creds_file" || true
+
+        local key
+        key=$(jq -r '.api_key // empty' "$creds_file" 2>/dev/null)
+        if [[ -n "$key" ]]; then
+            echo "$key"
+            return 0
+        fi
+    fi
+
+    # Alternative credentials location
+    local alt_creds="${HOME}/.loa-constructs/credentials.json"
+    if [[ -f "$alt_creds" ]]; then
+        # SECURITY: Warn if file permissions are too open
+        check_file_permissions "$alt_creds" || true
+
+        local key
+        key=$(jq -r '.api_key // .apiKey // empty' "$alt_creds" 2>/dev/null)
+        if [[ -n "$key" ]]; then
+            echo "$key"
+            return 0
+        fi
+    fi
+
+    echo ""
 }
 
 # =============================================================================
@@ -421,6 +505,91 @@ get_registry_meta() {
     fi
 
     jq -r "$json_path // \"null\"" "$meta_path" 2>/dev/null || echo "null"
+}
+
+# =============================================================================
+# Pack Staleness & Local Source Detection (Issue #449)
+# =============================================================================
+
+# Check if installed pack is stale (>N days old)
+# Args: $1 = pack slug, $2 = threshold_days (default: 7)
+# Returns: 0 if stale, 1 if fresh
+# Outputs: staleness info to stderr as warning
+check_pack_staleness() {
+    local slug="$1"
+    local threshold_days="${2:-7}"
+    local meta_path
+    meta_path=$(get_registry_meta_path)
+
+    if [[ ! -f "$meta_path" ]]; then
+        return 1  # No meta = can't check
+    fi
+
+    local installed_at
+    installed_at=$(jq -r --arg s "$slug" '.installed_packs[$s].installed_at // empty' "$meta_path" 2>/dev/null) || return 1
+
+    if [[ -z "$installed_at" ]]; then
+        return 1
+    fi
+
+    # Use _date_to_epoch if available, else fallback
+    local installed_epoch now age_seconds age_days
+    now=$(date +%s 2>/dev/null) || return 1
+
+    if type _date_to_epoch &>/dev/null; then
+        installed_epoch=$(_date_to_epoch "$installed_at" 2>/dev/null) || return 1
+    else
+        installed_epoch=$(date -d "$installed_at" +%s 2>/dev/null ||
+                         date -jf '%Y-%m-%dT%H:%M:%SZ' "$installed_at" +%s 2>/dev/null) || return 1
+    fi
+
+    age_seconds=$((now - installed_epoch))
+    age_days=$((age_seconds / 86400))
+
+    if [[ $age_days -ge $threshold_days ]]; then
+        echo "[WARN] Pack '$slug' installed ${age_days} days ago (threshold: ${threshold_days} days). Consider reinstalling." >&2
+        return 0  # Stale
+    fi
+
+    return 1  # Fresh
+}
+
+# Find local source clone for a construct pack
+# Args: $1 = pack slug
+# Returns: 0 if found, 1 if not
+# Outputs: local source path to stdout
+find_local_source() {
+    local slug="$1"
+
+    # Read configured paths from .loa.config.yaml, fallback to common patterns
+    local search_paths=()
+    local config_paths
+    config_paths=$(yq eval '.constructs.local_source_paths[]' ".loa.config.yaml" 2>/dev/null) || true
+
+    if [[ -n "$config_paths" ]]; then
+        while IFS= read -r p; do
+            # Expand ~ to HOME
+            p="${p/#\~/$HOME}"
+            search_paths+=("$p")
+        done <<< "$config_paths"
+    else
+        # Default search paths
+        search_paths=(
+            "$HOME/Documents/GitHub/construct-$slug"
+            "$HOME/Documents/GitHub/$slug"
+            "$HOME/src/construct-$slug"
+            "$HOME/src/$slug"
+        )
+    fi
+
+    for path in "${search_paths[@]}"; do
+        if [[ -d "$path" && ( -f "$path/construct.yaml" || -f "$path/manifest.json" ) ]]; then
+            echo "$path"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 # Update registry meta file

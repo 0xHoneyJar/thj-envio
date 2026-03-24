@@ -310,13 +310,13 @@ servers:
     description: "Issue tracking"
     scopes: [issues, projects]
     required_by:
-      - command: "/feedback"
-        reason: "Posts feedback to Linear"
+      - skill: "planning-sprints"
+        reason: "Can sync sprint tasks to Linear"
     setup:
       steps: [...]
 groups:
   essential:
-    servers: [linear, github]
+    servers: [github]
 ```
 
 Helper scripts for MCP operations:
@@ -343,7 +343,7 @@ Scripts in `.claude/scripts/` follow these conventions:
 - **Parseable output**: Structured return values (e.g., `KEY|value`)
 - **Exit codes**: 0=success, 1=error, 2=invalid input
 - **No side effects**: Scripts read state, don't modify it
-- **POSIX-compatible**: Where possible for cross-platform support
+- **Cross-platform**: Use `compat-lib.sh` for `sed -i`, `readlink -f`, `stat`, `sort -V`, `mktemp --suffix`, and `find -printf`. See `.claude/protocols/cross-platform-shell.md`
 
 ### Documentation
 

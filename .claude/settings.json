@@ -1,4 +1,8 @@
 {
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": ["Channeling", "Invoking", "Conjuring", "Manifesting", "Divining", "Summoning"]
+  },
   "permissions": {
     "allow": [
       "Bash(npm:*)",
@@ -432,13 +436,48 @@
     ]
   },
   "hooks": {
+    "Setup": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/scripts/upgrade-health-check.sh"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/scripts/check-updates.sh --notify"
+            "command": ".claude/scripts/check-updates.sh --notify",
+            "async": true,
+            "once": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Skill(plan-and-analyze.*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/scripts/cleanup-context.sh --prompt"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/scripts/gpt-review-hook.sh"
           }
         ]
       }
@@ -449,7 +488,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/scripts/permission-audit.sh log"
+            "command": ".claude/scripts/permission-audit.sh log",
+            "async": true
           }
         ]
       }

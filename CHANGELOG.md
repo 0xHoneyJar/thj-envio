@@ -5,6 +5,3188 @@ All notable changes to Loa will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.65.0] - 2026-03-23
+
+### Added
+
+- **cycle-049**: Upstream Platform Alignment — Claude Code Feature Adoption (#451)
+  - `allowed-tools` restrictions on 13 read-only/analytical skills (principle of least privilege)
+  - `context: fork` + `agent` type for 6 heavy skills (/ride, /audit, /bridgebuilder-review)
+  - `name` and `description` metadata on 13 skills for Claude Code discoverability
+  - Path-scoped `.claude/rules/` directory with 3 zone rule files (zone-system, zone-state, shell-conventions)
+  - ADVISORY compliance hook prototype (`implement-gate.sh`) — warns on App Zone writes outside /implement
+  - Model adapter backward-compat aliases (claude-opus-4-0, 4-1, 4.0, 4.1, 4-5)
+  - Memory system ownership boundary (auto-memory vs observations.jsonl)
+  - Agent Teams hook validation + ATK-011 mitigation (blocks unset LOA_TEAM_MEMBER)
+- **cycle-050**: Multi-Model Permission Architecture — Ecosystem-Wide Governance Primitives (#451)
+  - **Capability taxonomy**: Model-agnostic `capabilities:` field on all 25 skills with `schema_version: 1`, 8 capability categories, strict tokenized `execute_commands` grammar (no raw shell strings)
+  - **Cost profiles**: `cost-profile:` field on all 25 skills (lightweight/moderate/heavy/unbounded) for Freeside conservation guard integration
+  - **Rule lifecycle metadata**: `origin`, `version`, `enacted_by` on all `.claude/rules/` files (mirrors loa-dixie ConstraintOrigin pattern)
+  - **Dual-mode compliance hook**: `implement-gate.sh` supports authoritative mode (platform-detected) + heuristic fallback with mode pinning and audit logging
+  - **Feature detection**: `detect-platform-features.sh` for versioned capability handshake
+  - **Mount conflict detection**: `mount-conflict-detect.sh` with CSS-specificity precedence (project > Loa > default), dry-run output, deterministic ordering
+  - **Validation tooling**: `validate-skill-capabilities.sh` (--strict, --json, deny-all default) and `validate-rule-lifecycle.sh`
+  - **Portable date conversion**: `_date_to_epoch()` in compat-lib.sh v1.1.0 (GNU/macOS/perl fallback)
+  - **Permissions reference doc**: Complete taxonomy documentation with cross-repo integration guidance
+  - 38 new tests across 7 test suites (skill-capabilities, rule-lifecycle, compliance-hook, mount-conflicts, model-adapter, agent-teams, integration)
+  - Cross-repo integration issues: loa-hounfour#49, loa-freeside#138, loa-dixie#80
+
+### Changed
+
+- **Fail-closed defaults**: Unannotated skills get deny-all capabilities (inverted from fail-open, per Flatline SKP-001)
+- **`capabilities: all` prohibited**: Must use explicit expanded maps (Flatline SKP-003)
+- **Strict execute_commands grammar**: Tokenized command+args, no raw shell patterns (Flatline IMP-003/SKP-004)
+- **Validation in --strict mode**: Warnings promoted to errors on CI (Flatline IMP-002)
+- `compat-lib.sh` bumped to v1.1.0
+- `implement-gate.sh` path normalization resolves absolute paths relative to PROJECT_ROOT
+
+### Fixed
+
+- `has_tool()` word-boundary matching prevents substring false positives (CRIT-1)
+- `_date_to_epoch("")` rejects empty string instead of returning current time (CRIT-3)
+- `validate-skill-capabilities.sh` counter bug in strict mode (CRIT-2)
+- `.claude/rules/zone-state.md` missing `.ck/**` path (BB-049-002)
+- Portable date conversion in implement-gate.sh (BB-049-001)
+
+### Security
+
+- Flatline 3-model review (Opus + GPT-5.3-codex + Gemini 2.5 Pro): 5 HIGH_CONSENSUS integrated, 15 BLOCKERS addressed
+- Red Team: 5 attack scenarios analyzed, 0 confirmed vulnerabilities
+- Security audit: APPROVED — no CRITICAL/HIGH findings
+- ATK-011: Blocks `unset LOA_TEAM_MEMBER` and `env -u` privilege escalation in Agent Teams
+
+## [Unreleased]
+
+### Added
+
+- **cycle-038**: Organizational Memory Sovereignty — three-zone state architecture with state-dir resolution, migration engine, trajectory redaction, memory pipeline, and federated learning across 6 sprints (#410)
+- **cycle-036**: Quick-Win UX Fixes — state zone merge protection, stealth `.ck/` directory, bridgebuilder `.env` auto-loading, origin-first remote detection (#407)
+- **cycle-035**: Minimal Footprint by Default — submodule-first installation with `/loa eject` for full copy (#406)
+- **cycle-034**: Declarative Execution Router + Adaptive Multi-Pass review pipeline (#404)
+- **cycle-030/031**: UX Redesign + Interview Depth Configuration + BUTTERFREEZONE Skill Provenance Segmentation (#391, #392)
+- **cycle-029**: Construct-Aware Constraint Yielding — constructs can declare gate overrides (#378)
+- **cycle-028**: Security Hardening — Bridgebuilder cross-repository findings (#377)
+- **cycle-027**: Broader QMD Integration across core skills (#373)
+- 5 README updates
+
+## [1.49.0] — 2026-02-18 — Bridgebuilder Model Upgrade
+
+### Changed
+
+- **bridgebuilder**: Upgrade default model to `claude-opus-4-6` for improved review quality (#372)
+
+## [1.48.2] — 2026-02-18 — Bridgebuilder ESM Fix
+
+### Fixed
+
+- **bridgebuilder**: Fix ESM `require()` crash + stale model default (#371)
+
+## [1.48.1] — 2026-02-18 — Hounfour Runtime Bridge
+
+### Fixed
+
+- **hounfour**: Config-driven token param — fixes GPT-5.2+ `model-invoke` (#347)
+
+### Added
+
+- **cycle-026**: Hounfour Runtime Bridge — GoogleAdapter, Deep Research routing, metering, FLockSemaphore for model-heterogeneous agent execution (#368)
+
+## [1.47.1] — 2026-02-17 — Cross-Codebase Feedback Routing
+
+### Fixed
+
+- **update-loa**: Preserve `.claude/constructs/` during framework updates (BUG-361) (#362)
+
+### Added
+
+- **cycle-025**: Cross-Codebase Feedback Routing — attribution engine, redaction, deduplication (#357, #360)
+
+## [1.45.2] — 2026-02-17 — Scoring Engine Syntax Fix
+
+### Fixed
+
+- **scoring-engine**: Remove apostrophe breaking `bash -n` syntax check (#356)
+
+## [1.45.1] — 2026-02-16 — Hygiene Sprint
+
+### Fixed
+
+- **cycle-024**: The Hygiene Sprint — adapter fixes, scoring engine cleanup, cleanup hook (#353)
+
+## [1.45.0] — 2026-02-16 — The Permission Amendment + Gemini Integration
+
+### Added
+
+- **cycle-023**: The Permission Amendment — MAY constraints, REFRAME severity level, Vision-004 speculative exploration (#352)
+- **cycle-021**: Gemini Integration Audit & Activation (#348)
+
+## [1.43.0] — 2026-02-16 — Agent Teams + Enrichment + Release Automation
+
+### Added
+
+- **cycle-020**: TeamCreate Compatibility — Agent Teams Orchestration with lead/teammate role enforcement (#341)
+- **cycle-018**: Ride Enrichment — Gap Tracking & Decision Archaeology (#338)
+- **cycle-017**: BUTTERFREEZONE Excellence — Agent-API Interface Standard (#336)
+- **cycle-016**: Release Automation Excellence — CHANGELOG Generation & Release Quality (#334)
+
+## [1.39.1] — 2026-02-15 — Collateral Deletion Safeguard + CI Hardening
+
+### Fixed
+
+- **update-loa**: Collateral deletion safeguard — `/update-loa` merge could destroy 933+ downstream project files when upstream deletes framework files. Added `--no-commit` merge + framework zone allowlist in new Phase 5.3 (#330, #331)
+- **CI**: Cross-platform `sed` portability — replace bare `sed -i` with temp-file-and-mv pattern in `post-merge-orchestrator.sh` and `red-team-pipeline.sh` (macOS compatibility)
+- **CI**: Constraint registry validation — add `eval`, `bridge`, `merge` categories; `SHOULD` rule type; missing E115/E116 error codes
+- **CI**: Internal link checker — strip `#anchor` fragments before file existence check
+
+### Added
+
+- **cycle-015**: Platform Hardening — portable locking, model catalog expansion (Gemini 3 models), BUTTERFREEZONE narrative quality, construct sync
+
+_Source: PR #330_
+
+## [1.39.0] — 2026-02-15 — Environment Design for Agent Flourishing
+
+Four interconnected environment design advances that transform the framework from a tool that executes tasks into a system that develops self-knowledge, architectural memory, and speculative depth.
+
+### Added
+
+- **cycle-014**: Environment Design for Agent Flourishing — trajectory narrative + session awakening, bidirectional lore + discovery pipeline, vision sprints + speculation channel, hardening for all Bridgebuilder findings, speculation primitives with state recovery + model attribution (#326)
+- 5 sprints (global 91-95), 3 bridge iterations converging to 0 findings
+- 26 files changed, 9 findings addressed, 39/39 evals passing
+
+_Source: PR #326_
+
+## [1.38.1] — 2026-02-14 — Hounfour Hardening — Model Invocation Pipeline Fixes
+
+### Fixed
+
+- **cycle-013**: Hounfour Hardening — model invocation pipeline fixes including model validation, invocation fallbacks, and pipeline resilience (#320, #321, #294)
+
+_Source: PR #320_
+
+## [1.38.0] — 2026-02-14 — Adversarial Hardening Release
+
+### Why This Release
+
+Six cycles of concurrent engineering since v1.33.1 — spanning autonomous excellence loops, agent-grounded documentation, safety infrastructure, generative adversarial security design, and CI pipeline fixes — consolidated into a single release. Covers cycles 005 through 012, 10 merged PRs, and the transition from manual bridge reviews to autonomous red team pipelines.
+
+### Added
+
+#### Flatline Red Team — Generative Adversarial Security Design (#317, Cycle 012)
+
+Complete red team pipeline for adversarial security analysis of design documents:
+
+- **Red Team Pipeline** (`red-team-pipeline.sh`): 5-phase pipeline (sanitize → attack generation → cross-validation → consensus → counter-design) with per-phase timing metrics, budget enforcement, and inter-model safety envelope
+- **Scoring Engine** (`scoring-engine.sh`): Multi-model consensus scoring with 4 categories — CONFIRMED_ATTACK (both >700), THEORETICAL (one >700, other ≤700), CREATIVE_ONLY (neither >700), DEFENDED (with counter-design). Configurable thresholds via `.loa.config.yaml`
+- **Model Adapter** (`red-team-model-adapter.sh`): Mock/live abstraction for multi-model invocation with `--role attacker|defender|evaluator`, `--budget`, `--timeout` flags. Mock mode loads fixtures, live mode reserved for Hounfour integration
+- **Golden Set** (`red-team-golden-set.json`): 33-entry calibration corpus across all 4 consensus categories, 5 attacker profiles (external, insider, supply_chain, confused_deputy, automated), 5 attack surfaces, and 8 compositional vulnerability entries
+- **Input Sanitizer** (`red-team-sanitizer.sh`): Multi-pass sanitization with UTF-8 normalization, secret scanning, injection pattern detection, and `--inter-model` lightweight mode for between-phase safety
+- **Report Generator** (`red-team-report.sh`): Markdown report with executive summary, per-attack details, counter-designs, and metrics
+- **Retention Policy** (`red-team-retention.sh`): Configurable retention with age/count-based cleanup
+- **Attack Surfaces Registry** (`attack-surfaces.yaml`): 5 Loa-specific surfaces (agent-identity, token-gated-access, prompt-pipeline, config-as-code, multi-model-consensus) with graceful degradation for non-Loa projects
+- **Model Permissions** (`model-permissions.yaml`): Per-model capability constraints for 5 models
+- **Red Team Schema** (`red-team-result.schema.json`): JSON Schema for pipeline output validation
+- **Fixtures**: 5 response fixtures (2 attacker, 2 evaluator, 1 defender) for end-to-end mock testing
+- **`/red-team` Skill**: Command and skill registration with danger_level: high
+- 45 tests (33 scoring engine + 7 sanitizer + 5 model adapter)
+- 6 sprints (global 79-84), 3 bridge iterations achieving flatline (23 → 1.1 → 0.4)
+
+#### Harness Engineering — Safety Hooks, Deny Rules, Token Optimization (#315, Cycle 011)
+
+Production safety infrastructure for autonomous agent operation:
+
+- **Safety Hooks**: PreToolUse:Bash hook (`block-destructive-bash.sh`) blocks `rm -rf`, `git push --force`, `git reset --hard`, `git clean -f` with safer alternative suggestions
+- **Deny Rules**: Template credential deny rules (SSH, AWS, Kube, GPG, npm, pypi, git, gh) with merge installer script (`install-deny-rules.sh`)
+- **Stop Guard** (`run-mode-stop-guard.sh`): Stop hook detects active autonomous runs and injects context reminder
+- **Audit Logger** (`mutation-logger.sh`): PostToolUse:Bash JSONL logger for mutating commands with 10MB auto-rotation
+- **CLAUDE.md Optimization**: 757 → 244 lines (68% reduction), 3433 → 1554 words (55% reduction), 6 reference files extracted to `.claude/loa/reference/`
+- **Invariant Linter** (`lint-invariants.sh`): 9 structural invariants validated mechanically — system zone integrity, managed headers, constraints sync, required files, hooks, safety hook tests, deny rules
+- **Token Budget Measurement** (`measure-token-budget.sh`): Shows 71% of tokens are demand-loaded via skill invocation
+- 45 safety hook tests + 13 linter self-tests
+
+#### BUTTERFREEZONE — Agent-Grounded README Standard (#311, Cycle 009)
+
+Machine-generated, provenance-tagged README with ground truth anchoring:
+
+- **Generator** (`butterfreezone-gen.sh`, ~1230 lines): 3-tier input detection (reality files → static analysis → bootstrap), 8 section extractors with provenance tagging (CODE-FACTUAL, DERIVED, OPERATIONAL), advisory checksums (per-section SHA-256), word-count budget enforcement (3200 total, 800/section), security redaction, manual section preservation via sentinels, atomic writes with flock
+- **Validator** (`butterfreezone-validate.sh`): 7 validation checks (existence, AGENT-CONTEXT, provenance, references, word budget, ground-truth-meta, freshness) with `--strict`/`--json`/`--quiet` modes
+- **Bridge Integration**: BUTTERFREEZONE_GEN hook in bridge orchestrator FINALIZING phase (non-blocking)
+- **`/butterfreezone` Skill**: danger_level: safe
+- 3 lore glossary entries: butterfreezone, lobster, grounding-ritual
+- 41 BATS tests (28 gen + 13 validate)
+
+### Fixed
+
+- **Flatline Model Validation** (#308): `validate_model()` rejects invalid model names (agent aliases like `reviewer`) before API calls with actionable error messages; timeout raised 60s → 120s for Opus; stderr captured to temp files instead of `/dev/null`; 2s stagger between review and skeptic waves to avoid rate-limit contention; 13 BATS tests
+- **Bridgebuilder Filtering Gaps** (#313): 7 new `LOA_EXCLUDE_PATTERNS` entries (`evals/**`, `.run/**`, `.flatline/**`, `PROCESS.md`, `BUTTERFREEZONE.md`, `INSTALLATION.md`, `grimoires/**/NOTES.md`); new `isLoaSystemZone()` function demotes framework file security findings to tier2; `resolveRepoRoot()` with CLI > env > git auto-detect precedence; 332 tests passing
+- **Post-Merge Pipeline** (#318): Added git identity config to GitHub Actions workflow (fixed `fatal: empty ident name` that caused all 7 post-merge runs to fail); extended cycle classification regex to match `feat(cycle-...)` commits; fixed Discord webhook secret name to match repo configuration (`MELANGE_DISCORD_WEBHOOK`)
+
+## [1.37.0] — DX Hardening (Cycle 008)
+
+### Why This Release
+
+Addresses three compounding DX pain points: eager secret resolution crashes config loading when unused providers lack env vars (#300), framework development artifacts pollute fresh user project mounts (#299), and review tools process system zone files alongside user code (#303).
+
+### Added
+
+- **Lazy Config Interpolation** (`interpolation.py`): `LazyValue` wrapper defers `{env:*}` resolution until `str()` access — missing env vars for unused providers no longer crash config load (FR-1, #300)
+- **`_DEFAULT_LAZY_PATHS`**: Configurable set of dotted-key patterns (`providers.*.auth`) controlling which config paths get lazy treatment
+- **Enhanced Error Messages**: `LazyValue.resolve()` includes provider name, agent context, and `/loa-credentials set` hint on failure
+- **Mount Hygiene** (`mount-loa.sh`): `clean_grimoire_state()` removes framework development artifacts (prd.md, sdd.md, sprint.md, BEAUVOIR.md, SOUL.md) and stale a2a/archive contents after grimoire checkout (FR-3, #299)
+- **Clean Ledger Init**: Mount now initializes empty `ledger.json` with zeroed counters instead of inheriting framework cycle data
+- **NOTES.md Template**: Creates `## Learnings / ## Blockers / ## Observations` template if missing during mount
+- **52 Python Tests**: 26 original + 26 new covering LazyValue, lazy path matching, lazy interpolation, lazy redaction
+- **13 BATS Tests**: Mount hygiene — artifact removal, directory preservation, clean ledger, NOTES.md, context preservation, idempotency
+- **Credential Provider Chain** (`credentials/providers.py`): Layered resolution — env vars → encrypted store → `.env.local` (FR-2, #300)
+- **Encrypted Credential Store** (`credentials/store.py`): Fernet-encrypted `~/.loa/credentials/store.json.enc` with auto-generated key, 0600/0700 permissions, corrupt store recovery
+- **Credential Health Checks** (`credentials/health.py`): HTTP validation against OpenAI, Anthropic, Moonshot endpoints with configurable timeouts
+- **`/loa-credentials` Skill**: Interactive credential management — `status`, `set`, `test`, `delete` subcommands with `AskUserQuestion` for secure input
+- **31 Credential Tests**: EnvProvider, DotenvProvider, CompositeProvider, EncryptedStore (conditional), EncryptedFileProvider, factory, health checks, interpolation integration
+- **Review Scope Utility** (`review-scope.sh`): Shared script for zone detection + `.reviewignore` pattern matching — `detect_zones()`, `load_reviewignore()`, `is_excluded()`, `filter_files()` (FR-4, #303)
+- **`.reviewignore` Template**: Gitignore-style review exclusion patterns — system zone, state zone, generated files, vendor deps
+- **Mount `.reviewignore` Creation**: `create_reviewignore()` creates template during mount if not present
+- **lib-content.sh Scope Integration**: `prepare_content()` excludes out-of-scope files before priority-based truncation
+- **Bridgebuilder `.reviewignore` Support**: `loadReviewIgnore()` merges `.reviewignore` patterns with `LOA_EXCLUDE_PATTERNS` in truncation pipeline
+- **Audit-Sprint Zone Awareness**: Security audit skill instructions updated to focus on app zone files with `.reviewignore` support
+- **19 Review Scope BATS Tests**: Zone detection, `.reviewignore` parsing, glob/directory patterns, `--no-reviewignore` bypass, filter pipeline, combined filtering
+
+### Changed
+
+- `ProviderConfig.auth` type widened from `str` to `Any` to accept `LazyValue`
+- `interpolate_config()` accepts `lazy_paths` and `_current_path` parameters
+- `redact_config()` handles `LazyValue` without triggering resolution
+- `redact_config_value()` uses duck-typing for `LazyValue` detection (no import needed)
+- `interpolate_value()` resolves `{env:VAR}` through credential provider chain (env → encrypted → dotenv) instead of `os.environ` alone
+- `loader.py` passes `lazy_paths=_DEFAULT_LAZY_PATHS` to interpolation pipeline
+
+## [1.36.0] - 2026-02-13 — Post-Merge Automation Pipeline
+
+### Why This Release
+
+Automates the entire post-merge lifecycle: when a PR merges to main, a GitHub Actions workflow classifies the PR type (cycle/bugfix/other), computes the next semver from conventional commits, finalizes the CHANGELOG, creates tags and releases, and posts a summary. Cycle PRs get the full 8-phase pipeline via claude-code-action; bugfix/other PRs get lightweight tag-only processing. Closes #298.
+
+### Added
+
+- **Post-Merge Orchestrator** (`.claude/scripts/post-merge-orchestrator.sh`): 8-phase pipeline with atomic state updates, phase matrix, dry-run mode, and idempotent phases
+- **Semver Bump Script** (`.claude/scripts/semver-bump.sh`): Conventional commit parser — feat→minor, fix→patch, BREAKING→major, outputs JSON
+- **Release Notes Generator** (`.claude/scripts/release-notes-gen.sh`): CHANGELOG extraction with cycle/bugfix/other templates
+- **GitHub Actions Workflow** (`.github/workflows/post-merge.yml`): 4-job workflow (classify → simple-release/full-pipeline → notify)
+- **claude-code-action Integration**: Sonnet model, 15 max turns, tool allowlist for cycle PRs
+- **Shell-Only Fallback**: Pipeline runs without ANTHROPIC_API_KEY for cycle PRs
+- **Discord Notification**: Webhook alert on pipeline failure
+- **Post-Merge Config**: `post_merge:` section in `.loa.config.yaml`
+- **Constraints**: C-MERGE-001 through C-MERGE-005 (orchestrator-only, no manual tags, RTFM non-blocking, idempotent phases, cycle-only full pipeline)
+- **61 BATS Tests**: 22 semver + 15 release-notes + 24 orchestrator
+
+## [1.35.1] - 2026-02-12 — Bridgebuilder Enrichment
+
+### Why This Release
+
+The Bridgebuilder Enrichment release (cycle-006, Issue #295) transforms automated bridge reviews from convergence-only checklists into educational experiences. The manual Bridgebuilder produces reviews that teach — FAANG parallels, metaphors, teachable moments. The automated bridge now supports the same richness through enriched findings schema, PRAISE severity, persona-driven review, and dual-stream output.
+
+### Added
+
+- **Bridgebuilder Persona** (`.claude/data/bridgebuilder-persona.md`): Identity, Voice (6 examples from manual reviews), Review Output Format (dual-stream), Content Policy (5 NEVER rules), PRAISE/Educational guidance, Token Budget
+- **PRAISE Severity**: Weight 0, excluded from convergence score, celebrates good engineering decisions
+- **Enriched Findings Fields**: `faang_parallel`, `metaphor`, `teachable_moment`, `connection`, `praise` in bridge-findings-parser.sh and JSON schema
+- **JSON Fenced Block Parser**: Structured JSON inside `<!-- bridge-findings-start/end -->` markers with strict grammar enforcement (exit code 3 on violations)
+- **Legacy Parser Fallback**: Backward-compatible regex parsing when no JSON fence detected
+- **Atomic State Updates**: `flock`-based locking with write-to-temp + atomic `mv` for crash safety in bridge-state.sh
+- **Content Redaction**: `redact_security_content()` with gitleaks-inspired patterns (AWS AKIA, GitHub ghp_/gho_/ghs_/ghr_, JWT eyJ, generic secrets) and allowlist
+- **Post-Redaction Safety Check**: Blocks PR comment posting if secret prefixes remain after redaction
+- **Size Enforcement**: 65KB truncation preserving findings JSON, 256KB findings-only fallback
+- **Phase 3.1 Enriched Review Workflow**: 10-step process in SKILL.md (integrity check, validation, lore load, embody persona, dual-stream, save, size check, redact, safety check, parse+post)
+- **Enrichment Metrics**: Per-iteration tracking of persona_loaded, findings_format, field_fill_rates, praise_count, insights_size_bytes, redactions_applied
+- **Constraints**: C-BRIDGE-006 (ALWAYS load persona), C-BRIDGE-007 (SHOULD praise quality), C-BRIDGE-008 (SHOULD educational fields)
+- **Configuration**: `run_bridge.bridgebuilder` section with persona, size, redaction settings
+- **Formal JSON Schema**: `tests/fixtures/bridge-findings.schema.json` with all severity levels and enriched fields
+- **Test Fixtures**: `enriched-bridge-review.md` (5 findings, PRAISE, full enrichment) and `legacy-bridge-review.md` (4 findings, markdown format)
+- **99 BATS Tests**: 31 parser + 42 state + 26 trail covering JSON extraction, enriched fields, PRAISE, strict grammar, flock, crash safety, redaction, size enforcement, post-redaction safety
+
+### Changed
+
+- **bridge-findings-parser.sh**: Rewritten v2.0.0 — JSON extraction with legacy fallback, strict grammar, PRAISE in SEVERITY_WEIGHTS
+- **bridge-state.sh**: Rewritten v2.0.0 — `atomic_state_update()` wrapping all RMW functions, enrichment metrics in iteration template
+- **bridge-github-trail.sh**: Updated v2.0.0 — redaction, size enforcement, post-redaction safety, retention cleanup, printf fixes
+
+## [1.35.0] - 2026-02-12 — Bridge Release
+
+### Why This Release
+
+The Run Bridge release (cycle-005, Issue #292) delivers autonomous excellence loops — iterative sprint-plan, Bridgebuilder review, findings parsing, and vision capture cycles that terminate via kaironic flatline detection. Built across 3 sprints: foundation data infrastructure (lore KB, vision registry, grounded truth), bridge core engine (orchestrator, state machine, findings parser), and full integration (GitHub trail, skill registration, golden path detection).
+
+### Added
+
+#### Run Bridge — Autonomous Excellence Loop (`/run-bridge`)
+
+Complete iterative improvement system with 6 new scripts:
+
+- **Bridge Orchestrator** (`bridge-orchestrator.sh`): State machine (PREFLIGHT→JACK_IN→ITERATING→FINALIZING→JACKED_OUT) with SIGNAL protocol for agent delegation, configurable depth (1-5), per-sprint mode, resume support, circuit breakers
+- **Bridge State Manager** (`bridge-state.sh`): JSON state management with atomic writes, transition validation, iteration tracking, metrics accumulation
+- **Bridge Findings Parser** (`bridge-findings-parser.sh`): Extracts structured JSON from Bridgebuilder markdown between `<!-- bridge-findings-start/end -->` markers. Severity weights: CRITICAL=10, HIGH=5, MEDIUM=2, LOW=1, VISION=0
+- **Flatline Detection**: Kaironic termination — loop stops when severity score drops below threshold (default 5%) for consecutive iterations (default 2)
+- **Vision Capture** (`bridge-vision-capture.sh`): Filters VISION findings, creates numbered entries, updates registry index
+- **GitHub Trail** (`bridge-github-trail.sh`): PR comments with dedup markers, PR body summary tables, vision link posting. Graceful degradation when `gh` unavailable
+
+#### `/run-bridge` Command and Skill
+
+- **Command**: `.claude/commands/run-bridge.md` with `--depth`, `--per-sprint`, `--resume`, `--from` flags
+- **Skill registration**: `.claude/skills/run-bridge/` with index.yaml (danger_level: high) and SKILL.md
+- **Configuration**: `run_bridge:` section in `.loa.config.yaml` with defaults, timeouts, GitHub trail, GT, vision registry, RTFM, and lore settings
+
+#### Mibera Lore Knowledge Base (`.claude/data/lore/`)
+
+Cultural and philosophical context for agent skills, structured as YAML entries with `short` (inline) and `context` (teaching) fields:
+
+- **Mibera core entries**: kaironic time, cheval, network mysticism, techno-animism, hounfour, loa rides
+- **Mibera cosmology**: Milady/Mibera duality, BGT triskelion, Honey/Bera, the Jar
+- **Mibera rituals**: bridge loop, sprint ceremony, mounting, jacking in, flatline ceremony, vision capture
+- **Mibera glossary**: 15 term definitions for agent consumption
+- **Neuromancer concepts**: ICE, jacking in, cyberspace, the matrix, SimStim, flatline construct, Wintermute, Neuromancer AI
+- **Neuromancer mappings**: 9 concept-to-Loa-feature mappings
+- **Integration guide**: README.md with entry schema and skill integration patterns
+
+#### Vision Registry (`grimoires/loa/visions/`)
+
+Directory structure for capturing VISION-type findings from bridge iterations:
+
+- **index.md**: Status summary with table headers (ID, Title, Source, Status, Tags)
+- **entries/**: Directory for individual vision entry files
+
+#### Grounded Truth Generator (`.claude/scripts/ground-truth-gen.sh`)
+
+Shell script handling mechanical GT operations:
+
+- **Scaffold mode**: Creates hub-and-spoke directory structure (index.md, api-surface.md, architecture.md, contracts.md, behaviors.md)
+- **Checksums mode**: Computes SHA-256 of source files referenced in reality/ extraction
+- **Validate mode**: Token budget validation (index < 500, sections < 2000 tokens)
+- **Cross-platform**: BSD/GNU sha256sum compatibility
+
+#### `/ride` Ground Truth Extension (Phase 11)
+
+- **`--ground-truth` flag**: Generates Grounded Truth output after ride
+- **`--non-interactive` flag**: Skips phases 1, 3, 8 for autonomous bridge loop usage
+- **Phase 11**: Read reality/ → synthesize GT files → generate checksums → validate tokens
+- **riding-codebase SKILL.md**: Phase 11 documentation with token budgets and trajectory logging
+
+#### Bridgebuilder Lore-Aware Persona
+
+- **BEAUVOIR.md**: Lore Integration section with circuit breaker→kaironic-time, multi-model→hounfour, session recovery→cheval mappings
+- **Structured Findings Format**: Documented `<!-- bridge-findings-start/end -->` marker protocol with severity tags and VISION type
+
+#### Golden Path Bridge State Detection
+
+- **`golden_detect_bridge_state()`**: Reads `.run/bridge-state.json`, returns state or "none"
+- **`golden_bridge_progress()`**: Human-readable progress for `/loa` display (iteration N/depth, score, resume instructions)
+
+#### Lore Integration Across Skills
+
+- **Bridgebuilder** (`BEAUVOIR.md`): Teaching moments with lore references
+- **Discovering Requirements** (`SKILL.md`): Philosophical framing for PRD creation
+- **Golden Path / `/loa`** (`loa.md`): Naming context from glossary entries
+
+#### Constraints
+
+5 new bridge constraints (C-BRIDGE-001 through C-BRIDGE-005):
+- Use `/run sprint-plan` within bridge iterations
+- Post Bridgebuilder review as PR comment after each iteration
+- Ensure GT claims cite `file:line` references
+- Use YAML format for lore entries with required schema fields
+- Include source bridge iteration and PR in vision entries
+
+#### Tests
+
+- **bridge-state.bats**: 21 tests (init, transitions, illegal transitions, flatline, metrics, schema)
+- **bridge-findings-parser.bats**: 9 tests (parsing, severity weighting, edge cases)
+- **bridge-vision-capture.bats**: 6 tests (entry creation, 0 visions, error handling)
+- **bridge-github-trail.bats**: 10 tests (subcommands, arg validation, graceful degradation)
+- **bridge-golden-path.bats**: 11 tests (state detection, progress display, regression)
+- **lore-validation.bats**: 25 tests (YAML schema, cross-references, glossary count)
+- **ground-truth-gen.bats**: 11 tests (scaffold, checksums, validate, all modes)
+- **7 eval tasks**: lore-index-valid, lore-entries-schema, gt-checksums-match, bridge-state-schema-valid, bridge-findings-parser-works, golden-path-bridge-detection, vision-entries-traceability
+
+## [1.34.1] - 2026-02-12
+
+### Why This Release
+
+Quality hardening pass for the Onboarding UX release. Fixes CI failures, adds missing test coverage, formalizes schemas, and documents lifecycle protocols — all traced to Bridgebuilder architectural review findings on PR #291.
+
+### Fixed
+
+- **Template Protection CI** — removed 37 forbidden state files (`.run/`, `.beads/`, `.ck/`) from git tracking that accumulated during previous development cycles
+- **Fixture sync CI integration** — new `fixture-sync` CI job runs `sync-fixtures.sh --check` on every PR to catch drift before merge
+
+### Added
+
+- **Bug-specific journey bar** — `golden_format_bug_journey()` renders bug lifecycle visualization: `/triage ━━━ /fix ●━━━ /review ━━━ /close`
+- **JSON output mode** — `golden_menu_options --json` produces machine-readable output for tooling integration
+- **Archetype risk seeding** — `/plan` now seeds `NOTES.md ## Known Risks` from selected archetype's `context.risks`
+- **Archetype schema validation** — `schema.yaml` defines required archetype fields; `sync-fixtures.sh --check` validates all archetypes
+- **Auto-discovery of sync targets** — `sync-fixtures.sh` scans eval task YAML files to auto-populate fixture sync map
+- **BATS unit test suite** — 33 tests covering `golden-path.sh` state detection, menu options, journey visualization, pipe sanitization, and bug transitions
+- **Sprint completion protocol** — `.claude/protocols/sprint-completion.md` documents the implement → review → audit → COMPLETED lifecycle
+- **Bug lifecycle protocol** — `.claude/protocols/bug-lifecycle.md` documents the full bug state machine with transitions and TOCTOU-safe verification
+- 2 new framework eval tasks: `golden-bug-journey`, `golden-menu-json`
+
+## [1.34.0] - 2026-02-12
+
+### Why This Release
+
+The Onboarding UX release makes Loa dramatically easier to get started with. Inspired by competitive analysis of Hive's onboarding (PR #290), this release adds **context-aware navigation**, **post-mount verification**, a **setup wizard**, and **project archetypes** — reducing first-5-minutes friction while keeping all power-user truename commands intact.
+
+### Added
+
+#### Context-Aware `/loa` Menu (FR-1, Sprint 8)
+
+The `/loa` command now shows a dynamic, state-aware action menu instead of a static 3-option list:
+
+- **9-state detection engine** (`golden_detect_workflow_state()`) — determines where you are in the workflow
+- **Context-specific menu options** — each state shows relevant next actions (e.g., "Build sprint-2" when implementing, "Fix bug: title" when triaging)
+- **Smart routing** — menu selections invoke the correct skill automatically
+- **Destructive action safety** — "Plan new cycle" requires confirmation before archiving
+- 3 new framework eval tasks (golden-menu-*)
+
+#### Post-Mount Verification (FR-2, Sprint 9)
+
+`mount-loa.sh` now validates the installation after framework sync:
+
+- **`verify_mount()`** — checks framework files, config, deps, optional tools, and API key presence
+- **NFR-8 compliance** — API key check is boolean-only ("is set" / "not set"), zero key material in output
+- **Safe JSON assembly** — uses `jq -n --arg` instead of string concatenation (Flatline SKP-004)
+- **Flags**: `--quiet`, `--json`, `--strict` (converts warnings to failures)
+- **Exit codes**: 0 = success+warnings, 1 = failure
+- 2 new framework eval tasks (mount-verify-*)
+
+#### Setup Wizard `/loa setup` (FR-3, Sprint 10)
+
+New interactive environment setup command:
+
+- **`loa-setup-check.sh`** — JSONL validation engine checking API key, deps, optional tools, config
+- **4-step wizard** — validate deps → check tools → show config → toggle features
+- **`--check` flag** — non-interactive validation-only mode
+- **Feature toggle UI** — AskUserQuestion with multiSelect for Flatline, Memory, Enhancement
+
+#### Project Archetypes (FR-4, Sprint 10)
+
+First-time `/plan` users now see a project archetype menu:
+
+- **4 templates**: REST API, CLI Tool, Library/Package, Full-Stack App
+- **Each template** provides vision, technical context, NFRs, testing strategy, and risks
+- **"Other" option** skips to blank-slate interview
+- **Auto-ingestion** — selected archetype written to `grimoires/loa/context/archetype.md`
+- 2 new framework eval tasks (setup-check-nfr8, archetype-schema)
+
+#### Use-Case Qualification (FR-5, Sprint 11)
+
+First-time `/plan` users see a brief "Loa works best for..." guidance screen:
+
+- Shows feature comparison ("What does Loa add?")
+- Never blocks — always allows continuing
+- Helps users self-qualify before investing in full planning
+
+#### Auto-Format Construct Pack Spec (FR-6, Sprint 11)
+
+Design specification for a construct pack that installs language-specific formatting hooks:
+
+- Supports Python (ruff), JS/TS (prettier), Go (gofmt), Rust (rustfmt)
+- Non-destructive — preserves existing formatter configs
+- Implementation ships separately in `loa-constructs` repo
+
+### Framework Eval Suite
+
+- **30 tasks** (up from 23), 0 failures
+- New coverage: golden-menu-*, mount-verify-*, setup-check-*, archetype-*
+
+---
+
+## [1.33.1] - 2026-02-12
+
+### Fixed
+
+#### Update Safety — Workflow File Propagation (#288)
+
+`/update-loa` no longer propagates `.github/workflows/` files to downstream projects:
+
+- **`.gitattributes`**: Added `merge=ours` rules for `.github/workflows/*.yml` and `.yaml` — prevents upstream workflow files from overwriting downstream versions during `git merge loa/main`
+- **`/update-loa` Phase 5.5**: New post-merge revert step detects and removes workflow files added by upstream (handles new files that `merge=ours` cannot protect)
+- **Eval**: Added `gitattributes-workflow-protection` framework test (23 total), updated fixture and baseline
+
+**Root cause**: v1.33.0 introduced `.github/workflows/eval.yml` which propagated to downstream projects. GitHub requires the `workflow` OAuth scope to push workflow changes, blocking users without that scope.
+
+---
+
+## [1.33.0] - 2026-02-11 — Garde Release
+
+### Why This Release
+
+The Garde Release builds protective infrastructure around Loa's development lifecycle. A full **eval sandbox** lands with deterministic framework testing, 9 code-based graders, CI pipeline with dual-checkout trust boundaries, and baseline regression detection. Alongside this, **bug mode** (`/bug`) introduces a lightweight triage-to-fix workflow that enforces test-first development while bypassing PRD/SDD gates for observed failures. **6 PRs** covering eval infrastructure, bug-fixing workflows, and RTFM-surfaced documentation repairs.
+
+### Added
+
+#### Eval Sandbox — Framework Evals, Regression Suite, CI Pipeline (#277, #282)
+
+Full evaluation infrastructure for deterministic framework testing:
+
+- **7-script harness pipeline**: `run-eval.sh` orchestrator, `validate-task.sh`, `sandbox.sh`, `grade.sh`, `compare.sh`, `report.sh`, `pr-comment.sh`
+- **9 code-based graders**: `file-exists`, `tests-pass`, `function-exported`, `pattern-match`, `diff-compare`, `quality-gate`, `no-secrets`, `constraint-enforced`, `skill-index-validator`
+- **Framework correctness suite**: 22 deterministic tasks covering config validation, constraint enforcement, golden path structure, quality gates
+- **Regression suite scaffold**: 11 agent-simulated tasks — bug triage, implementation, and review scenarios with 3 trials per task
+- **5 test fixtures**: `loa-skill-dir`, `hello-world-ts`, `buggy-auth-ts`, `simple-python`, `shell-scripts`
+- **GitHub Actions CI pipeline**: dual-checkout trust model (base=trusted graders, PR=untrusted tasks), source-injection scanning, symlink escape prevention, PR comment reports with collapsible results
+- **Dockerfile.sandbox**: container isolation with yq, jq, git, bash 4.0+
+- **Baseline comparison**: Wilson confidence intervals, regression/improvement/new/missing classification
+- **`/eval` command**: skill registration for running suites from Claude Code
+- 61 unit + integration tests across harness and graders
+
+#### Bug Mode — Lightweight Bug-Fixing Workflow (#278, #279)
+
+New `/bug` command and `bug-triaging` skill for observed-failure triage:
+
+- **5-phase triage**: dependency check → eligibility validation → hybrid interview → codebase analysis → micro-sprint creation
+- **Eligibility scoring**: 2-3 point rubric with disqualifiers for feature requests
+- **PII redaction**: API keys, JWT tokens, passwords, emails stripped from imported content
+- **GitHub issue import**: `--from-issue N` flag for automated intake
+- **Test-first enforcement**: HALTs if no test infrastructure detected
+- **Run mode integration**: `/run --bug "description"` with circuit breaker
+- **Golden path awareness**: `/build` auto-detects active bugs and routes correctly
+- **State management**: bug state tracking in `.run/bugs/{id}/state.json` with TOCTOU-safe detection
+- **Process compliance**: C-PROC-015 (validate eligibility) and C-PROC-016 (no feature work via `/bug`)
+
+### Changed
+
+- Process compliance tables in CLAUDE.loa.md updated to include `/bug` as valid implementation path
+- `/loa` status command extended to detect and report active bug workflows
+- Run mode SKILL.md updated with `/run --bug` documentation
+
+### Fixed
+
+- **CI trust boundary false positives**: refactored globstar save/restore in `run-eval.sh` to avoid `eval` command; test directories excluded from trust boundary scanner (#283)
+- **Fixture config tracking**: `.gitignore` negation for `evals/fixtures/**/.loa.config.yaml` — global ignore rule caused 3 framework task failures (#284)
+- **PR comment coverage**: workflow step now posts results for ALL suites, not just most recent run directory (#284)
+- **README documentation gaps**: added "What Is This?" definition, clarified slash commands vs shell commands, added prerequisites, post-install verification, first-run expectations, and beads_rust requirement clarification
+- **INSTALLATION documentation gaps**: moved optional enhancements after core install, fixed config bootstrap path, added minimal working config example, clarified `.beads/` creation timing, resolved beads_rust requirement contradiction, added uninstall section, added failure recovery guidance
+
+### Documentation
+
+- **Eval CI pipeline guide**: trust model, dual-checkout architecture, pipeline steps, suite types, artifact retention (#285)
+- **Eval health checks**: local verification commands, task category reference, monitoring recommendations (#285)
+- **Eval operational runbook**: adding tasks/graders/fixtures, investigating CI failures, baseline update procedures (#285)
+
+---
+
+## [1.32.0] - 2026-02-10 — Hounfour Release
+
+### Why This Release
+
+The Hounfour Release extracts multi-model provider infrastructure from loa-finn into upstream Loa as the `loa_cheval` Python package — a full provider abstraction layer with Anthropic + OpenAI adapters, cost metering, routing chains, and circuit breakers. Alongside this headline feature, Bridgebuilder v2.1 lands with typed errors, glob matching, incremental review, and persona routing, while `/rtfm` introduces zero-context documentation quality testing. **15 PRs** covering provider infrastructure, skill polish, documentation tooling, and template hygiene.
+
+### Added
+
+#### Hounfour: Multi-Model Provider Abstraction Layer (`loa_cheval`)
+
+Extracted from loa-finn as a standalone Python package under `.claude/adapters/loa_cheval/`:
+
+- **Provider adapters**: Anthropic (Claude) and OpenAI (GPT) with unified response types
+- **Config system**: YAML loading with `${ENV_VAR}` interpolation, secret redaction, validation
+- **Cost metering**: Micro-USD integer arithmetic ledger, pricing registry, budget enforcement
+- **Routing**: Model alias resolution, multi-step chains, circuit breaker with half-open recovery
+- **CLI**: `model-invoke` shell entry point for script-level model calls
+- **Schema**: `model-config.schema.json` for configuration validation
+- **185 tests** across 10 test files, zero regressions
+
+#### Bridgebuilder v2.1 — Typed Errors, Glob, Incremental Review, Persona Routing (#263, #267)
+
+- **Loa-aware filtering**: Auto-detect Loa-mounted repos, 39 security patterns with 6 categories
+- **Progressive truncation**: 3-level diff truncation targeting 90% budget, adaptive LLM retry
+- **Persona pack system**: 5 built-in personas (default, security, dx, architecture, quick) with CLI-wins precedence
+- **Enhanced glob matching**: `path.matchesGlob()` for Node 22+, fallback for older runtimes
+- **Incremental review**: Delta-only review on PR updates since last reviewed SHA
+- **Multi-model persona routing**: YAML frontmatter model hints, CLI `--model` override
+- 277 tests passing
+
+#### /rtfm Documentation Quality Testing (#236, #259)
+
+New skill that spawns zero-context tester agents to validate documentation usability:
+- Hermetic tester spawn via Task subagent with context isolation canary
+- Structured [GAP] report parsing with 6 types, 3 severities
+- Task template system (install, quickstart, mount, beads, gpt-review, update)
+- Prompt injection hardening per GPT-5.2 cross-model review
+- Progressive size limits with three-tier handling (50KB/100KB/reject)
+
+#### /ride: Persistent Artifact Writes + Verification Gate (#272)
+
+- Add `Write` tool to allowed-tools (root cause: agent could analyze but never persist)
+- 8 write checkpoints (CP-1 through CP-9) after each artifact phase
+- Phase 10.0 Artifact Verification Gate (BLOCKING) before handoff
+- Phase 0.6 staleness detection with configurable `ride.staleness_days`
+- Architecture-overview.md template added to output formats
+
+#### Bridgebuilder Autonomous PR Review Skill (#248)
+
+Full hexagonal architecture extraction over 6 sprints:
+- 7 port interfaces, 5 core domain classes, default adapters (GitHub CLI, Anthropic, sanitizer)
+- Config resolution with 5-level precedence (CLI > env > YAML > auto-detect > defaults)
+- GPT-5.2 cross-model security hardening, strict endpoint allowlist (default-deny)
+- Persona voice with Bridgebuilder identity, config provenance tracking
+- 100+ tests (unit + integration), zero runtime npm dependencies
+
+#### Skill Benchmark Audit Against Anthropic Guide (#261, #264)
+
+- 10-check validation script (`validate-skill-benchmarks.sh`) against Anthropic's skill guide
+- riding-codebase refactored: 6,905 → 1,915 words (72% reduction, under 5,000 limit)
+- Schema update: description maxLength 500 → 1024, added `negative_triggers`
+- 25-assertion test suite with compliant/non-compliant fixtures
+
+#### Mount: Structured Error Handling E010-E016 (#237, #241)
+
+- 7 new structured error codes for mount failures
+- Empty repo detection and handling (`detect_repo_state()`)
+- Path-scoped rollback in `create_upgrade_commit()`
+- Golden Path next steps banner
+- 20 hermetic shell tests, Bash 3.2 compatible
+
+### Changed
+
+- Token budgets raised: maxInputTokens 8K→128K, maxOutputTokens 4K→16K, maxDiffBytes 100K→512K (#260)
+- CLI flags added: `--max-input-tokens`, `--max-output-tokens`, `--max-diff-bytes`, `--model` (#260)
+- API timeout scales with prompt size: 50K→180s, 100K→300s (#262)
+- GPT review findings now persist to `grimoires/loa/a2a/gpt-review/` (#249, #251)
+- Update script skips when already at upstream version (#245, #250)
+- `.gitignore` hardened: `.beads/`, `.loa.config.yaml`, dev planning docs excluded (#253)
+- Simstim Telegram bridge package removed (#252)
+- Feature-specific mockups and screenshots removed from template (#254)
+- README.md, PROCESS.md, INSTALLATION.md, SECURITY.md, LICENSE.md updated
+
+### Fixed
+
+- Bridgebuilder `--pr` filter not propagated to resolveItems pipeline (#257, #258)
+- Bridgebuilder streaming: Cloudflare 60s TTFB timeout resolved via SSE streaming (#271)
+- Bridgebuilder self-review: 422 on REQUEST_CHANGES to own PR, falls back to COMMENT (#271)
+- Bash 4.0+ version guard added to all 17 `declare -A` scripts (#240, #244)
+- GPT review: curl payload via temp file instead of bash arg (size limit fix)
+- Hounfour: dead import, duplicate branches, safety comments, thread-safety docs
+
+---
+
+## [1.31.0] - 2026-02-07 — Bridgebuilder Release
+
+### Why This Release
+
+This is the largest Loa release to date — **27 PRs** spanning developer experience, security hardening, cross-model adversarial review, and a complete documentation overhaul. The headline: **Golden Path** gives 90% of users 5 zero-arg commands, while **Adversarial Flatline Dissent** adds cross-model challenge to code review and security audit.
+
+The README and INSTALLATION.md have been rewritten with input from the Bridgebuilder persona — optimized for both human onboarding and AI agent consumption.
+
+### Added
+
+#### Golden Path — 5 Commands for 90% of Users (#219)
+
+Five zero-argument porcelain commands wrapping the full truename workflow:
+
+| Command | What It Does |
+|---------|-------------|
+| `/loa` | Where am I? What's next? |
+| `/plan` | Requirements → Architecture → Sprints |
+| `/build` | Build the current sprint |
+| `/review` | Code review + security audit |
+| `/ship` | Deploy and archive |
+
+Design follows the git porcelain/plumbing model — Golden Path for most users, truenames for power users.
+
+#### Error Code Registry & `/loa doctor` (#218)
+
+Structured error codes (LOA-E001+) with human-readable explanations and fix suggestions. `/loa doctor` provides comprehensive system health diagnostics with CI-friendly JSON output.
+
+#### Adversarial Flatline Dissent (#235)
+
+Cross-model adversarial challenge during code review and security audit. GPT-5.2-Codex acts as independent dissenter against Claude's findings with:
+- Priority-based diff truncation with P0-P3 file classification
+- Context escalation for security-critical files
+- Secret scanning with configurable allowlists
+- Anchor validation and severity demotion for ungrounded findings
+- Budget pre-check to prevent runaway API costs
+- Graceful degradation on API failure
+
+#### GPT Review: System Zone Detection & Priority Truncation (#233)
+
+GPT review now detects `.claude/` system zone modifications and applies priority-based diff truncation to stay within token limits while ensuring security-critical files are always reviewed first.
+
+#### Cross-Repo Pattern Extraction (#227)
+
+25 reusable shell patterns extracted into 5 library modules:
+- `lib-validate.sh` — Input validation, path safety, schema checking
+- `lib-log.sh` — Structured logging with levels and JSON output
+- `lib-config.sh` — YAML config loading with defaults
+- `lib-git.sh` — Git operations, branch detection, upstream safety
+- `lib-io.sh` — File I/O, atomic writes, temp file management
+
+#### DRY Constraint Registry (#225)
+
+Single-source constraint definitions in `.claude/data/constraints.json` with generated CLAUDE.md tables. Eliminates constraint drift between documentation and enforcement.
+
+#### Portable Persistence Framework (#220)
+
+WAL-based key-value persistence for shell scripts with pluggable backends and circuit breakers.
+
+#### Cross-Platform Shell Scripting Protocol (#210)
+
+Portable compatibility layer handling macOS vs Linux differences (BSD date, sed, stat, mktemp). Eliminates `%N` nanosecond and other platform-specific failures.
+
+#### Construct Manifest Standard (#213)
+
+Standardized manifest format for Loa Constructs with event-driven contracts, tool dependency declarations, and JSON schema validation.
+
+#### MLP-Informed Beads Enhancements (#209)
+
+Beads enhanced with gap detection, lineage tracking, task classification, and context compilation — informed by Machine Learning Pipeline (MLP) patterns.
+
+#### Opus 4.6 & GPT-5.3-Codex Model Support (#202)
+
+Model registry updated with Claude Opus 4.6 and GPT-5.3-Codex pricing and capabilities.
+
+#### Run Mode `--local` Flag (#201)
+
+`--local` flag for run mode to skip git push. Configurable via `auto_push` setting for offline or local-only workflows.
+
+#### Beads TypeScript Runtime Patterns (#191)
+
+TypeScript patterns for beads_rust integration in application code.
+
+#### CODEOWNERS (#206)
+
+Added `.github/CODEOWNERS` for automatic PR review assignment.
+
+### Changed
+
+- Layered process enforcement prevents AI from bypassing implement/review/audit gates (#221)
+- README.md rewritten: Golden Path prominent, value proposition section, agent-readable metadata, 17 skills listed, updated feature table
+- INSTALLATION.md overhauled: TOC added, Claude Code install instructions, yq ambiguity fixed (mikefarah/yq only), `/loa doctor` verification step, beads-first language
+
+### Fixed
+
+- Event bus bash version guard for non-bash shell sourcing (#234)
+- Beads-health.sh zero output and event-bus.sh flock detection (#231)
+- Event bus hardened against jq injection, DLQ diagnostics improved (#215)
+- Backward compatibility aliases for renamed scripts + Opus 4.6 sweep (#207)
+- Heredoc corruption of `${...}` template literals in generated source files (#203, #200)
+- macOS `date %N` incompatibility breaking Flatline Protocol (#199)
+- Simstim Plan Mode hijacking orchestration workflows (#196)
+- Constructs URL migration, multi-pack UI, and smart routing (#189)
+
+### Security
+
+- Critical and high findings from security audit remediated (#232)
+- 56-finding comprehensive audit remediated — supply chain, secrets, injection, CI hardening (#212)
+
+### Performance
+
+- Beads isomorphic optimizations: WAL, batch queries, and circuit breaker (#205)
+
+---
+
+## [1.29.0] - 2026-02-05 — Beads-First Infrastructure
+
+### Why This Release
+
+This release implements **Beads-First Architecture** where task tracking via beads_rust is the EXPECTED DEFAULT, not an optional enhancement. Working without beads becomes ABNORMAL and requires explicit, time-limited acknowledgment.
+
+*"We're building spaceships. Safety of operators and users is paramount."*
+
+### Added
+
+#### Beads-First Preflight (#182)
+
+Comprehensive health check infrastructure for beads_rust:
+
+```bash
+# Check beads health
+.claude/scripts/beads/beads-health.sh --json
+
+# Manage state
+.claude/scripts/beads/update-beads-state.sh --health HEALTHY
+.claude/scripts/beads/update-beads-state.sh --opt-out "Reason"
+```
+
+**New Files**:
+| File | Purpose |
+|------|---------|
+| `beads-health.sh` | Comprehensive health check (6 exit codes) |
+| `update-beads-state.sh` | State file management |
+| `beads-preflight.md` | Protocol documentation |
+| `test_beads_health.sh` | Unit tests |
+
+**Health Check Exit Codes**:
+| Code | Status | Meaning |
+|------|--------|---------|
+| 0 | HEALTHY | All checks pass |
+| 1 | NOT_INSTALLED | br binary not found |
+| 2 | NOT_INITIALIZED | No .beads directory |
+| 3 | MIGRATION_NEEDED | Schema incompatible |
+| 4 | DEGRADED | Partial functionality |
+| 5 | UNHEALTHY | Critical issues |
+
+#### Autonomous Mode Beads Gate
+
+Autonomous mode (`/run`) now REQUIRES beads by default:
+
+```bash
+# Will HALT if beads unavailable
+/run sprint-1
+
+# Override (not recommended)
+export LOA_BEADS_AUTONOMOUS_OVERRIDE=true
+```
+
+**Configuration**:
+```yaml
+beads:
+  mode: recommended  # required | recommended | disabled
+  autonomous:
+    requires_beads: true
+```
+
+#### Opt-Out Workflow
+
+Time-limited acknowledgment for working without beads:
+
+- 24h expiry (configurable)
+- Requires reason (configurable)
+- Re-prompts when expired
+- Logs to trajectory for auditability
+
+### Changed
+
+- Updated `/sprint-plan` with Phase -1 beads preflight
+- Updated `/implement` with Phase -2 beads sync
+- Updated `/simstim` Phase 0 with beads check
+- Updated `/run` preflight with autonomous beads gate
+- Added beads configuration section to `.loa.config.yaml.example`
+- Updated `CLAUDE.loa.md` with Beads-First documentation
+
+### Migration Notes
+
+**For existing users without beads_rust installed**:
+
+1. Install beads_rust: `cargo install beads_rust`
+2. Initialize: `br init`
+3. Workflows will prompt if beads unavailable (not a hard block in interactive mode)
+
+**For autonomous/run mode**:
+- If you run autonomous mode without beads, add `beads.autonomous.requires_beads: false` to your config
+- Consider installing beads for better state persistence across context windows
+
+---
+
+## [1.28.0] - 2026-02-05 — Dicklesworth Improvements
+
+### Why This Release
+
+This release adds three major features inspired by the Dicklesworthstone ecosystem: **Post-Compact Recovery Hooks** for automatic context recovery after compaction, **Flatline Beads Loop** for iterative task graph refinement, and **Persistent Memory** for session-spanning observation storage.
+
+*"Check your beads N times, implement once."*
+
+### Added
+
+#### Post-Compact Recovery Hooks (#178)
+
+Automatic context recovery after Claude Code context compaction:
+
+```json
+{
+  "hooks": {
+    "PreCompact": [{"matcher": "", "hooks": [{"type": "command", "command": ".claude/hooks/pre-compact-marker.sh"}]}],
+    "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": ".claude/hooks/post-compact-reminder.sh"}]}]
+  }
+}
+```
+
+**New Files**:
+| File | Purpose |
+|------|---------|
+| `pre-compact-marker.sh` | Captures state before compaction |
+| `post-compact-reminder.sh` | Injects recovery reminder after compaction |
+| `settings.hooks.json` | Hook registration template |
+| `test_pcr_hooks.sh` | 13 unit tests |
+
+**Features**:
+- One-shot delivery (marker deleted after reminder)
+- Captures run_mode, simstim, and skill state
+- Logs compaction events to trajectory
+- Project-local and global fallback markers
+
+#### Flatline Beads Loop (#177)
+
+Iterative multi-model refinement of task graphs:
+
+```bash
+.claude/scripts/beads-flatline-loop.sh --max-iterations 6 --threshold 5
+```
+
+**How It Works**:
+1. Export beads to JSON
+2. Run Flatline Protocol review on task graph
+3. Apply HIGH_CONSENSUS suggestions automatically
+4. Repeat until changes "flatline" (< 5% for 2 iterations)
+5. Sync final state to git
+
+**New Files**:
+| File | Purpose |
+|------|---------|
+| `beads-flatline-loop.sh` | Main orchestrator script |
+| `beads-review.md` | Flatline prompt for task graph review |
+| `test_blf.sh` | 16 unit tests |
+
+**Simstim Integration**: New Phase 6.5 "FLATLINE_BEADS" runs automatically after PLANNING when beads_rust is installed.
+
+#### Persistent Memory (#175)
+
+Session-spanning observation storage with progressive disclosure:
+
+```bash
+# Token-efficient index (~50 tokens per entry)
+.claude/scripts/memory-query.sh --index
+
+# Full details (~500 tokens)
+.claude/scripts/memory-query.sh --full obs-1234567890-abc123
+```
+
+**New Files**:
+| File | Purpose |
+|------|---------|
+| `memory-writer.sh` | Hook for capturing observations |
+| `memory-query.sh` | Query interface with progressive disclosure |
+| `test_memory.sh` | 19 unit tests |
+
+**Features**:
+- Learning signal detection (discovered, learned, fixed, resolved, pattern, insight)
+- Privacy filtering (redacts `<private>` tagged content)
+- Session-specific logging
+- Retention limits with automatic archiving
+
+### Changed
+
+- Updated `flatline-orchestrator.sh` to support `--phase beads`
+- Updated `simstim.md` with Phase 6.5 documentation
+- Updated `planning-sprints/SKILL.md` with Beads Flatline Loop section
+- Added memory configuration section to `.loa.config.yaml.example`
+
+### Tests
+
+| Test Suite | Tests | Status |
+|------------|-------|--------|
+| PCR Hooks | 13 | ✅ All passing |
+| BLF | 16 | ✅ All passing |
+| Memory | 19 | ✅ All passing |
+| **Total** | **48** | ✅ All passing |
+
+---
+
+## [1.27.0] - 2026-02-04 — Configurable Paths & Trace-Based Routing
+
+### Why This Release
+
+This release introduces **configurable grimoire paths** for flexible workspace layouts (e.g., OpenClaw integration) and **feedback trace-based routing** for intelligent issue classification. Also includes critical stability fixes for run-mode and simstim state synchronization.
+
+*"Configure your paths, trace your feedback."*
+
+### Added
+
+#### Configurable Grimoires Location (#176, #173)
+
+Grimoire and state file locations are now configurable for integration scenarios:
+
+```yaml
+paths:
+  grimoire: grimoires/loa          # Default
+  beads: .beads
+  soul:
+    source: grimoires/loa/BEAUVOIR.md
+    output: grimoires/loa/SOUL.md
+```
+
+**OpenClaw Integration Example**:
+```yaml
+paths:
+  grimoire: .loa/grimoire
+  soul:
+    source: .loa/grimoire/BEAUVOIR.md
+    output: SOUL.md    # At workspace root
+```
+
+**New Files**:
+| File | Purpose |
+|------|---------|
+| `bootstrap.sh` | PROJECT_ROOT detection (3 fallback strategies) |
+| `path-lib.sh` | 16 getter functions for path resolution |
+| `test_path_lib.sh` | 16 unit tests |
+| `test_configurable_paths.sh` | 10 integration tests |
+
+**Rollback Safety**:
+- `LOA_USE_LEGACY_PATHS=1` bypasses config, uses hardcoded defaults
+- CI lint check (warning mode) prevents path regression
+- Environment overrides: `LOA_GRIMOIRE_DIR`, `LOA_BEADS_DIR`, `LOA_SOUL_SOURCE`, `LOA_SOUL_OUTPUT`
+
+**Requirements**: yq v4+ (mikefarah/yq). Missing yq uses defaults with warning.
+
+#### Feedback Trace-Based Routing (#174, #171)
+
+Intelligent `/feedback` routing based on execution trajectory analysis:
+
+```yaml
+feedback:
+  trace_routing:
+    enabled: true  # Disabled by default
+```
+
+**Classification Categories**:
+| Category | Description |
+|----------|-------------|
+| `skill_bug` | Bug in existing skill |
+| `skill_gap` | Missing feature in skill |
+| `missing_skill` | Need new skill |
+| `runtime_bug` | Framework/runtime issue |
+
+**Implementation**:
+- `trace_analyzer` Python package with hybrid matching (keyword + fuzzy + embeddings)
+- Privacy-first: default-deny PII redaction
+- 80 unit tests passing
+- Disabled by default pending classifier tuning
+
+#### Two-Pass Security Analysis (#163)
+
+Enhanced `/audit` with structured taint analysis methodology:
+
+**New Phases**:
+| Phase | Description |
+|-------|-------------|
+| 0.5 (Scope) | Count files by security category |
+| 1A (Recon) | Source/sink identification with taxonomy |
+| 1B (Investigate) | Taint path tracing with time budget |
+
+**Detection Patterns**: SQL Injection, Command Injection, XSS, Path Traversal, SSRF, LLM Safety
+
+### Fixed
+
+#### Run-Mode State Preservation (#165)
+
+- **Problem**: Context compaction caused `/run sprint-plan` to lose autonomous state
+- **Solution**: Added run mode state recovery to CLAUDE.loa.md and session protocols
+- Recovery checks `.run/sprint-plan-state.json` and resumes without confirmation
+
+#### Simstim Run-Mode Sync (#172)
+
+- **Problem**: Simstim state stuck in "RUNNING" after `/run sprint-plan` completed
+- **Solution**: New `--sync-run-mode` command with plan ID correlation
+- Added `--set-expected-plan-id` for pre-invocation correlation
+- Auto-recovery on resume for completed-but-not-recorded scenarios
+
+#### Constructs Skill Count (#168)
+
+- Fixed jq query to read from `manifest.skills` array
+- Packs now correctly display skill counts in `/constructs` browser
+
+#### Flatline macOS Case-Sensitivity (#167)
+
+- Fixed path comparison failure on case-insensitive filesystems
+- Applied `realpath` fix to `flatline-orchestrator.sh`
+
+### Related PRs
+
+- PR #176: Configurable grimoires location
+- PR #174: Feedback trace-based routing
+- PR #172: Simstim run-mode state sync
+- PR #168: Constructs skill count fallback
+- PR #167: Flatline macOS case-sensitivity
+- PR #165: Run-mode state preservation
+- PR #163: Two-Pass Security Analysis
+
+---
+
+## [1.26.0] - 2026-02-04 — Workspace Cleanup & Post-PR Validation
+
+### Why This Release
+
+This release introduces **workspace cleanup** for fresh development cycles and completes the **Post-PR Validation Loop** integration. Together, these features ensure both clean starting conditions and rigorous post-PR quality gates.
+
+*"Archive the past, validate the future."*
+
+### Added
+
+#### Workspace Cleanup (#160)
+
+Automated archiving of previous cycle artifacts during `/simstim` and `/autonomous` preflight:
+
+```bash
+# Interactive mode (default)
+workspace-cleanup.sh                    # Prompt with 5s timeout
+
+# Autonomous mode
+workspace-cleanup.sh --yes --json       # Archive without prompt
+
+# Preview mode
+workspace-cleanup.sh --dry-run          # Show what would be archived
+```
+
+**4-Stage Archive Process**:
+| Stage | Description |
+|-------|-------------|
+| 1. Copy | Copy files to staging directory |
+| 2. Verify | SHA256 checksum verification |
+| 3. Finalize | Rename staging to archive with manifest |
+| 4. Remove | Delete originals (with transaction log) |
+
+**Security Features**:
+- Symlink rejection (no following)
+- Path traversal prevention (`..` blocked)
+- Absolute path rejection
+- Realpath containment validation
+- Writability and ownership checks
+
+**Integration Points**:
+- `simstim-orchestrator.sh` - Preflight cleanup (respects `--resume`, `--no-clean`)
+- `autonomous-agent/SKILL.md` - Phase 0.0 with fail-closed policy
+
+**Configuration** (`.loa.config.yaml`):
+```yaml
+workspace_cleanup:
+  enabled: true
+  default_action: archive
+  retention:
+    max_age_days: 90
+    max_count: 10
+  security:
+    follow_symlinks: false
+```
+
+**Files**:
+- `.claude/scripts/workspace-cleanup.sh` - Main script (~1100 lines)
+- `.claude/scripts/tests/test-workspace-cleanup.bats` - 30 unit tests
+
+#### Post-PR Validation Integration (#158, #159)
+
+Complete post-PR validation loop with `/autonomous` integration:
+
+**Workflow**:
+```
+PR_CREATED → POST_PR_AUDIT → CONTEXT_CLEAR → E2E_TESTING → FLATLINE_PR → READY_FOR_HITL
+```
+
+**Scripts**:
+| Script | Purpose |
+|--------|---------|
+| `post-pr-orchestrator.sh` | Main orchestrator with state machine |
+| `post-pr-state.sh` | State management with locking |
+| `post-pr-audit.sh` | PR audit with finding classification |
+| `post-pr-e2e.sh` | E2E test runner with failure tracking |
+| `post-pr-context-clear.sh` | Checkpoint writer for fresh context |
+
+**Exit Codes**:
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | Success | READY_FOR_HITL |
+| 1 | Invalid args | Error |
+| 2 | Timeout | HALT |
+| 3 | Phase failure | HALT |
+| 4 | Flatline blocker | HALT |
+| 5 | User interrupt | HALT |
+
+**Configuration** (`.loa.config.yaml`):
+```yaml
+post_pr_validation:
+  enabled: true
+  phases:
+    audit: { enabled: true, max_iterations: 5 }
+    context_clear: { enabled: true }
+    e2e: { enabled: true, max_iterations: 3 }
+    flatline: { enabled: false }  # ~$1.50 cost
+```
+
+### Fixed
+
+- **Empty array bug** in `workspace-cleanup.sh` - `validate_scanned_paths()` now correctly handles empty result arrays
+- **Test assertions** - Fixed 6 failing tests in `test-workspace-cleanup.bats`
+- **Unsafe command execution** in `post-pr-audit.sh` - Replaced `bash -c "$cmd"` with array-based execution
+
+### Related PRs
+
+- PR #158: Post-PR Validation Loop v1.25.0
+- PR #159: Autonomous Post-PR Integration (Phase 5.5)
+- PR #160: Workspace Cleanup
+
+---
+
+## [1.25.0] - 2026-02-03 — Post-PR Validation Loop
+
+### Why This Release
+
+This release introduces the **Post-PR Validation Loop**, an automated quality assurance process that runs after PR creation. It ensures code is thoroughly reviewed before human review begins.
+
+*"Trust but verify—automatically."*
+
+### Added
+
+#### Post-PR Validation Command
+
+```bash
+# Full validation loop
+.claude/scripts/post-pr-orchestrator.sh --pr-url <url>
+
+# Dry run
+.claude/scripts/post-pr-orchestrator.sh --dry-run --pr-url <url>
+
+# Resume from checkpoint
+.claude/scripts/post-pr-orchestrator.sh --resume --pr-url <url>
+```
+
+#### Validation Phases
+
+| Phase | Description | Fix Loop |
+|-------|-------------|----------|
+| POST_PR_AUDIT | Security/quality audit | Yes (max 5) |
+| CONTEXT_CLEAR | Save checkpoint, prompt `/clear` | No |
+| E2E_TESTING | Fresh-eyes build & test | Yes (max 3) |
+| FLATLINE_PR | Multi-model review (~$1.50) | No |
+
+#### Circuit Breakers
+
+- Same finding 3x → Audit escalation
+- Same failure 2x → E2E escalation
+
+#### Finding Identity Algorithm
+
+Stable 16-char hash for deduplication:
+```
+SHA256(category|rule_id|file|normalized_line|severity)[:16]
+```
+
+Line normalization: ±5 tolerance (round to nearest 10)
+
+### Related PRs
+
+- PR #158: Post-PR Validation Loop v1.25.0
+
+---
+
+## [1.23.0] - 2026-02-03 — Flatline-Enhanced Compound Learning
+
+### Why This Release
+
+This release connects the **Flatline Protocol** to the **Compound Learning** pipeline, enabling consensus-based learning extraction and validation.
+
+*"When two models agree on a learning, promote it. When they disagree, investigate."*
+
+### Added
+
+#### Flatline → Learning Capture
+
+HIGH_CONSENSUS insights from Flatline reviews become learning candidates:
+
+```bash
+# Extract learnings from Flatline results
+.claude/scripts/flatline-learning-extractor.sh --results flatline-results.json
+
+# Validate borderline learning
+.claude/scripts/flatline-validate-learning.sh --learning learning.json --dry-run
+```
+
+#### 3-Layer Circular Prevention
+
+Prevents Flatline from validating its own outputs:
+| Layer | Check | Action |
+|-------|-------|--------|
+| L1 | `source: flatline` | Skip |
+| L2 | Validation history | Skip if seen |
+| L3 | Rate limit | 30s cooldown |
+
+#### Semantic Similarity
+
+Embedding-based duplicate detection before upstream proposal:
+```bash
+.claude/scripts/flatline-semantic-similarity.sh --learning learning.json --threshold 0.85
+```
+
+#### Pre-Proposal Review
+
+Adversarial review of upstream proposals:
+```bash
+.claude/scripts/flatline-proposal-review.sh --proposal proposal.json
+```
+
+#### Rejection Pattern Analysis
+
+Root cause tracking for rejected proposals:
+```bash
+.claude/scripts/flatline-rejection-analysis.sh --rejection rejection.json
+```
+
+#### New Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `flatline-learning-extractor.sh` | Extract learnings from HIGH_CONSENSUS |
+| `flatline-validate-learning.sh` | Single-learning 2-model validator |
+| `flatline-semantic-similarity.sh` | Embedding-based duplicate detection |
+| `flatline-proposal-review.sh` | Pre-proposal adversarial review |
+| `flatline-rejection-analysis.sh` | Root cause pattern tracking |
+| `lib/api-resilience.sh` | API retry, circuit breaker, budget controls |
+
+#### Consensus Mapping
+
+| GPT Vote | Opus Vote | Consensus | Action |
+|----------|-----------|-----------|--------|
+| approve | approve | APPROVE | Promote |
+| reject | reject | REJECT | Demote |
+| mixed | - | DISPUTED | Human review |
+
+### Configuration
+
+```yaml
+flatline_integration:
+  learning_extraction:
+    enabled: true
+    source_marker: true
+  validation:
+    max_per_cycle: 10
+    daily_budget: 50
+  semantic_similarity:
+    threshold: 0.85
+    model: text-embedding-3-small
+```
+
+### Related PRs
+
+- PR #156: Flatline-Enhanced Compound Learning v1.23.0
+
+---
+
+## [1.22.1] - 2026-02-03 — Constructs Skill Discovery Fix
+
+### Fixed
+
+#### Constructs Skill Symlinks (#153)
+
+Fixed skill symlink location so Claude Code can discover installed pack skills:
+
+**Before** (broken):
+```
+.claude/constructs/skills/observer/analyzing-gaps → ../../packs/observer/skills/analyzing-gaps
+```
+
+**After** (fixed):
+```
+.claude/skills/analyzing-gaps → ../constructs/packs/observer/skills/analyzing-gaps
+```
+
+- Skills now symlink directly to `.claude/skills/<skill>`
+- Added collision detection for existing framework skills
+- Uninstall correctly removes individual skill symlinks
+
+### Related PRs
+
+- PR #153: fix(constructs): symlink skills to .claude/skills/ for Claude Code discovery
+
+---
+
+## [1.24.0] - 2026-02-03 — Simstim HITL Workflow
+
+### Why This Release
+
+This release introduces the **Simstim** command (`/simstim`), a Human-In-The-Loop (HITL) accelerated development workflow that orchestrates the complete Loa development cycle with integrated Flatline Protocol reviews at each stage.
+
+*"Experience the AI's work while maintaining your own consciousness."* — Gibson, Neuromancer
+
+### Added
+
+#### /simstim Command
+
+Full-cycle orchestration from PRD to implementation:
+
+```bash
+/simstim                     # Full cycle: PRD → SDD → Sprint → Implementation
+/simstim --from architect    # Skip PRD (already exists)
+/simstim --from sprint-plan  # Skip PRD + SDD
+/simstim --from run          # Skip planning, just run sprints
+/simstim --resume            # Continue from interruption
+/simstim --dry-run           # Preview planned phases
+/simstim --abort             # Clean up state and exit
+```
+
+**8-Phase Workflow**:
+| Phase | Name | Description |
+|-------|------|-------------|
+| 0 | PREFLIGHT | Validate configuration, check state |
+| 1 | DISCOVERY | Create PRD interactively |
+| 2 | FLATLINE PRD | Multi-model review of PRD |
+| 3 | ARCHITECTURE | Create SDD interactively |
+| 4 | FLATLINE SDD | Multi-model review of SDD |
+| 5 | PLANNING | Create sprint plan interactively |
+| 6 | FLATLINE SPRINT | Multi-model review of sprint plan |
+| 7 | IMPLEMENTATION | Autonomous execution via `/run sprint-plan` |
+| 8 | COMPLETE | Summary and cleanup |
+
+#### HITL Flatline Mode
+
+New Flatline mode optimized for human operators:
+
+| Category | Criteria | Action |
+|----------|----------|--------|
+| HIGH_CONSENSUS | Both models >700 | Auto-integrate (no prompt) |
+| DISPUTED | Score delta >300 | Present to user for decision |
+| BLOCKER | Skeptic concern >700 | Present to user for decision (NOT auto-halt) |
+| LOW_VALUE | Both <400 | Skip silently |
+
+Key difference from `/autonomous`: BLOCKERs are shown to the human for decision instead of automatically halting the workflow.
+
+#### State Management
+
+Resume capability via `.run/simstim-state.json`:
+- Tracks phase completion and artifact checksums
+- Detects artifact drift on resume
+- PID-based lockfile prevents concurrent execution
+
+**Files**:
+- `.claude/skills/simstim-workflow/SKILL.md` - Main orchestration skill
+- `.claude/skills/simstim-workflow/index.yaml` - Skill metadata
+- `.claude/commands/simstim.md` - User documentation
+- `.claude/scripts/simstim-orchestrator.sh` - State and orchestration logic
+
+**Configuration** (`.loa.config.yaml`):
+```yaml
+simstim:
+  enabled: true
+  flatline:
+    auto_accept_high_consensus: true
+    show_disputed: true
+    show_blockers: true
+    phases: [prd, sdd, sprint]
+  defaults:
+    timeout_hours: 24
+```
+
+---
+
+## [1.22.0] - 2026-02-03 — Autonomous Flatline Integration
+
+### Why This Release
+
+This release enables the **Flatline Protocol** to operate within autonomous workflows (`/autonomous`, `/run sprint-plan`) without human intervention. HIGH_CONSENSUS findings auto-integrate, BLOCKERS halt the workflow with escalation reports, and DISPUTED items are logged for post-review.
+
+*"Adversarial review at machine speed - consensus integrates, disputes escalate."*
+
+### Added
+
+#### Autonomous Mode Detection
+
+Script: `.claude/scripts/flatline-mode-detect.sh`
+
+Intelligent mode detection with strong vs weak signal distinction:
+
+```bash
+# Strong signals (trigger auto-enable)
+CLAWDBOT_GATEWAY_TOKEN  # AI gateway authenticated
+LOA_OPERATOR=ai         # Explicit AI operator
+
+# Weak signals (require opt-in)
+Non-TTY                 # Could be pipe or batch
+CLAUDECODE              # Claude Code agent
+CLAWDBOT_AGENT          # Clawdbot agent
+```
+
+**Mode Precedence**: CLI flags → Environment → Config → Auto-detect → Default (interactive)
+
+#### Atomic Integration Pipeline
+
+Safe document modification with rollback support:
+
+```
+lock → verify_hash → snapshot → integrate → release
+```
+
+**Scripts**:
+- `.claude/scripts/flatline-lock.sh` - flock()-based advisory locking with NFS fallback
+- `.claude/scripts/flatline-snapshot.sh` - Pre-integration snapshots with quota management
+- `.claude/scripts/flatline-manifest.sh` - Run tracking with UUIDv4 IDs
+- `.claude/scripts/flatline-rollback.sh` - Single or full-run rollback
+
+#### Result Handler
+
+Script: `.claude/scripts/flatline-result-handler.sh`
+
+Mode-aware result processing:
+- **Autonomous**: HIGH_CONSENSUS auto-integrates, DISPUTED logged, BLOCKER halts
+- **Interactive**: All findings presented to user
+
+**Exit Codes**:
+| Code | Meaning | Workflow Action |
+|------|---------|-----------------|
+| 0 | Success | Continue |
+| 1 | BLOCKER halt | Generate escalation, HALT |
+| 4 | Disputed threshold | Generate escalation, HALT |
+| 5 | Integration failed | Log error, continue |
+
+#### Error Handling & Retry
+
+Script: `.claude/scripts/flatline-error-handler.sh`
+
+- Transient vs fatal error categorization
+- Exponential backoff with jitter
+- Configurable retry limits
+
+**Transient** (retryable): `rate_limit`, `timeout`, `network`, `overloaded`
+**Fatal** (no retry): `auth`, `invalid_request`, `budget_exceeded`, `permission_denied`
+
+#### Escalation Reports
+
+Script: `.claude/scripts/flatline-escalation.sh`
+
+Generated on workflow halt:
+- Markdown and JSON format
+- Includes blockers, disputed items, rollback instructions
+- Logged to `grimoires/loa/a2a/flatline/escalation-*.md`
+
+#### `/autonomous` Integration
+
+Flatline reviews integrated into `/autonomous` workflow:
+- Phase 1.4: PRD Review (after generation)
+- Phase 2.3: SDD Review (after architecture)
+- Phase 2.5: Sprint Plan Review (after planning)
+
+```bash
+/autonomous --resume  # Continue from Flatline halt
+```
+
+#### `/run sprint-plan` Integration
+
+PR template includes Flatline summary:
+
+```markdown
+### Flatline Review Summary
+
+| Phase | HIGH | DISPUTED | BLOCKER | Status |
+|-------|------|----------|---------|--------|
+| PRD   | 5    | 2        | 0       | ✅     |
+| SDD   | 3    | 1        | 0       | ✅     |
+| SPRINT| 4    | 0        | 1       | ⚠️     |
+```
+
+### Configuration
+
+```yaml
+# .loa.config.yaml
+autonomous_mode:
+  enabled: false                    # Require explicit opt-in
+  auto_enable_for_ai: true          # Auto-enable for strong AI signals
+  actions:
+    high_consensus: integrate       # Auto-apply findings
+    disputed: log                   # Log for post-review
+    blocker: halt                   # Halt workflow
+    low_value: skip                 # Discard silently
+  thresholds:
+    disputed_halt_percent: 80       # Halt if >80% disputed
+  retry:
+    max_attempts: 3
+    base_delay_ms: 1000
+    max_delay_ms: 30000
+  snapshots:
+    enabled: true
+    max_count: 100
+    max_bytes: 104857600            # 100MB
+    on_quota: purge_oldest
+```
+
+### Scripts Reference
+
+| Script | Purpose |
+|--------|---------|
+| `flatline-mode-detect.sh` | Mode detection with signal analysis |
+| `flatline-lock.sh` | Advisory locking (flock + NFS fallback) |
+| `flatline-snapshot.sh` | Pre-integration snapshots |
+| `flatline-manifest.sh` | Run tracking and integration IDs |
+| `flatline-rollback.sh` | Single or full-run rollback |
+| `flatline-result-handler.sh` | Mode-aware result processing |
+| `flatline-editor.sh` | Safe document modification |
+| `flatline-error-handler.sh` | Error categorization and retry |
+| `flatline-escalation.sh` | Escalation report generation |
+
+### Documentation
+
+- Updated `CLAUDE.loa.md` with autonomous Flatline section
+- Updated `/flatline-review` command with rollback options
+- Updated `/run sprint-plan` PR template with Flatline summary
+- Updated `/autonomous` skill with Flatline integration phases
+
+### Related PRs
+
+- PR #151: Autonomous Flatline Integration v1.22.0
+
+---
+
+## [1.21.0] - 2026-02-03 — Flatline Protocol: Multi-Model Adversarial Review
+
+### Why This Release
+
+This release introduces the **Flatline Protocol** - a multi-model adversarial review system using Claude Opus 4.5 + GPT-5.2 for planning document quality assurance. Two frontier models review AND critique each other's suggestions, creating consensus-based quality filtering.
+
+*"When two models agree, you can trust it. When they disagree, you should look closer."*
+
+### Added
+
+#### Flatline Protocol Core (#149)
+
+Multi-model adversarial review with four-phase architecture:
+
+```yaml
+# .loa.config.yaml
+flatline_protocol:
+  enabled: true
+  models:
+    primary: opus           # Claude Opus 4.5
+    secondary: gpt-5.2      # OpenAI GPT-5.2
+  thresholds:
+    high_consensus: 700     # Both >700 = auto-integrate
+    dispute_delta: 300      # Delta >300 = disputed
+    low_value: 400          # Both <400 = discard
+    blocker: 700            # Skeptic concern >700 = blocker
+```
+
+**Protocol Phases**:
+
+| Phase | Description |
+|-------|-------------|
+| Phase 0 | Knowledge retrieval (Tier 1: local + Tier 2: NotebookLM optional) |
+| Phase 1 | 4 parallel calls: GPT review, Opus review, GPT skeptic, Opus skeptic |
+| Phase 2 | Cross-scoring: GPT scores Opus suggestions, Opus scores GPT suggestions |
+| Phase 3 | Consensus extraction: HIGH/DISPUTED/LOW/BLOCKER classification |
+
+**Consensus Thresholds** (0-1000 scale):
+
+| Category | Criteria | Action |
+|----------|----------|--------|
+| `HIGH_CONSENSUS` | Both models >700 | Auto-integrate |
+| `DISPUTED` | Score delta >300 | Present to user |
+| `LOW_VALUE` | Both models <400 | Discard |
+| `BLOCKER` | Skeptic concern >700 | Must address |
+
+#### `/flatline-review` Command
+
+Manual invocation of Flatline Protocol:
+
+```bash
+# Review a planning document
+/flatline-review grimoires/loa/prd.md
+
+# CLI invocation
+.claude/scripts/flatline-orchestrator.sh --doc grimoires/loa/prd.md --phase prd --json
+```
+
+#### Auto-Trigger Integration
+
+Planning commands can auto-trigger Flatline review:
+
+```yaml
+flatline_protocol:
+  auto_trigger:
+    enabled: true
+    phases: [prd, sdd, sprint]  # /plan-and-analyze, /architect, /sprint-plan
+```
+
+When enabled, Flatline review runs automatically after:
+- `/plan-and-analyze` → Reviews PRD
+- `/architect` → Reviews SDD
+- `/sprint-plan` → Reviews Sprint Plan
+
+#### Two-Tier Knowledge Retrieval
+
+**Tier 1 (Local)**: Automatic, always enabled
+- `.claude/loa/learnings/` - Framework learnings
+- `grimoires/loa/NOTES.md` - Project learnings
+- Prior cycle artifacts
+
+**Tier 2 (NotebookLM)**: Optional, requires setup
+- Curated domain expertise notebooks
+- Browser automation via Patchright
+- See: `.claude/skills/flatline-knowledge/resources/auth-setup.md`
+
+```yaml
+flatline_protocol:
+  knowledge:
+    local:
+      enabled: true
+    notebooklm:
+      enabled: false        # Optional
+      notebook_id: ""
+```
+
+#### Model Adapter
+
+Script: `.claude/scripts/model-adapter.sh`
+
+Unified interface for multi-model calls:
+- OpenAI GPT-5.2 via API
+- Anthropic Claude Opus via API
+- Handles retries, timeouts, error normalization
+
+#### Scoring Engine
+
+Script: `.claude/scripts/scoring-engine.sh`
+
+Cross-model scoring with jq-based aggregation:
+- Normalizes scores to 0-1000 scale
+- Calculates consensus categories
+- Handles edge cases (timeouts, API errors)
+
+### Schemas & Protocols
+
+- **New Schema**: `.claude/schemas/flatline-result.schema.json`
+- **New Protocol**: `.claude/protocols/flatline-protocol.md`
+- **New Command**: `.claude/commands/flatline-review.md`
+- **New Skill**: `.claude/skills/flatline-knowledge/`
+
+### Templates
+
+- `flatline-review.md.template` - Reviewer prompt
+- `flatline-skeptic.md.template` - Skeptic prompt
+- `flatline-score.md.template` - Cross-scoring prompt
+- `flatline-postlude.md.template` - Integration prompt
+
+### Documentation
+
+- Updated `INSTALLATION.md` with NotebookLM setup guide
+- Updated `CLAUDE.loa.md` with Flatline Protocol section
+- Comprehensive protocol documentation in `.claude/protocols/flatline-protocol.md`
+
+### Related PRs
+
+- PR #149: Flatline Protocol v1.17.0 - Multi-Model Adversarial Review
+- PR #121: GPT 5.2 cross-model review integration (foundation)
+
+---
+
+## [1.20.0] - 2026-02-03 — Input Guardrails & Tool Risk Enforcement
+
+### Why This Release
+
+This release implements **Input Guardrails & Tool Risk Enforcement** based on OpenAI's "A Practical Guide to Building Agents". Provides pre-execution validation for skill invocations with PII filtering, prompt injection detection, and danger level enforcement.
+
+*"Defense in depth for agentic workflows."*
+
+### Added
+
+#### Input Guardrails Framework
+
+Pre-execution validation layer before skill execution:
+
+```yaml
+# .loa.config.yaml
+guardrails:
+  input:
+    enabled: true
+    pii_filter:
+      enabled: true
+      mode: blocking
+    injection_detection:
+      enabled: true
+      threshold: 0.7
+  danger_level:
+    enforce: true
+```
+
+**Guardrail Types**:
+| Type | Mode | Purpose |
+|------|------|---------|
+| `pii_filter` | blocking | Redact API keys, emails, SSN, credit cards |
+| `injection_detection` | blocking | Detect prompt injection patterns |
+| `relevance_check` | advisory | Verify request matches skill purpose |
+
+**Execution Modes**:
+- `blocking` - Must pass before skill runs
+- `parallel` - Runs async, can trigger tripwire
+- `advisory` - Logs warning but continues
+
+#### Danger Level Enforcement
+
+Skills classified by risk level with mode-specific enforcement:
+
+| Level | Interactive | Autonomous |
+|-------|-------------|------------|
+| `safe` | Execute | Execute |
+| `moderate` | Notice | Log |
+| `high` | Confirm | BLOCK (use `--allow-high`) |
+| `critical` | Confirm+Reason | ALWAYS BLOCK |
+
+**Override for Run Mode**:
+```bash
+/run sprint-1 --allow-high
+/run sprint-plan --allow-high
+```
+
+#### PII Filter
+
+Script: `.claude/scripts/pii-filter.sh`
+
+Detects and redacts sensitive patterns:
+- API Keys (OpenAI, GitHub, AWS, Anthropic)
+- Email addresses, phone numbers
+- SSN, credit card numbers
+- JWT tokens, private keys
+- Home directory paths (anonymization)
+
+#### Injection Detection
+
+Script: `.claude/scripts/injection-detect.sh`
+
+Pattern categories with weighted scoring:
+- Instruction override (0.4): "ignore previous", "disregard"
+- Role confusion (0.3): "you are now", "act as"
+- Context manipulation (0.2): "system prompt", "debug mode"
+- Encoding evasion (0.1): base64, unicode tricks
+
+#### Guardrails Orchestrator
+
+Script: `.claude/scripts/guardrails-orchestrator.sh`
+
+Coordinates all checks in sequence:
+1. Danger level check
+2. PII filter (blocking)
+3. Injection detection (blocking)
+
+Returns aggregated PROCEED/WARN/BLOCK action.
+
+#### Tripwire Mechanism
+
+Script: `.claude/scripts/tripwire-handler.sh`
+
+Handles parallel guardrail failures:
+- Halt execution on failure
+- Optional rollback of uncommitted changes
+- Trajectory logging
+
+#### Handoff Logging
+
+Script: `.claude/scripts/log-handoff.sh`
+
+Explicit handoff events in trajectory:
+```json
+{
+  "type": "handoff",
+  "from_agent": "implementing-tasks",
+  "to_agent": "reviewing-code",
+  "artifacts": [{"path": "reviewer.md"}],
+  "context_preserved": ["sprint_id"]
+}
+```
+
+#### Skill Preludes
+
+Input guardrails prelude added to priority skills:
+- `implementing-tasks` (moderate danger)
+- `deploying-infrastructure` (high danger)
+- `autonomous-agent` (high danger)
+- `auditing-security` (safe)
+- `reviewing-code` (safe)
+- `run-mode` (high danger)
+
+### Schemas & Protocols
+
+- **New Schema**: `.claude/schemas/guardrail-result.schema.json`
+- **New Protocol**: `.claude/protocols/input-guardrails.md`
+- **New Protocol**: `.claude/protocols/danger-level.md`
+- **Updated**: `.claude/protocols/feedback-loops.md` (handoff logging)
+- **Updated**: `.claude/protocols/run-mode.md` (Level 5 enforcement)
+- **Updated**: `skill-index.schema.json` (input_guardrails section)
+
+### Configuration
+
+New config sections in `.loa.config.yaml.example`:
+- `guardrails.input` - PII filter, injection detection, relevance check
+- `guardrails.tripwire` - Parallel failure handling
+- `guardrails.danger_level` - Enforcement rules per mode
+- `guardrails.logging` - Trajectory logging options
+
+### Research
+
+Based on analysis of OpenAI's "A Practical Guide to Building Agents":
+- Research document: `docs/research/openai-agent-guide-research.md`
+- PRD: `grimoires/loa/prd-input-guardrails.md`
+- SDD: `grimoires/loa/sdd-input-guardrails.md`
+
+---
+
+## [1.19.0] - 2026-02-02 — Invisible Retrospective Learning
+
+### Why This Release
+
+This release brings **Invisible Retrospective Learning**, automatically detecting and cataloging learnings during skill execution without requiring users to invoke `/retrospective` manually. Mirrors the invisible enhancement pattern from PR #145.
+
+*"Learn as you work, silently capturing discoveries for future sessions."*
+
+### Added
+
+#### Invisible Retrospective Learning
+
+Automatic learning detection using skill postludes (mirrors PR #145's prelude pattern):
+
+```yaml
+# .loa.config.yaml
+invisible_retrospective:
+  enabled: true
+  surface_threshold: 3  # Min gates to surface (out of 4)
+  skills:
+    implementing-tasks: true
+    auditing-security: true
+    reviewing-code: true
+```
+
+**Key Features**:
+- **Silent Scanning**: Session scanned for learning signals after skill completion
+- **4-Gate Quality Filter**: Depth, Reusability, Trigger Clarity, Verification
+- **Qualified Surfacing**: Only learnings passing 3+ gates are surfaced to user
+- **Trajectory Logging**: All activity logged to `grimoires/loa/a2a/trajectory/retrospective-*.jsonl`
+- **NOTES.md Integration**: Qualified learnings added to `## Learnings` section
+- **Upstream Queue**: Learnings queued for upstream detection (PR #143 integration)
+
+**Learning Signal Detection**:
+| Signal | Example Patterns |
+|--------|------------------|
+| Error Resolution | "error", "fixed", "resolved", "the issue was" |
+| Multiple Attempts | "tried", "finally", "after several" |
+| Unexpected Behavior | "surprisingly", "turns out", "discovered" |
+| Workaround Found | "instead", "alternative", "the trick is" |
+| Pattern Discovery | "pattern", "convention", "always" |
+
+**Skills with Retrospective Postlude**:
+- `implementing-tasks` - Bug fixes, debugging discoveries
+- `auditing-security` - Security patterns and remediations
+- `reviewing-code` - Code review insights
+
+**`/loa` Status Updates**:
+- Shows retrospective metrics (detected/extracted/skipped count)
+- Last extraction timestamp
+
+#### Schema & Configuration
+
+- New schema: `.claude/schemas/retrospective-log.schema.json`
+- New config section: `invisible_retrospective` in `.loa.config.yaml.example`
+- Postlude template: `.claude/skills/continuous-learning/resources/retrospective-postlude.md`
+
+### Changed
+
+- `/loa` command now displays invisible retrospective statistics
+- Updated CLAUDE.loa.md with Invisible Retrospective documentation
+
+### Technical Notes
+
+- Uses postlude-based architecture (skill SKILL.md files include `<retrospective_postlude>` at END)
+- Recursion prevention: continuous-learning skill excluded from postlude execution
+- <200ms latency target with early exit for disabled config
+- Integrates with PR #143's upstream learning flow via queued learnings
+
+### Related PRs
+
+- PR #145: Invisible Prompt Enhancement (architecture pattern)
+- PR #143: Upstream Learning Flow (integration point)
+
+## [1.18.0] - 2026-02-02 — Visual Communication & Invisible Enhancement
+
+### Why This Release
+
+This release brings **Visual Communication v2.0** with GitHub-native Mermaid rendering and browser automation infrastructure, **Invisible Prompt Enhancement** that silently improves prompt quality, and a **95% context reduction** in CLAUDE.md through modular reference files.
+
+*"Better diagrams, better prompts, better context efficiency."*
+
+### Added
+
+#### Visual Communication v2.0 (#144)
+
+Complete rewrite of Mermaid diagram support with multiple rendering modes:
+
+```yaml
+# .loa.config.yaml
+visual_communication:
+  mode: "github"   # github (default) | render | url
+  theme: "github"  # github|dracula|nord|tokyo-night|solarized-light|solarized-dark|catppuccin
+```
+
+**Key Features**:
+- **GitHub Native Mode**: Direct Mermaid code blocks render in GitHub PRs/Issues
+- **Local Render Mode**: SVG/PNG output via mermaid-cli for offline use
+- **Legacy URL Mode**: External service URLs for backward compatibility
+- **7 Theme Presets**: GitHub, Dracula, Nord, Tokyo Night, Solarized (light/dark), Catppuccin
+
+**Browser Automation Infrastructure**:
+- MCP dev-browser integration for visual verification
+- Screenshot capture to `grimoires/loa/screenshots/`
+- Headless and extension modes
+- Protocol: `.claude/protocols/browser-automation.md`
+
+#### Invisible Prompt Enhancement (#145)
+
+Automatic prompt enhancement without user visibility using PTCF framework:
+
+```yaml
+# .loa.config.yaml
+prompt_enhancement:
+  invisible_mode:
+    enabled: true
+    log_to_trajectory: true
+```
+
+**Key Features**:
+- **Silent Enhancement**: Prompts scoring < 4 are enhanced invisibly
+- **PTCF Framework**: Persona + Task + Context + Format analysis
+- **Skill-Level Preludes**: Enhancement logic embedded in skill SKILL.md files
+- **Recursion Prevention**: `/enhance` command has `enhance: false` frontmatter
+- **Trajectory Logging**: Activity logged to `grimoires/loa/a2a/trajectory/prompt-enhancement-*.jsonl`
+- **Passthrough on Error**: Any failure uses original prompt unchanged
+
+**Skills with Enhancement Prelude**:
+- `discovering-requirements` (/plan-and-analyze)
+- `implementing-tasks` (/implement)
+- `translating-for-executives` (/translate)
+
+**`/loa` Status Updates**:
+- Shows enhancement metrics (enhanced/skipped/errors count)
+- Average latency tracking
+
+#### CLAUDE.md Context Optimization (#142)
+
+95% reduction in CLAUDE.md token usage through modular reference architecture:
+
+**New Reference Files** (`.claude/loa/reference/`):
+- `context-engineering.md` - Memory protocols, attention budgets
+- `protocols-summary.md` - Key protocol summaries
+- `scripts-reference.md` - Helper script documentation
+- `version-features.md` - Version-specific feature details
+
+**Token Impact**:
+- Before: ~50K tokens loaded every session
+- After: ~2.5K tokens (table of contents)
+- Reference files loaded on-demand
+
+### Changed
+
+- `/loa` command now displays prompt enhancement statistics
+- `mermaid-url.sh` enhanced with theme support and local rendering options
+- `.loa.config.yaml.example` expanded with visual communication and invisible enhancement configs
+
+### Technical Notes
+
+- Browser automation requires MCP dev-browser server (opt-in)
+- Invisible enhancement uses prelude-based architecture (hooks cannot modify prompts)
+- Reference files use lazy loading pattern for context efficiency
+
+## [1.17.0] - 2026-02-02 — Upstream Learning Flow
+
+### Why This Release
+
+This release introduces the **Upstream Learning Flow** that enables users to contribute high-value project learnings back to the Loa framework. Eligible learnings are detected silently after retrospectives, anonymized to remove PII, and proposed via GitHub Issues for maintainer review.
+
+*"Knowledge flows upstream. The framework evolves from its users."*
+
+### Added
+
+#### Upstream Learning Flow (#143)
+
+Complete implementation for contributing project learnings to the Loa framework:
+
+```bash
+# Propose a specific learning
+/propose-learning L-0001
+
+# Preview without submitting
+/propose-learning L-0001 --dry-run
+
+# Check proposal status
+.claude/scripts/check-proposal-status.sh --learning L-0001
+```
+
+**Key Features**:
+- **Silent Detection**: Post-retrospective hook identifies eligible learnings automatically
+- **User Opt-In**: Presents candidates via AskUserQuestion, never auto-proposes
+- **PII Anonymization**: Redacts API keys, paths, emails, IPs, JWT tokens, private keys before submission
+- **Weighted Scoring**: `upstream_score = quality(25%) + effectiveness(30%) + novelty(25%) + generality(20%)`
+- **Eligibility Threshold**: score ≥ 70, applications ≥ 3, success_rate ≥ 80%
+- **Duplicate Detection**: Jaccard similarity check against existing framework learnings
+- **Rejection Handling**: 90-day cooldown for rejected proposals
+
+**New Files**:
+- `.claude/scripts/upstream-score-calculator.sh` - Weighted eligibility scoring
+- `.claude/scripts/anonymize-proposal.sh` - PII redaction (API keys, JWT, private keys, DB creds)
+- `.claude/scripts/proposal-generator.sh` - GitHub Issue creation with deduplication
+- `.claude/scripts/check-proposal-status.sh` - Proposal status sync from GitHub
+- `.claude/scripts/post-retrospective-hook.sh` - Silent detection after /retrospective
+- `.claude/commands/propose-learning.md` - User-facing command
+- `docs/MAINTAINER_GUIDE.md` - Maintainer workflow for reviewing proposals
+
+**Updated Files**:
+- `.claude/schemas/learnings.schema.json` - Added `proposal` object with status, issue_ref, rejection fields
+- `.claude/scripts/gh-label-handler.sh` - Added `--body-file` for secure content handling
+- `.claude/commands/retrospective.md` - Added Step 6: Upstream Detection
+- `.claude/skills/continuous-learning/SKILL.md` - Added Upstream Flow section
+- `.loa.config.yaml` - Added `upstream_detection` and `upstream_proposals` config sections
+
+**Historical Learning Extraction**:
+- 32 learnings extracted from historical development cycles
+- Total framework learnings: 72 (exceeds 50+ PRD target)
+
+**Security Hardening**:
+- CRITICAL-001: Command injection prevention via `--body-file` parameter
+- HIGH-001: Extended PII patterns (Slack webhooks, JWT, private keys, DB credentials)
+- HIGH-002: Null-safe filename iteration with `find -print0`
+- Input validation on learning IDs (alphanumeric only)
+- Secure temp file handling with `umask 077`
+
+**Configuration** (`.loa.config.yaml`):
+```yaml
+upstream_detection:
+  enabled: true
+  min_occurrences: 3
+  min_success_rate: 0.8
+  min_upstream_score: 70
+
+upstream_proposals:
+  target_repo: "0xHoneyJar/loa"
+  label: "learning-proposal"
+  anonymization:
+    enabled: true
+  rejection_cooldown_days: 90
+```
+
+---
+
+## [1.16.0] - 2026-02-02 — Managed Scaffolding & Two-Tier Learnings
+
+### Why This Release
+
+This release introduces **Projen-Style Ownership** with managed scaffolding for framework files, and **Two-Tier Learnings Architecture** that ships 40 battle-tested patterns with every Loa installation. Framework files now have clear ownership markers, and learnings flow automatically to every project.
+
+*"Managed files stay managed. Learnings flow downstream. The framework teaches itself."*
+
+### Added
+
+#### Projen-Style Ownership with Managed Scaffolding (#134)
+
+Framework files in `.claude/` now use managed scaffolding inspired by AWS Projen:
+
+```bash
+# Check file ownership
+.claude/scripts/marker-utils.sh check-marker .claude/protocols/run-mode.md
+# → managed: true, version: 1.16.0
+
+# Eject from framework (transfer ownership)
+/loa-eject                    # Interactive eject wizard
+/loa-eject --file <path>      # Eject specific file
+/loa-eject --all              # Full framework eject
+```
+
+**Key Features**:
+- **`_loa_marker` metadata**: JSON/YAML files include `managed: true`, `version`, `hash` fields
+- **`_loa_managed` comments**: Markdown/script files use comment markers
+- **Integrity verification**: SHA-256 hash validation for tamper detection
+- **Eject command**: Transfer file ownership from framework to project
+- **Version-targeted updates**: Update only files from specific versions
+
+**New Files**:
+- `.claude/scripts/marker-utils.sh` - Marker verification utilities
+- `.claude/scripts/loa-eject.sh` - Eject command implementation
+- `.claude/commands/loa-eject.md` - Command routing
+- `.claude/skills/loa-eject/` - Eject skill with interactive wizard
+
+**Updated Files**:
+- All `.claude/protocols/*.md` - Added `_loa_managed` markers
+- All `.claude/schemas/*.json` - Added `_loa_marker` metadata
+- All `.claude/scripts/*.sh` - Added `_loa_managed` markers
+- `.claude/scripts/update.sh` - Version-targeted update support
+
+#### Two-Tier Learnings Architecture (#139)
+
+Framework learnings now ship with Loa and are available to all projects:
+
+```bash
+# Query framework learnings
+.claude/scripts/loa-learnings-index.sh query "bash" --tier framework
+
+# Query both tiers (default)
+.claude/scripts/loa-learnings-index.sh query "context management"
+
+# Check tier status
+.claude/scripts/loa-learnings-index.sh status
+# → Framework (Tier 1): 40 (weight: 1.0)
+# → Project (Tier 2): 0 (weight: 0.9)
+```
+
+**Two-Tier Model**:
+| Tier | Location | Weight | Source |
+|------|----------|--------|--------|
+| Framework | `.claude/loa/learnings/` | 1.0 | Ships with Loa |
+| Project | `grimoires/loa/a2a/compound/` | 0.9 | Project retrospectives |
+
+**40 Seeded Learnings**:
+- **10 Patterns**: Three-Zone Model, JIT Retrieval, Circuit Breaker, etc.
+- **8 Anti-Patterns**: Arrow closures, `((var++))` with set -e, etc.
+- **10 Decisions**: Why grimoires/, Why draft PRs, Why ICE layer, etc.
+- **12 Troubleshooting**: Bash 4+, macOS compatibility, yq vs jq, etc.
+
+**New Files**:
+- `.claude/loa/learnings/index.json` - Manifest with counts
+- `.claude/loa/learnings/patterns.json` - Proven architectural patterns
+- `.claude/loa/learnings/anti-patterns.json` - Common pitfalls
+- `.claude/loa/learnings/decisions.json` - Architectural decision records
+- `.claude/loa/learnings/troubleshooting.json` - Issue resolution guides
+
+**Updated Files**:
+- `.claude/schemas/learnings.schema.json` - Added `tier`, `version_added`, `source_origin`
+- `.claude/scripts/loa-learnings-index.sh` - Two-tier indexing with `--tier` flag
+- `.claude/scripts/anthropic-oracle.sh` - Weighted search across tiers
+- `.claude/scripts/update.sh` - `post_update_learnings()` for sync on update
+- `.loa.config.yaml` - `learnings` configuration section
+
+**Closes**: #76 (Extend /oracle to include Loa's own compound learnings)
+
+### Fixed
+
+#### Oracle Bash Increment Exit Code (#138)
+
+Fixed `((count++))` causing premature script termination when `set -e` is active and count starts at 0:
+
+```bash
+# Before (fails when count=0)
+((count++))
+
+# After (safe increment)
+count=$((count + 1))
+```
+
+This pattern is now documented in `.claude/loa/learnings/anti-patterns.json`.
+
+### Configuration
+
+New `.loa.config.yaml` sections:
+
+```yaml
+# Two-Tier Learnings
+learnings:
+  tiers:
+    framework:
+      enabled: true
+      weight: 1.0
+      source_dir: ".claude/loa/learnings"
+    project:
+      enabled: true
+      weight: 0.9
+  query:
+    default_tier: all
+    max_results: 10
+    deduplicate: true
+  index:
+    rebuild_on_update: true
+```
+
+---
+
+## [1.15.0] - 2026-02-02 — Prompt Enhancement & Developer Experience
+
+### Why This Release
+
+This release introduces the **Intelligent Prompt Enhancement System** with a new `/enhance` command, **consolidated sprint PRs** for cleaner Run Mode output, and several developer experience improvements including the **Canonical URL Registry** to prevent agent hallucination.
+
+*"Enhance your prompts. Consolidate your PRs. Ground your URLs."*
+
+### Added
+
+#### `/enhance` Command & Prompt Enhancement Skill (#108, #109, #120)
+
+New skill and command for improving prompt quality using the PTCF framework (Persona + Task + Context + Format):
+
+```bash
+/enhance "review the code"              # Analyze and enhance prompt
+/enhance --analyze-only "check auth"    # Analysis without enhancement
+/enhance --task-type code_review "..."  # Use specific template
+```
+
+**Features**:
+- **Quality Scoring**: 0-10 score based on component detection
+- **7 Task Templates**: debugging, code_review, refactoring, summarization, research, generation, general
+- **Feedback Loop**: Up to 3 refinement iterations based on runtime errors or test failures
+- **PTCF Analysis**: Detects missing Persona, Task, Context, and Format components
+
+**New Files**:
+- `.claude/skills/enhancing-prompts/` - 3-level skill architecture (15 files, 1282 lines)
+- `.claude/commands/enhance.md` - Command routing
+
+**Sources**: [Google Gemini Prompting Guide](https://workspace.google.com/blog/product-announcements/gemini-gems-ai-guide-prompting), SDPO feedback concepts
+
+#### Canonical URL Registry (#127, #131)
+
+Protocol and infrastructure to prevent agent URL hallucination:
+
+```yaml
+# grimoires/loa/urls.yaml (auto-created during /mount)
+project:
+  repository: "https://github.com/org/repo"
+  documentation: "https://docs.example.com"
+anthropic:
+  docs: "https://docs.anthropic.com"
+  api_reference: "https://docs.anthropic.com/en/api"
+```
+
+**Agent Protocol**: Agents must use `urls.yaml` entries or explicit user-provided URLs. Never fabricate URLs.
+
+**New Files**:
+- `.claude/protocols/url-registry.md` - Protocol specification
+- `grimoires/loa/urls.yaml` - Created during `/mount`
+
+#### Consolidated Sprint PRs (#124, #132)
+
+`/run sprint-plan` now creates a **single consolidated PR** after all sprints complete (default behavior):
+
+```bash
+/run sprint-plan                  # Consolidated PR at end (default)
+/run sprint-plan --no-consolidate # Legacy: separate PR per sprint
+```
+
+**Benefits**:
+- Single PR for easier review
+- Per-sprint breakdown table in PR description
+- Commits grouped by sprint (`feat(sprint-1): ...`)
+- Clean git history with sprint markers
+
+**Updated Files**:
+- `.claude/protocols/run-mode.md` - Consolidated PR format
+- `.claude/skills/run-mode/SKILL.md` - Updated execution loop
+- `.claude/commands/run-sprint-plan.md` - New `--no-consolidate` option
+
+### Fixed
+
+#### Mount Version Detection (#123, #133)
+
+Fixed `/mount` installing outdated version (v1.7.2) instead of latest:
+
+- `sync_zones()` now pulls upstream `.loa-version.json` during installation
+- `create_manifest()` reads from pulled file with git tag fallback
+- Removed hardcoded version from banner
+
+#### Oracle Auto-Index (#116, #128)
+
+Fixed `/oracle-analyze` returning no results when index doesn't exist:
+
+- Oracle now auto-builds index on first query
+- Clear error messages when index build fails
+
+#### Feedback Trace Enablement (#115, #125, #130)
+
+`/feedback` now prompts to enable trace collection when disabled:
+
+- AskUserQuestion offers "Enable for this submission" option
+- One-time collection without persisting settings
+- Created `feedback` label in all ecosystem repos (#126)
+
+#### Constructs API Migration (#106, #107)
+
+Fixed `/constructs` command after API endpoint changes:
+
+- Updated to unified `/v1/constructs` endpoint
+- Supports both `.data[]` and legacy `.packs[]` response formats
+
+### Documentation
+
+#### Memory Leak Pattern (#129)
+
+Added arrow function closure memory leak pattern to review and audit skills:
+
+- `.claude/skills/reviewing-code/resources/REFERENCE.md` - Detection criteria
+- `.claude/skills/auditing-security/resources/REFERENCE.md` - CWE-401 classification
+- `grimoires/loa/memory/learnings.yaml` - Learning entry L-0001
+
+**Pattern**: Use `obj.method.bind(obj)` instead of `() => obj.method()` to prevent closure memory leaks (1GB+ reduction in long sessions).
+
+#### README Version Badge (#122)
+
+Synced README version badge to current release.
+
+---
+
+## [1.14.1] - 2026-02-01 — Constructs Bug Fix
+
+### Fixed
+
+#### get_api_key() Missing from Shared Library (#104, #105)
+
+Fixed undefined function error in `/constructs` command. The `get_api_key()` and `check_file_permissions()` functions were only defined in `constructs-install.sh` but called by `constructs-auth.sh` and `constructs-browse.sh`.
+
+**Solution**: Moved both functions to `constructs-lib.sh` (the shared library sourced by all constructs scripts).
+
+---
+
+## [1.14.0] - 2026-02-01 — Constructs Multi-Select UI
+
+### Why This Release
+
+The `/constructs` command brings a streamlined pack installation experience with multi-select UI. Browse the Loa Constructs Registry, select multiple packs, and install them in one flow.
+
+*"Point. Click. Install. The registry at your fingertips."*
+
+### Added
+
+#### `/constructs` Command (#88)
+
+New slash command for browsing and installing packs from the Loa Constructs Registry:
+
+```bash
+/constructs              # Browse with multi-select UI
+/constructs install <pack>   # Direct install
+/constructs list         # Show installed packs
+/constructs update       # Check for updates
+/constructs uninstall <pack> # Remove a pack
+/constructs auth         # Check auth status
+/constructs auth setup   # Configure API key
+```
+
+**Multi-Select UI**: Uses Claude Code's `AskUserQuestion` with `multiSelect: true` for intuitive pack selection:
+
+```
+Select packs to install:
+
+  [x] 🔮 Observer (6 skills) - User truth capture
+  [x] ⚗️ Crucible (5 skills) - Validation & testing
+  [ ] 🎨 Artisan (10 skills) - Brand/UI craftsmanship
+  [ ] 📣 GTM Collective (Pro) - Go-to-market skills 🔒
+
+  [Install Selected]  [Skip for Now]
+```
+
+**New Files**:
+- `.claude/commands/constructs.md` - Command definition with agent routing
+- `.claude/skills/browsing-constructs/` - Multi-select workflow skill
+- `.claude/scripts/constructs-browse.sh` - Registry API + caching (1hr TTL)
+- `.claude/scripts/constructs-auth.sh` - API key setup and validation
+
+**Authentication**: Premium packs require API key:
+```bash
+/constructs auth setup   # Interactive setup
+# Or set environment variable
+export LOA_CONSTRUCTS_API_KEY="sk_your_key"
+```
+
+### Documentation
+
+- **README.md** - Added `/constructs` to Ad-hoc commands
+- **INSTALLATION.md** - New "Browse and Install with `/constructs`" section
+
+---
+
+## [1.13.0] - 2026-02-01 — Skill Best Practices & Security Hardening
+
+### Why This Release
+
+Loa now aligns with **Vercel AI SDK** and **Anthropic tool-writing best practices** for skill definitions. This release also adds the **Anthropic Context Features** foundation (effort parameter, context editing, memory schema) and comprehensive **security hardening** of shell scripts.
+
+*"Industry-aligned skills. Fortified shell scripts. Token-efficient futures."*
+
+### Added
+
+#### Skill Best Practices Alignment (#97, #99)
+
+All 13 skills now follow Vercel AI SDK and Anthropic best practices with new schema fields:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `effort_hint` | `low\|medium\|high` | Recommended reasoning depth |
+| `danger_level` | `safe\|moderate\|high\|critical` | Risk classification |
+| `categories` | `string[]` | Semantic groupings for search |
+| `inputExamples` | `object[]` | Native Anthropic examples |
+| `defer_loading` | `boolean` | Future deferred loading |
+
+- **New Schema**: `.claude/schemas/skill-index.schema.json` - JSON Schema 2020-12 validation
+- **Validation Script**: `.claude/scripts/validate-skills.sh` - Automated skill validation
+- **Token Budget Mapping**: `low (~4K)`, `medium (~16K)`, `high (~64K)`
+- **Canonical Categories**: planning, implementation, quality, support, operations
+
+**Sources**: [Vercel AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling), [Anthropic Advanced Tool Use](https://anthropic.com/engineering/advanced-tool-use)
+
+#### Anthropic Context Features (#94, #95, #96, #98)
+
+Foundation for three Anthropic platform features:
+
+- **Effort Parameter** (#94): Configurable thinking budget per skill
+  - Budget ranges: low (1K-4K), medium (8K-16K), high (24K-32K)
+  - Verified: 76% token reduction (Anthropic Opus 4.5 announcement)
+
+- **Context Editing** (#95): Three-layer architecture for intelligent compaction
+  - Layers: Preserve → Cache → Compact
+  - Threshold: 80% context usage triggers compaction
+  - Verified: 84% token reduction (Claude context management blog)
+
+- **Memory Schema** (#96): Grimoire-based persistence
+  - 5 categories: fact, decision, learning, error, preference
+  - Lifecycle: active → archived → expired
+  - Location: `grimoires/loa/memory/`
+  - Verified: 39% improvement with context editing
+
+**New Files**:
+- `.claude/schemas/memory.schema.json` - Memory entry validation
+- `.claude/protocols/context-editing.md` - Three-layer architecture
+- `.claude/protocols/memory.md` - Memory lifecycle protocol
+- `docs/integration/runtime-contract.md` - Runtime integration contract
+
+### Security
+
+#### Shell Script Hardening (#99, #100, #101)
+
+Comprehensive security audit with fixes across 20+ shell scripts:
+
+| Finding | Severity | Fix |
+|---------|----------|-----|
+| CRITICAL-001 | Unsafe temp files | `mktemp + chmod 600` in 18 scripts |
+| HIGH-001 | yq injection | New `yq-safe.sh` library |
+| HIGH-002 | HTTP downgrade | `--proto =https --tlsv1.2` |
+| HIGH-003 | Secret leak | Expanded redaction patterns |
+| HIGH-004 | JSON injection | `jq -n` for generation |
+
+- **New Library**: `.claude/scripts/yq-safe.sh` - Type-safe YAML extraction
+  - `safe_yq_identifier` - Validates kebab-case names
+  - `safe_yq_version` - Validates semver format
+  - `safe_yq_enum` - Validates against allowed values
+  - `safe_yq_path/url/bool/int` - Type-specific validation
+
+- **Secret Redaction**: Now covers OpenSSH keys, hex keys (Web3), base64 secrets, OAuth tokens
+
+### Changed
+
+- **validate-skills.sh** - Now uses jq for JSON parsing with pattern validation
+- **constructs-loader.sh** - Uses safe_yq_version with fallback validation
+- **schema-validator.sh** - Added 100KB content size limit
+
+### Documentation
+
+- **CLAUDE.md** - Added Skill Best Practices section with:
+  - Token budget mapping table
+  - Canonical categories table
+  - Enforcement status (#94 runtime prep)
+
+---
+
+## [1.12.0] - 2026-02-01 — Oracle Compound Learnings
+
+### Why This Release
+
+Loa now **learns from itself**. The Oracle system has been extended to query Loa's own compound learnings alongside Anthropic documentation. This implements the recursive improvement loop: Executions → Feedback → Oracle → Skills → Executions.
+
+*"Loa should be its own oracle—teaching other agent systems how to improve based on what worked here."*
+
+### Added
+
+#### Oracle Compound Learnings (#89, #76)
+
+Extend the oracle system to query Loa's own accumulated knowledge with hierarchical source weighting.
+
+- **`query` Command** - New oracle action with scope parameter:
+  ```bash
+  # Query Loa learnings only
+  .claude/scripts/anthropic-oracle.sh query "auth token" --scope loa
+
+  # Query Anthropic docs only
+  .claude/scripts/anthropic-oracle.sh query "hooks" --scope anthropic
+
+  # Query all sources with weighted ranking
+  .claude/scripts/anthropic-oracle.sh query "patterns" --scope all
+  ```
+
+- **Hierarchical Source Weighting**:
+  | Source | Weight | Description |
+  |--------|--------|-------------|
+  | Loa Learnings | 1.0 | Skills, feedback, decisions from this repo |
+  | Anthropic Docs | 0.8 | Official Claude best practices |
+  | Community | 0.5 | External contributions |
+
+- **Loa Sources Indexed**:
+  - Skills: `.claude/skills/**/*.md`
+  - Feedback: `grimoires/loa/feedback/*.yaml`
+  - Decisions: `grimoires/loa/decisions.yaml`
+  - Learnings: `grimoires/loa/a2a/compound/learnings.json`
+
+- **`loa-learnings-index.sh`** - New indexing script (949 lines):
+  ```bash
+  # Build/update Loa learnings index
+  .claude/scripts/loa-learnings-index.sh index
+
+  # Query indexed learnings
+  .claude/scripts/loa-learnings-index.sh query "pattern"
+
+  # Show index status
+  .claude/scripts/loa-learnings-index.sh status
+  ```
+
+- **QMD Integration** - Semantic search with grep fallback:
+  - Uses QMD when available for semantic queries
+  - Falls back to grep-based keyword search
+  - Configurable via `.loa.config.yaml`
+
+- **Effectiveness Tracking** - Track learning application:
+  ```bash
+  # Track that a learning was applied
+  .claude/scripts/anthropic-oracle.sh query "pattern" --track
+  ```
+
+- **Configuration** (`.loa.config.yaml`):
+  ```yaml
+  oracle:
+    compound_learnings:
+      enabled: true
+      default_scope: "all"
+      source_weights:
+        loa_learnings: 1.0
+        anthropic_docs: 0.8
+        community: 0.5
+      index_paths:
+        skills: ".claude/skills/**/*.md"
+        feedback: "grimoires/loa/feedback/*.yaml"
+        decisions: "grimoires/loa/decisions.yaml"
+  ```
+
+- **Updated Files**:
+  - `.claude/commands/oracle-analyze.md` - Extended with query documentation
+  - `.claude/schemas/learnings.schema.json` - Expanded schema
+  - `grimoires/loa/feedback/README.md` - Feedback directory documentation
+
+### Documentation
+
+- **CLAUDE.md** - Added Oracle Compound Learnings section with:
+  - Query command usage
+  - Source weighting table
+  - Index management
+  - Configuration reference
+
+---
+
+## [1.11.0] - 2026-02-01 — Autonomous Agents & Developer Experience
+
+### Why This Release
+
+This is a **major release** with six significant features: the **Autonomous Agent Orchestra** (#82) for end-to-end workflow automation, **LLM-as-Judge** (#69) structured evaluation for auditors, **Adversarial Critic Protocol** (#85) for rigorous code reviews, **Decision Lineage Schema** (#86) for tracking architectural decisions, **Smart Feedback Routing** (#81) for ecosystem-aware issue routing, and **WIP Branch Testing** (#91) for safe framework updates. Plus comprehensive **security hardening** and **attention budget enforcement** (#83) across all skills.
+
+*"The orchestra plays. The agents review. The decisions persist."*
+
+### Added
+
+#### Autonomous Agent Orchestra (#82)
+
+Meta-orchestrator skill for exhaustive Loa process compliance with 8-phase execution model.
+
+- **`/autonomous` command** - End-to-end autonomous workflow
+  - Phase 1: Initialization & context loading
+  - Phase 2: PRD discovery & requirements
+  - Phase 3: Architecture design
+  - Phase 4: Sprint planning
+  - Phase 5: Implementation cycles
+  - Phase 6: Review & audit loops
+  - Phase 7: Deployment preparation
+  - Phase 8: Completion & learning extraction
+
+- **Operator Detection** - Identifies workflow context and adapts behavior
+- **Quality Gates** - Configurable checkpoints between phases
+- **Escalation Templates** - Structured handoff when human intervention needed
+
+- **New Skill**: `.claude/skills/autonomous-agent/`
+  - `index.yaml` - Skill metadata
+  - `SKILL.md` - 8-phase execution model
+  - Resources: operator-detection, phase-checklist, quality-gates
+
+#### LLM-as-Judge Auditor Enhancement (#69)
+
+Structured evaluation rubrics with machine-parseable output for the auditing-security skill.
+
+- **23 Scoring Dimensions** across 5 categories:
+  - Security (injection, auth, crypto, data protection)
+  - Architecture (coupling, scalability, resilience)
+  - Code Quality (complexity, testing, documentation)
+  - Operations (logging, monitoring, deployment)
+  - Compliance (privacy, licensing, accessibility)
+
+- **Output Schema** - JSONL format with reasoning traces
+- **New Resources**:
+  - `RUBRICS.md` - 23 evaluation dimensions
+  - `OUTPUT-SCHEMA.md` - JSONL schema specification
+
+#### Adversarial Critic Protocol (#85)
+
+Enhances code reviews with adversarial analysis that challenges assumptions and identifies edge cases.
+
+- **Structured Adversarial Sections**:
+  - Concerns identified
+  - Assumptions challenged
+  - Alternatives not considered
+  - Adversarial verdict
+
+- **Review Template** - `reviewing-code/resources/templates/review-feedback.md`
+
+#### Decision Lineage Schema (#86)
+
+Track architectural decisions with full lineage - why decisions were made, alternatives considered, and connections to requirements.
+
+- **Decision Record Structure**:
+  ```yaml
+  decisions:
+    - id: DEC-001
+      title: "Decision title"
+      context: "Why this decision was needed"
+      options: [{ name: "Option A", pros: [...], cons: [...] }]
+      chosen: "Option A"
+      rationale: "Why this option was chosen"
+      supersedes: null  # Links to previous decisions
+  ```
+
+- **New Files**:
+  - `.claude/schemas/decisions.schema.json` - JSON schema
+  - `.claude/protocols/decision-capture.md` - Capture protocol
+  - `docs/architecture/decision-lineage.md` - Documentation
+
+#### Attention Budget Enforcement (#83)
+
+Tool Result Clearing attention budgets added to all 7 search-heavy skills.
+
+- **Token Thresholds**:
+  | Context Type | Limit | Action |
+  |--------------|-------|--------|
+  | Single search result | 2,000 tokens | Apply 4-step clearing |
+  | Accumulated results | 5,000 tokens | MANDATORY clearing |
+  | Full file load | 3,000 tokens | Synthesize immediately |
+  | Session total | 15,000 tokens | STOP, synthesize to NOTES.md |
+
+- **Skills Updated**: `auditing-security`, `implementing-tasks`, `discovering-requirements`, `riding-codebase`, `reviewing-code`, `planning-sprints`, `designing-architecture`
+
+#### Smart Feedback Routing (#81, #93)
+
+Context-aware routing for the `/feedback` command to direct issues to the correct ecosystem repository.
+
+- **`feedback-classifier.sh`** - Context classification engine
+  - Signal-based scoring with weights for different patterns
+  - Confidence calculation for routing decisions
+  - Categories: `loa_framework`, `loa_constructs`, `forge`, `project`
+
+- **Ecosystem Routing** - Routes to appropriate repo based on context:
+  | Repo | Signals |
+  |------|---------|
+  | `0xHoneyJar/loa` | `.claude/`, `grimoires/`, `skill`, `protocol`, `PRD`, `SDD` |
+  | `0xHoneyJar/loa-constructs` | `registry`, `API`, `endpoint`, `pack`, `constructs` |
+  | `0xHoneyJar/forge` | `experimental`, `sandbox`, `WIP`, `draft` |
+  | project-specific | `deployment`, `infra`, `application`, `app` |
+
+- **AskUserQuestion Integration** - Per Anthropic best practices (#90):
+  - Recommended option appears first with "(Recommended)" suffix
+  - Headers under 12 characters for chip display
+  - Descriptions explain trade-offs
+
+- **`gh-label-handler.sh`** - Graceful label handling
+  - Retries without labels if "label not found" error
+  - Prevents single missing label from blocking feedback
+
+#### WIP Branch Testing (#91, #93)
+
+Test Loa framework updates on feature branches before merging to your working branch.
+
+- **Branch Mode Selection** - When `/update-loa` detects a feature branch:
+  - Option 1: "Checkout for testing (Recommended)" - Creates `test/loa-*` branch
+  - Option 2: "Merge into current branch" - Existing behavior
+
+- **`branch-state.sh`** - State management for test branches
+  - Saves original branch for return flow
+  - Commands: `save`, `load`, `clear`, `is-testing`
+  - State file: `.loa/branch-testing.json`
+
+- **Return Helper** - When on `test/loa-*` branch:
+  - Return to original branch
+  - Stay on test branch
+  - Merge test branch into original
+
+- **Configurable Patterns** - Feature branch detection:
+  ```yaml
+  update_loa:
+    branch_testing:
+      enabled: true
+      feature_patterns: ["feature/*", "fix/*", "topic/*", "wip/*", "test/*"]
+      test_branch_prefix: "test/loa-"
+  ```
+
+#### Security Hardening (#93)
+
+Comprehensive security improvements based on code audit findings.
+
+- **`security-validators.sh`** - Reusable validation library (452 lines)
+  - `validate_safe_path()` - Path validation with symlink resolution
+  - `validate_config_path()` - Config path validation (no traversal)
+  - `validate_numeric()` / `validate_float()` - Numeric validation with bounds
+  - `validate_boolean()` - Boolean normalization
+  - `validate_repo_url()` - GitHub repo URL format validation
+  - `safe_rm_rf()` - Boundary-checked rm -rf with symlink protection
+  - `safe_config_*()` - Safe config extraction wrappers
+
+- **HIGH-001 Fix** - Regex injection prevention in `feedback-classifier.sh`
+  - Use `printf '%s'` instead of `echo` for user content
+  - Add `--` before grep patterns to prevent option injection
+
+- **MEDIUM-001 Fix** - Absolute path resolution in `branch-state.sh`
+  - `find_project_root()` resolves state directory from project root
+  - Prevents state file writes to unintended locations
+
+- **MEDIUM-003 Fix** - Safe rm -rf in `cleanup-context.sh`
+  - Replaced vulnerable `find -exec rm -rf {}` pattern
+  - Added symlink resolution with `pwd -P`
+  - Added boundary check after resolution
+
+- **MEDIUM-004 Fix** - jq/yq output sanitization
+  - `qmd-sync.sh`: Validates boolean, binary name, and path configs
+  - `compact-trajectory.sh`: Validates numeric configs with bounds
+  - Rejects traversal sequences, absolute paths, shell metacharacters
+
+### Changed
+
+- **`/feedback` command** - Now v2.1.0 with smart routing
+- **`/update-loa` command** - Now v1.2.0 with WIP branch testing
+- **7 skills** - Added attention budget sections with token thresholds
+- **CLAUDE.md** - Added documentation for all new features
+
+### New Commands
+
+| Command | Description |
+|---------|-------------|
+| `/autonomous` | End-to-end autonomous workflow execution |
+
+### Configuration
+
+New sections in `.loa.config.yaml`:
+
+```yaml
+# Smart Feedback Routing
+feedback:
+  routing:
+    enabled: true
+    auto_classify: true
+    require_confirmation: true
+  repos:
+    framework: "0xHoneyJar/loa"
+    constructs: "0xHoneyJar/loa-constructs"
+    forge: "0xHoneyJar/forge"
+    project: "${GITHUB_REPOSITORY}"
+  labels:
+    graceful_missing: true
+    default: ["feedback", "user-report"]
+
+# WIP Branch Testing
+update_loa:
+  branch_testing:
+    enabled: true
+    feature_patterns: ["feature/*", "fix/*", "topic/*", "wip/*", "test/*"]
+    test_branch_prefix: "test/loa-"
+```
+
+### New Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `feedback-classifier.sh` | Context-based routing classification |
+| `gh-label-handler.sh` | Graceful GitHub label handling |
+| `branch-state.sh` | WIP branch testing state management |
+| `security-validators.sh` | Reusable security validation utilities |
+
+---
+
+## [1.10.0] - 2026-01-30 — Compound Learning & Visual Communication
+
+### Why This Release
+
+This release adds three major capabilities: **Compound Learning** for cross-session pattern detection, **Beautiful Mermaid** for visual diagram rendering, and **Feedback Traces** for regression debugging. Together, these features enable agents to learn across sessions, communicate visually, and provide better debugging information.
+
+*"The agent gets smarter every day because it reads its own updated instructions."*
+
+### Added
+
+#### Compound Learning System (#67)
+
+Cross-session pattern detection and automated knowledge consolidation, inspired by [Ryan Carson's autonomous coding workflow](https://x.com/ryancarson).
+
+- **`/compound`** - End-of-cycle learning extraction
+  - Reviews all trajectory logs from current development cycle
+  - Detects cross-session patterns (repeated errors, convergent solutions)
+  - Extracts qualified patterns as reusable skills
+  - Archives cycles with changelog generation
+
+- **`/retrospective --batch`** - Multi-session batch analysis
+  - Analyzes trajectory files across configurable date ranges
+  - Jaccard similarity clustering for pattern detection
+  - 4-gate quality filter (Discovery Depth, Reusability, Trigger Clarity, Verification)
+  - Configurable confidence thresholds
+
+- **Effectiveness Feedback Loop** - Track, verify, reinforce/demote learnings
+  - Signal weights for task completion, user feedback
+  - Tier system (HIGH/MEDIUM/LOW/INEFFECTIVE)
+  - Automatic pruning of ineffective learnings
+
+- **Morning Context Loading** - Load relevant learnings at session start
+  - Semantic matching based on current task context
+  - Configurable max learnings and age limits
+
+- **Skill Synthesis** - Merge related skills into refined knowledge
+  - Cluster similar skills using semantic similarity
+  - Human approval for all synthesis proposals
+
+- **28 new scripts** in `.claude/scripts/` for pattern detection, clustering, and effectiveness tracking
+
+#### Beautiful Mermaid Visual Communication (#68)
+
+Integrated diagram rendering using [agents.craft.do/mermaid](https://agents.craft.do/mermaid) service.
+
+- **`mermaid-url.sh`** - Security-hardened URL generator
+  - Theme validation with allowlist (github, dracula, nord, tokyo-night, solarized-light, solarized-dark, catppuccin)
+  - Mermaid syntax validation
+  - Size limits (1500 chars max for URLs)
+  - Configurable service URL via environment variable
+
+- **Visual Communication Protocol** (`.claude/protocols/visual-communication.md`)
+  - Standards for visual output across all agents
+  - Required vs optional diagrams per agent type
+  - Hybrid output: Mermaid code blocks + preview URLs
+
+- **Agent Integration** - All skill files updated with visual communication sections:
+  - `designing-architecture`: System diagrams, sequence diagrams, ER diagrams (required)
+  - `translating-for-executives`: Executive dashboards (required)
+  - `discovering-requirements`, `planning-sprints`, `reviewing-code`: Optional diagrams
+
+- **Diagram Templates** - 5 templates in `.claude/skills/designing-architecture/resources/templates/diagrams/`:
+  - `flowchart-system.md` - System architecture
+  - `sequence-api.md` - API interactions
+  - `class-domain.md` - Domain models
+  - `er-database.md` - Database schemas
+  - `state-lifecycle.md` - State machines
+
+#### Feedback Trace Collection (#66)
+
+Opt-in execution trace collection for regression debugging, replacing Linear with GitHub Issues.
+
+- **`/feedback`** - Submit developer feedback with optional traces
+  - Creates GitHub Issues with structured format
+  - OSS-friendly (open to all users)
+  - Auto-attaches trajectory excerpts when enabled
+
+- **`collect-trace.sh`** - Trace collection script
+  - Configurable scope: `execution`, `full`, `failure-window`
+  - Privacy-first: opt-in only, user review before submit
+  - Auto-redact secrets and sensitive patterns
+
+- **Configuration** (`.claude/settings.local.json`):
+  ```json
+  {
+    "feedback": {
+      "trace_collection": {
+        "enabled": true,
+        "scope": "failure-window"
+      }
+    }
+  }
+  ```
+
+### Configuration
+
+New sections in `.loa.config.yaml`:
+
+```yaml
+# Compound Learning
+compound_learning:
+  enabled: true
+  pattern_detection:
+    min_occurrences: 2
+    max_age_days: 90
+  similarity:
+    prefer_semantic: true
+    fallback:
+      jaccard_threshold: 0.6
+  quality_gates:
+    discovery_depth: { min_score: 5 }
+    reusability: { min_score: 5 }
+    trigger_clarity: { min_score: 5 }
+    verification: { min_score: 3 }
+
+# Visual Communication
+visual_communication:
+  enabled: true
+  service: "https://agents.craft.do/mermaid"
+  theme: "github"
+  include_preview_urls: true
+```
+
+### New Commands
+
+| Command | Description |
+|---------|-------------|
+| `/compound` | End-of-cycle learning extraction |
+| `/compound status` | Show compound learning status |
+| `/compound changelog` | Generate cycle changelog |
+| `/retrospective --batch` | Multi-session pattern analysis |
+| `/feedback` | Submit feedback with optional traces |
+
+---
+
+## [1.9.1] - 2026-01-29 — Memory Stack Patch
+
+### Fixed
+
+- **Venv Python Support** - Memory Stack now works with externally-managed Python environments (PEP 668)
+  - `memory-admin.sh` and `memory-setup.sh` auto-detect `.loa/venv/bin/python3`
+  - Fixes compatibility with modern Debian/Ubuntu systems that block system-wide pip installs
+
+### Documentation
+
+- Added resource requirements warning for Memory Stack (2-3 GB disk, ~500 MB RAM)
+- Added links to [sentence-transformers](https://github.com/UKPLab/sentence-transformers) repository and documentation
+
+---
+
+## [1.9.0] - 2026-01-29 — Claude Code 2.1.x Feature Adoption
+
+### Why This Release
+
+This release aligns Loa with Claude Code 2.1.x platform capabilities, adding async hooks for improved performance and context cleanup automation.
+
+*"Async where possible, blocking only when necessary."*
+
+### Added
+
+- **Async Hooks** - Non-blocking hooks for improved session performance
+  - `SessionStart` → `check-updates.sh` (async: true)
+  - `PermissionRequest` → `permission-audit.sh` (async: true)
+  - `PreToolUse` hooks remain blocking when they must complete before execution
+
+- **Context Cleanup Hook** - Auto-archive previous cycle context before `/plan-and-analyze`
+  - Detects existing PRD/SDD/sprint files from previous cycles
+  - Prompts user: Archive (Y), Keep (n), or Abort (q)
+  - Archives to cycle's archive directory with timestamp
+  - Prevents stale context from polluting new development cycles
+
+- **One-Time Hooks** - `once: true` flag prevents duplicate runs per session
+  - Update check only runs once on session start
+
+- **Session ID Tracking** - `${CLAUDE_SESSION_ID}` now logged in trajectory files
+  - Enables cross-session correlation and debugging
+
+- **Skill Forking Protocol** - Documentation for `context: fork` pattern
+  - Read-only skills like `/ride` use isolated execution context
+  - Prevents context pollution from exploration tasks
+
+### Changed
+
+- **Settings.json** - Updated with async flags and cleanup hook configuration
+- **Recommended Hooks Protocol** - Expanded documentation for async patterns
+
+---
+
+## [1.8.0] - 2026-01-28 — Memory Stack
+
+### Why This Release
+
+This release introduces the **Memory Stack** - a vector database with PreToolUse hook system for mid-stream semantic grounding during Claude Code sessions. All security vulnerabilities identified in the comprehensive audit have been remediated.
+
+*"Learnings that persist. Context that recalls itself."*
+
+### Added
+
+- **Vector Database** (`memory-admin.sh`)
+  - SQLite + sentence-transformers embeddings (all-MiniLM-L6-v2, 384 dimensions)
+  - CLI for managing memories: add, search, list, delete, prune
+  - Semantic similarity search with configurable threshold
+
+- **PreToolUse Hook** (`memory-inject.sh`)
+  - Mid-stream memory injection during Read/Glob/Grep/WebFetch/WebSearch
+  - Extracts last N characters from thinking block as query
+  - Deduplication via SHA-256 hash to prevent repeated queries
+  - Configurable timeout (default 500ms) for latency control
+
+- **NOTES.md Sync** (`memory-sync.sh`)
+  - Automatic extraction of learnings section to vector database
+  - Runs on session start if `auto_sync: true`
+  - Incremental sync - only new learnings added
+
+- **QMD Integration** (`qmd-sync.sh`)
+  - Document search with semantic or grep fallback
+  - Indexes grimoires/loa for searchable project context
+  - Collection-based organization
+
+- **Setup Wizard** (`memory-setup.sh`)
+  - First-time setup with dependency checking
+  - Interactive configuration prompts
+  - Validates Python + sentence-transformers installation
+
+### Security Remediation
+
+| Issue | Severity | Fix |
+|-------|----------|-----|
+| SQL Injection in memory queries | HIGH | Python parameterized queries |
+| Command Injection via query | HIGH | Environment variable passing instead of shell interpolation |
+| Path Traversal in file operations | HIGH | realpath validation |
+| Input Sanitization | MEDIUM | Control character + ANSI escape removal |
+| Temp File Security | MEDIUM | mktemp with random suffix |
+| Trajectory Sensitivity | MEDIUM | Documentation + .gitignore coverage |
+
+### Configuration
+
+```yaml
+# .loa.config.yaml
+memory:
+  pretooluse_hook:
+    enabled: false  # Opt-in for safety
+    thinking_chars: 1500
+    similarity_threshold: 0.35
+    max_memories: 3
+    timeout_ms: 500
+    tools:
+      - Read
+      - Glob
+      - Grep
+      - WebFetch
+      - WebSearch
+
+  vector_db:
+    path: .loa/memory.db
+    model: all-MiniLM-L6-v2
+    dimension: 384
+
+  auto_sync: false  # Sync NOTES.md learnings on session start
+```
+
+### Research References
+
+| Paper | Relevance |
+|-------|-----------|
+| [Retrieval-Augmented Generation for LLM Agents](https://arxiv.org/abs/2312.10997) | RAG patterns for agent workflows |
+| [Self-RAG: Learning to Retrieve, Generate, and Critique](https://arxiv.org/abs/2310.11511) | Self-reflective retrieval |
+| [Semantic Caching for LLM Applications](https://arxiv.org/abs/2311.04934) | Query deduplication via hashing |
+
+---
+
+## [1.7.2] - 2026-01-28 — Issues Remediation
+
+### Fixed
+
+- **Mount Script Version Detection** (#56) - Fixed hardcoded fallback version `0.6.0` → `1.7.1`
+  - Version detection now checks root `.loa-version.json` first
+  - Updated banner version from `v0.9.0` to `v1.7.1`
+
+- **Anthropic Oracle URLs** (#58) - Updated Claude Code documentation URLs
+  - Docs moved from `docs.anthropic.com` to `code.claude.com`
+  - Added new endpoints: `memory`, `skills`, `hooks`
+
+### Added
+
+- **Sprint Auto-Continuation** (#55) - `/run sprint-plan` now automatically continues to next sprint
+  - Sprint plan execution loop with automatic advancement
+  - State tracking in `sprint-plan-state.json`
+  - Sprint discovery priority: `sprint.md` → `ledger.json` → `a2a/` directories
+
+- **Sprint Ledger Auto-Creation** (#57) - `/sprint-plan` now offers to create ledger if missing
+  - Step 0 checks for ledger existence before planning
+  - User prompt via `AskUserQuestion` with option to decline
+  - Follows existing ledger.json schema
+
+---
+
 ## [1.7.1] - 2026-01-24 — Template Cleanup
 
 ### Fixed

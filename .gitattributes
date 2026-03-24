@@ -15,6 +15,41 @@
 
 README.md merge=ours
 CHANGELOG.md merge=ours
+BUTTERFREEZONE.md merge=ours
+
+# =============================================================================
+# STATE ZONE FILES (grimoires/)
+# =============================================================================
+# These files are project-specific planning artifacts in the State Zone.
+# /update-loa merges upstream which uses the same paths for its own dev cycles.
+# merge=ours prevents upstream PRD/SDD/sprint files from overwriting yours.
+# See: Three-Zone Model in CLAUDE.loa.md — grimoires/ is user-owned state.
+#
+# To check what upstream changed (opt-in to improvements):
+#   git diff main..loa/main -- grimoires/loa/prd.md
+#   git diff main..loa/main -- grimoires/loa/sdd.md
+
+grimoires/loa/prd.md merge=ours
+grimoires/loa/sdd.md merge=ours
+grimoires/loa/sprint.md merge=ours
+grimoires/loa/NOTES.md merge=ours
+# Note: ledger.json is schema-owned operational state (not user-authored prose).
+# merge=ours preserves your cycle/sprint data but may skip upstream schema migrations.
+# update-loa.sh warns when upstream schema_version exceeds local — run /ledger migrate.
+grimoires/loa/ledger.json merge=ours
+
+# =============================================================================
+# CI/CD WORKFLOW FILES
+# =============================================================================
+# GitHub Actions workflow files require the `workflow` OAuth scope to push.
+# Downstream projects should not receive upstream workflow changes via
+# `git merge loa/main` — this blocks pushes for users without that scope.
+# Using merge=ours ensures downstream workflow files are preserved.
+# For NEW workflow files added upstream, /update-loa includes a post-merge
+# revert step (Phase 5.5) to remove them.
+
+.github/workflows/*.yml merge=ours
+.github/workflows/*.yaml merge=ours
 
 # =============================================================================
 # LINE ENDING NORMALIZATION

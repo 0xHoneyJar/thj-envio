@@ -1,4 +1,19 @@
 ---
+name: sprint-plan
+description: Create comprehensive sprint plan based on PRD and SDD
+capabilities:
+  schema_version: 1
+  read_files: true
+  search_code: true
+  write_files: true
+  execute_commands: false
+  web_access: false
+  user_interaction: true
+  agent_spawn: false
+  task_management: false
+cost-profile: moderate
+context: fork
+agent: Plan
 parallel_threshold: null
 timeout_minutes: 60
 zones:
@@ -16,7 +31,7 @@ zones:
 # Sprint Planner
 
 <objective>
-Transform PRD and SDD into actionable sprint plan with 2.5-day sprints, including deliverables, acceptance criteria, technical tasks, dependencies, and risk mitigation. Generate `grimoires/loa/sprint.md`.
+Transform PRD and SDD into actionable sprint plan with right-sized sprints, including deliverables, acceptance criteria, technical tasks, dependencies, and risk mitigation. Generate `grimoires/loa/sprint.md`.
 </objective>
 
 <zone_constraints>
@@ -31,6 +46,8 @@ This skill operates under **Managed Scaffolding**:
 | `src/`, `lib/`, `app/` | Read-only | App zone - requires user confirmation |
 
 **NEVER** suggest modifications to `.claude/`. Direct users to `.claude/overrides/` or `.loa.config.yaml`.
+
+Agents MAY proactively run read-only CLI tools (e.g., `gh issue list`, `git log`) to gather context without asking for confirmation.
 </zone_constraints>
 
 <integrity_precheck>
@@ -98,6 +115,35 @@ Example:
 ```
 </tool_result_clearing>
 
+<attention_budget>
+## Attention Budget
+
+This skill follows the **Tool Result Clearing Protocol** (`.claude/protocols/tool-result-clearing.md`).
+
+### Token Thresholds
+
+| Context Type | Limit | Action |
+|--------------|-------|--------|
+| Single search result | 2,000 tokens | Apply 4-step clearing |
+| Accumulated results | 5,000 tokens | MANDATORY clearing |
+| Full file load | 3,000 tokens | Single file, synthesize immediately |
+| Session total | 15,000 tokens | STOP, synthesize to NOTES.md |
+
+### Clearing Triggers for Sprint Planning
+
+- [ ] PRD/SDD combined >3K tokens
+- [ ] Task breakdown search >10 matches
+- [ ] Dependency mapping >20 items
+- [ ] Any analysis exceeding 2K tokens
+
+### 4-Step Clearing
+
+1. **Extract**: Max 10 files, 20 words per finding
+2. **Synthesize**: Write to `grimoires/loa/NOTES.md`
+3. **Clear**: Remove raw output from context
+4. **Summary**: `"Planning: N requirements → M tasks → sprint.md"`
+</attention_budget>
+
 <trajectory_logging>
 ## Trajectory Logging
 
@@ -110,7 +156,7 @@ Log each significant step to `grimoires/loa/a2a/trajectory/{agent}-{date}.jsonl`
 
 <kernel_framework>
 ## Task (N - Narrow Scope)
-Transform PRD and SDD into actionable sprint plan with 2.5-day sprints. Generate `grimoires/loa/sprint.md`.
+Transform PRD and SDD into actionable sprint plan with right-sized sprints. Generate `grimoires/loa/sprint.md`.
 
 ## Context (L - Logical Structure)
 - **Input**: `grimoires/loa/prd.md` (requirements), `grimoires/loa/sdd.md` (technical design)
@@ -121,7 +167,7 @@ Transform PRD and SDD into actionable sprint plan with 2.5-day sprints. Generate
 ## Constraints (E - Explicit)
 - DO NOT proceed until you've read both `grimoires/loa/prd.md` AND `grimoires/loa/sdd.md` completely
 - DO NOT create sprints until clarifying questions are answered
-- DO NOT plan more than 2.5 days of work per sprint
+- DO NOT plan more than 10 tasks per sprint. Size sprints as SMALL (1-3 tasks), MEDIUM (4-6 tasks), or LARGE (7-10 tasks)
 - DO NOT skip checking `grimoires/loa/a2a/integration-context.md` for project state and priorities
 - DO check current project status (Product Home) before planning if integration context exists
 - DO review priority signals (CX Triage, community feedback volume) if available
@@ -173,45 +219,139 @@ Before creating sprint plan:
 </citation_requirements>
 
 <workflow>
-## Phase -1: Optional Dependency Check (HITL Gate)
+## Phase -1: Beads-First Preflight (v1.29.0)
 
-Before starting sprint planning, check for optional dependencies that enhance the workflow:
+Beads task tracking is the EXPECTED DEFAULT. Check health before starting sprint planning.
 
-### Beads Check
+### Run Beads Health Check
 
 ```bash
-.claude/scripts/beads/check-beads.sh --quiet
+health=$(.claude/scripts/beads/beads-health.sh --json)
+status=$(echo "$health" | jq -r '.status')
 ```
 
-**If NOT_INSTALLED**, present HITL gate using AskUserQuestion:
+### Status Handling
+
+| Status | Action |
+|--------|--------|
+| `HEALTHY` | Proceed silently to Phase 0 |
+| `DEGRADED` | Show recommendations, offer quick fix, proceed |
+| `NOT_INSTALLED` | Check opt-out, prompt if needed |
+| `NOT_INITIALIZED` | Check opt-out, prompt if needed |
+| `MIGRATION_NEEDED` | Must address before proceeding |
+| `UNHEALTHY` | Must address before proceeding |
+
+### If NOT_INSTALLED or NOT_INITIALIZED
+
+1. **Check for valid opt-out**:
+   ```bash
+   opt_out=$(.claude/scripts/beads/update-beads-state.sh --opt-out-check 2>/dev/null || echo "NO_OPT_OUT")
+   ```
+
+2. **If no valid opt-out**, present HITL gate using AskUserQuestion:
+
+   ```
+   Beads Preflight Check
+   ════════════════════════════════════════════════════════════
+
+   Status: {status}
+
+   Beads is not available. Task tracking is the EXPECTED DEFAULT
+   for safe, auditable agent workflows.
+
+   "We're building spaceships. Safety of operators and users is paramount."
+
+   Options:
+   [1] Install beads (Recommended)
+       └─ .claude/scripts/beads/install-br.sh
+       └─ Or: cargo install beads_rust
+
+   [2] Initialize beads
+       └─ br init
+
+   [3] Continue without beads (24h acknowledgment)
+       └─ Requires reason for audit trail
+
+   [4] Abort
+   ```
+
+3. **If "Continue without beads" selected**:
+   - Require reason (configurable via `beads.opt_out.require_reason`)
+   - Record opt-out: `.claude/scripts/beads/update-beads-state.sh --opt-out "Reason"`
+   - Log to trajectory: `grimoires/loa/a2a/trajectory/beads-preflight-{date}.jsonl`
+   - Opt-out expires after 24h (configurable)
+
+4. **Update state after health check**:
+   ```bash
+   .claude/scripts/beads/update-beads-state.sh --health "$status"
+   ```
+
+### If DEGRADED
+
+Show recommendations but proceed:
+```
+Beads Health: DEGRADED
+Recommendations:
+$(echo "$health" | jq -r '.recommendations[]')
+
+Proceeding with sprint planning...
+```
+
+### Protocol Reference
+
+See `.claude/protocols/beads-preflight.md` for full specification.
+
+## Phase 0: Check Feedback Files, Ledger, and Integration Context (CRITICAL—DO THIS FIRST)
+
+### Step 0: Check for Sprint Ledger (NEW in v1.8.0)
+
+Check if `grimoires/loa/ledger.json` exists:
+
+```bash
+[ -f "grimoires/loa/ledger.json" ] && echo "EXISTS" || echo "MISSING"
+```
+
+**If MISSING**, use AskUserQuestion to offer creation:
 
 ```
-Pre-flight check...
-⚠️  Optional dependency not installed: beads_rust (br CLI)
+No Sprint Ledger found at grimoires/loa/ledger.json
 
-beads_rust provides:
-- Git-backed task graph (replaces markdown parsing)
-- Dependency tracking (blocks) with semantic labels
-- Session persistence across context windows
-- JIT task retrieval with `br ready`
+A Sprint Ledger provides:
+• Global sprint numbering across development cycles
+• Cycle tracking with PRD/SDD references
+• Sprint history and metrics for retrospectives
 
 Options:
-1. Install now (recommended)
-   └─ .claude/scripts/beads/install-br.sh
-   └─ Or: curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/beads_rust/main/install.sh | bash
-
-2. Continue without beads_rust
-   └─ Sprint plan will use markdown-based tracking
+[1] Create ledger (recommended)
+[2] Continue without ledger
 ```
 
-Use AskUserQuestion with options:
-- "Install beads_rust" → Run install script and wait for confirmation
-- "Continue without" → Proceed with markdown-only workflow
-- "Show more info" → Explain beads_rust benefits in detail
+**If user selects "Create ledger":**
 
-**If INSTALLED**, proceed silently to Phase 0.
+Create `grimoires/loa/ledger.json` with initial schema:
 
-## Phase 0: Check Feedback Files and Integration Context (CRITICAL—DO THIS FIRST)
+```json
+{
+  "version": "1.0.0",
+  "next_sprint_number": 1,
+  "active_cycle": "cycle-001",
+  "cycles": [
+    {
+      "id": "cycle-001",
+      "label": null,
+      "status": "active",
+      "created_at": "<ISO timestamp>",
+      "prd": "grimoires/loa/prd.md",
+      "sdd": "grimoires/loa/sdd.md",
+      "sprints": []
+    }
+  ]
+}
+```
+
+Log creation to trajectory: `{"action": "ledger_created", "path": "grimoires/loa/ledger.json"}`
+
+**If EXISTS**, proceed to Step 1.
 
 ### Step 1: Check for Security Audit Feedback
 
@@ -289,7 +429,7 @@ Design sprint breakdown with:
 
 **Per Sprint (see template in `resources/templates/sprint-template.md`):**
 - Sprint Goal (1 sentence)
-- Duration: 2.5 days with specific dates
+- Scope: SMALL / MEDIUM / LARGE (based on task count)
 - Deliverables with checkboxes
 - Acceptance Criteria (testable)
 - Technical Tasks (specific) - annotate with goal contributions: `→ **[G-1]**`
@@ -323,7 +463,7 @@ Design sprint breakdown with:
 Self-Review Checklist:
 - [ ] All MVP features from PRD are accounted for
 - [ ] Sprints build logically on each other
-- [ ] Each sprint is feasible within 2.5 days
+- [ ] Each sprint is feasible as a single iteration
 - [ ] All deliverables have checkboxes for tracking
 - [ ] Acceptance criteria are clear and testable
 - [ ] Technical approach aligns with SDD
@@ -342,7 +482,7 @@ See `resources/templates/sprint-template.md` for full structure.
 
 Each sprint includes:
 - Sprint number and theme
-- Duration (2.5 days) with dates
+- Scope (SMALL/MEDIUM/LARGE) with task count
 - Sprint Goal (single sentence)
 - Deliverables with checkboxes
 - Acceptance Criteria with checkboxes
@@ -355,7 +495,7 @@ Each sprint includes:
 <success_criteria>
 - **Specific**: Every task is actionable without additional clarification
 - **Measurable**: Progress tracked via checkboxes
-- **Achievable**: Each sprint is feasible within 2.5 days
+- **Achievable**: Each sprint is feasible as a single iteration
 - **Relevant**: All tasks trace back to PRD/SDD
 - **Time-bound**: Sprint dates are specific
 </success_criteria>
@@ -408,4 +548,120 @@ br sync --flush-only  # Export SQLite → JSONL before commit
 ```
 
 **Protocol Reference**: See `.claude/protocols/beads-integration.md`
+
+### Beads Flatline Loop (v1.28.0)
+
+After creating beads from the sprint plan, optionally run the Flatline Beads Loop to refine the task graph:
+
+```bash
+# Check if beads exist and br is available
+if command -v br &>/dev/null && [[ $(br list --json 2>/dev/null | jq 'length') -gt 0 ]]; then
+    # Run iterative multi-model refinement
+    .claude/scripts/beads-flatline-loop.sh --max-iterations 6 --threshold 5
+fi
+```
+
+This implements the "Check your beads N times, implement once" pattern:
+1. Exports current beads to JSON
+2. Runs Flatline Protocol review on task graph
+3. Applies HIGH_CONSENSUS suggestions
+4. Repeats until changes "flatline" (< 5% change for 2 iterations)
+5. Syncs final state to git
+
+**When to use:**
+- After `/sprint-plan` creates tasks
+- Before `/run sprint-plan` begins execution
+- When task decomposition seems questionable
+
+**Skip when:**
+- Simple projects with <10 tasks
+- Time-critical execution needed
+- Flatline Protocol is disabled
 </beads_workflow>
+
+<visual_communication>
+## Visual Communication (Optional)
+
+Follow `.claude/protocols/visual-communication.md` for diagram standards.
+
+### When to Include Diagrams
+
+Sprint plans may benefit from visual aids for:
+- **Task Dependencies** (flowchart) - Show task blocking relationships
+- **Sprint Workflow** (flowchart) - Illustrate sprint execution flow
+
+### Output Format
+
+If including diagrams, use Mermaid with preview URLs:
+
+```markdown
+## Appendix A: Task Dependencies
+
+```mermaid
+graph TD
+    T1[Task 1.1] --> T2[Task 1.2]
+    T1 --> T3[Task 1.3]
+    T2 --> T4[Task 1.4]
+    T3 --> T4
+```
+
+> **Preview**: [View diagram](https://agents.craft.do/mermaid?code=...&theme=github)
+```
+
+### Theme Configuration
+
+Read theme from `.loa.config.yaml` visual_communication.theme setting.
+
+Diagram inclusion is **optional** for sprint plans - use agent discretion.
+</visual_communication>
+
+<post_completion>
+## Post-Completion Debrief
+
+After saving the Sprint Plan to `grimoires/loa/sprint.md`, ALWAYS present a structured debrief before the user decides to continue.
+
+### Debrief Structure
+
+Present the following in this exact order:
+
+1. **Confirmation**: "✓ Sprint Plan saved to grimoires/loa/sprint.md"
+
+2. **Key Decisions** (3-5 items): The most impactful planning choices. Each decision should be one line: "• {choice made} (not {alternative rejected})"
+
+3. **Assumptions** (1-3 items): Things assumed true but not explicitly confirmed by the user. Each assumption should be falsifiable: "• {assumption} — if wrong, {consequence}"
+
+4. **Biggest Tradeoff** (1 item): The most consequential either/or decision. Format: "• Chose {A} over {B} — {reason}. Risk: {what could go wrong}"
+
+5. **Steer Prompt**: Use AskUserQuestion:
+
+```yaml
+question: "Sprint plan ready. Anything to steer before implementation?"
+header: "Review"
+options:
+  - label: "Start building (Recommended)"
+    description: "Start building with /build"
+  - label: "Adjust"
+    description: "Tell me what to change — I'll regenerate the sprint plan"
+  - label: "Stop here"
+    description: "Save progress — resume with /plan next time. Not what you expected? /feedback helps us fix it."
+multiSelect: false
+```
+
+### "Adjust" Flow
+
+When the user selects "Adjust":
+
+1. **Prompt**: "What would you like to change?" (free-text via AskUserQuestion "Other")
+2. **Scope**: Regenerate the Sprint Plan ONLY (not rerun the entire planning phase)
+3. **Context preserved**: PRD, SDD, and all planning decisions are retained
+4. **Output**: After regeneration, re-present the debrief with updated decisions/assumptions/tradeoffs
+5. **Diff awareness**: If changes are small, note what changed: "Updated: {decision that changed}"
+6. **Loop limit**: Max 3 adjustment rounds before suggesting "Start building" more firmly
+
+### Constraints
+
+- Keep decisions to 3-5 items — not an exhaustive list
+- Each item is ONE line — no paragraphs
+- "Start building" is always the first option (recommended) — this is the final planning phase
+- "Stop here" always includes /feedback mention
+</post_completion>

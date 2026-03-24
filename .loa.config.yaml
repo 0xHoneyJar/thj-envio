@@ -1,584 +1,245 @@
-# Loa Framework Configuration
-# This file is yours to customize - framework updates will never modify it
+# Loa Configuration
+# Active: Eval Sandbox (#277)
 
-# =============================================================================
-# Persistence Mode
-# =============================================================================
-# - standard: Commit grimoire and beads to repo (default)
-# - stealth: Add state files to .gitignore, local-only operation
-persistence_mode: standard
-
-# =============================================================================
-# Integrity Enforcement (Projen-Level)
-# =============================================================================
-# - strict: Block agent execution on System Zone drift (recommended, mandatory for CI)
-# - warn: Warn but allow execution (development only)
-# - disabled: No integrity checks (not recommended)
-integrity_enforcement: strict
-
-# =============================================================================
-# Drift Resolution Policy
-# =============================================================================
-# - code: Update documentation to match implementation (existing codebases)
-# - docs: Create beads to fix code to match documentation (greenfield)
-# - ask: Always prompt for human decision
-drift_resolution: code
-
-# =============================================================================
-# Agent Configuration
-# =============================================================================
-disabled_agents: []
-# disabled_agents:
-#   - auditing-security
-#   - translating-for-executives
-
-# =============================================================================
-# Custom Paths
-# =============================================================================
-paths:
-  grimoire: grimoires/loa
-  beads: .beads
-
-# =============================================================================
-# Structured Agentic Memory (Anthropic-Level)
-# =============================================================================
-memory:
-  # Persistent working memory file
-  notes_file: grimoires/loa/NOTES.md
-  # Trajectory logs for ADK-style evaluation
-  trajectory_dir: grimoires/loa/a2a/trajectory
-  # Auto-compact trajectory logs older than N days
-  trajectory_retention_days: 30
-  # Restore context from NOTES.md on session start
-  auto_restore: true
-
-# =============================================================================
-# Evaluation-Driven Development (ADK-Level)
-# =============================================================================
-edd:
+simstim:
   enabled: true
-  # Require N test scenarios before marking task complete
-  min_test_scenarios: 3
-  # Audit reasoning trajectory for hallucination
-  trajectory_audit: true
-  # Require explicit grounding for all claims
-  require_citations: true
+  bridgebuilder_design_review: true   # Phase 3.5 gate — enabled for cycle-048
+  flatline:
+    auto_accept_high_consensus: true
+    show_disputed: true
+    show_blockers: true
+    beads_loop: true                    # Phase 6.5: Flatline Beads iterative refinement
+    phases:
+      - prd
+      - sdd
+      - sprint
 
-# =============================================================================
-# Context Hygiene
-# =============================================================================
-compaction:
+run_mode:
   enabled: true
-  # Trigger compaction after this many closed tasks in a sprint
-  threshold: 5
+  defaults:
+    max_cycles: 20
+    timeout_hours: 8
+  sprint_plan:
+    branch_prefix: "feat/"
+    default_branch_name: "platform-hardening-c015"
+    consolidate_pr: true
+    commit_prefix: "feat"
+    include_commits_by_sprint: true
 
-# =============================================================================
-# Integrations
-# =============================================================================
-integrations:
-  - github
-  - linear
+# Hounfour — Model-Heterogeneous Agent Routing (cycle-026)
+hounfour:
+  flatline_routing: false  # Route Flatline/GPT-review through model-invoke (cheval.py)
+  flatline_tertiary_model: gemini-2.5-pro  # 3-model Flatline: Opus + GPT-5.3-codex + Gemini
 
-# =============================================================================
-# Drift Detection (Sprint 4 - FR-9.1, GitHub Issue #10)
-# =============================================================================
-drift_detection:
-  # Directories to watch for changes
-  watch_paths:
-    - ".claude/"
-    - "grimoires/loa/"
-    # Add custom directories as needed:
-    # - ".meta/"
-    # - "docs/architecture/"
+  # Per-subsystem feature flags (all default true — opt-out)
+  feature_flags:
+    google_adapter: true     # Enable Google provider adapter
+    deep_research: true      # Enable Deep Research models (Interactions API)
+    flatline_routing: false   # Route Flatline through Hounfour (same as top-level)
+    metering: true           # Enable BudgetEnforcer cost tracking
+    thinking_traces: true    # Include thinking config in request bodies
+    jam_geometry: false      # Enable Jam multi-model parallel review (opt-in)
 
-  # Patterns to exclude from drift detection
-  exclude_patterns:
-    - "**/node_modules/**"
-    - "**/*.log"
-    - "**/.DS_Store"
-    - "**/dist/**"
-    - "**/build/**"
-    - "**/__pycache__/**"
-
-# =============================================================================
-# Context Filtering (Sprint 4 - FR-9.2, GitHub Issue #10)
-# =============================================================================
-context_filtering:
-  # Master toggle: set to false to disable all filtering
-  enable_filtering: true
-
-  # Archive zone - automatically excluded from all searches
-  archive_zone: "grimoires/loa/archive/"
-
-  # Signal threshold: exclude documents below this level
-  # Options: low, medium, high
-  # - high: Only include high-signal documents
-  # - medium: Include medium and high (default)
-  # - low: Include all (effectively no filtering)
-  signal_threshold: "medium"
-
-  # Patterns for low-signal documents to exclude
-  default_excludes:
-    - "**/brainstorm-*.md"
-    - "**/session-notes-*.md"
-    - "**/meeting-*.md"
-    - "**/draft-*.md"
-    - "**/scratch-*.md"
-    - "**/temp-*.md"
-
-  # Auto-archive drafts older than N days (0 = disabled)
-  draft_ttl_days: 30
-
-  # Frontmatter signal marker support
-  respect_frontmatter_signals: true
-
-# =============================================================================
-# Lossless Ledger Protocol (v0.9.0)
-# =============================================================================
-# Paradigm: "Clear, Don't Compact" - Synthesize to ledgers before clearing
-
-# Grounding Enforcement - requires citations for claims
-grounding:
-  # Minimum ratio of grounded claims (citations + code_references) to total claims
-  threshold: 0.95
-  # Enforcement level: strict (block /clear), warn (warn only), disabled
-  enforcement: warn
-  # Negative grounding for Ghost Features
-  negative:
+  # Metering configuration
+  metering:
     enabled: true
-    # Similarity threshold for semantic search (below = "not found")
-    similarity_threshold: 0.4
-    # Require 2 diverse queries for verification
-    require_diverse_queries: true
+    ledger_path: .run/cost-ledger.jsonl
+    budget:
+      daily_micro_usd: 500000000  # $500/day default
+      warn_at_percent: 80
+      on_exceeded: downgrade      # block | downgrade | warn
 
-# Attention Budget - advisory thresholds for context management
-attention_budget:
-  # Green zone: under this, no action needed
-  green_threshold: 2000
-  # Yellow zone: trigger delta-synthesis
-  yellow_threshold: 5000
-  # Orange zone: recommend /clear
-  orange_threshold: 7500
-  # Red zone: strong recommendation for /clear
-  red_threshold: 10000
-  # Advisory only (never blocks, just warns)
-  advisory_only: true
+# BUTTERFREEZONE — Cross-Repo Agent Legibility (cycle-017)
+butterfreezone:
+  ecosystem:
+    - repo: 0xHoneyJar/loa-finn
+      role: runtime
+      interface: hounfour-router
+      protocol: loa-hounfour@8.3.1
+    - repo: 0xHoneyJar/loa-hounfour
+      role: protocol
+      interface: npm-package
+      protocol: loa-hounfour@8.3.1
+    - repo: 0xHoneyJar/arrakis
+      role: distribution
+      interface: jwt-auth
+      protocol: loa-hounfour@8.3.1
+  culture:
+    naming_etymology: "Vodou terminology (Loa, Grimoire, Hounfour, Simstim) as cognitive hooks for agent framework concepts"
+    principles:
+      - "Think Before Coding — plan and analyze before implementing"
+      - "Simplicity First — minimum complexity for the current task"
+      - "Surgical Changes — minimal diff, maximum impact"
+      - "Goal-Driven — every action traces to acceptance criteria"
+    methodology: "Agent-driven development with iterative excellence loops (Simstim, Run Bridge, Flatline Protocol)"
+    generative:
+      description: "Creative methodology drawing from cyberpunk fiction, free jazz improvisation, and temporary autonomous zones"
+      references:
+        - "Neuromancer (Gibson) — Simstim as shared consciousness metaphor"
+        - "Flatline Protocol — adversarial multi-model review as creative tension"
+        - "TAZ (Hakim Bey) — temporary spaces for autonomous agent exploration"
+      study_groups: "Knowledge production through collective inquiry — Flatline as multi-model study group"
 
-# Session Continuity - recovery after /clear or new session
-session_continuity:
-  # Enable tiered recovery (Level 1/2/3)
-  tiered_recovery: true
-  # Level 1 recovery token budget (~100 tokens)
-  level1_tokens: 100
-  # Level 2 recovery token budget (~500 tokens)
-  level2_tokens: 500
-  # Auto-load Session Continuity section on session start
-  auto_restore: true
+# Vision Registry Integration (v1.42.0 — cycle-041)
+# Weaves captured visions from bridge reviews into planning workflows.
+# Disabled by default — opt-in via enabled: true.
+vision_registry:
+  enabled: false           # Master switch — default OFF, opt-in
+  shadow_mode: true        # Log matches silently before presenting to user
+  shadow_cycles_before_prompt: 2  # Shadow cycles before graduation prompt
+  status_filter:
+    - Captured
+    - Exploring
+  min_tag_overlap: 2       # Minimum tag overlap for relevance
+  max_visions_per_session: 3  # Cap visions shown per planning session
+  ref_elevation_threshold: 3  # Ref count before lore elevation suggestion
+  propose_requirements: false  # Experimental — vision-inspired requirement proposals
+  bridge_auto_capture: false   # Auto-capture VISION findings from bridge reviews (cycle-042)
 
-# Synthesis Checkpoint - pre-clear validation
-synthesis_checkpoint:
-  # Enable blocking validation before /clear
-  enabled: true
-  # Grounding threshold for checkpoint (defaults to grounding.threshold)
-  grounding_threshold: 0.95
-  # EDD minimum test scenarios per decision
-  edd:
-    enabled: true
-    min_test_scenarios: 3
-    warn_only: true
+# Prompt Isolation (v1.42.0 — cycle-042)
+# De-authorization wrappers for untrusted content in LLM prompts.
+# Addresses vision-003: Context Isolation as Prompt Injection Defense.
+prompt_isolation:
+  enabled: true                # Enable context isolation wrappers in prompt construction
 
-# JIT Retrieval - lightweight identifiers instead of eager loading
-jit_retrieval:
-  # Prefer ck for semantic search when available
-  prefer_ck: true
-  # Enable fallback to grep/sed when ck unavailable
-  fallback_enabled: true
-  # Maximum lines to retrieve at once
-  max_line_range: 100
-
-# =============================================================================
-# Registry Integration (v0.9.2+)
-# =============================================================================
-# Loa Constructs for third-party skill management
-# Production API: https://loa-constructs-api.fly.dev
-registry:
-  # Master toggle for registry features
-  enabled: true
-  # Default registry API URL (can be overridden with LOA_REGISTRY_URL env var)
-  # Note: Production API endpoint for Loa Constructs
-  default_url: "https://loa-constructs-api.fly.dev/v1"
-  # Cache public keys for N hours (reduces API calls)
-  public_key_cache_hours: 24
-  # Load registry skills during /setup
-  load_on_startup: true
-  # Validate license signatures (disable only for testing)
-  # NOTE: Disabled for sk_test_ keys - HS256 tokens not supported by RS256 validator
-  validate_licenses: false
-  # Offline grace period in hours (tier-based, this is default for free/pro)
-  offline_grace_hours: 24
-  # Auto-refresh threshold: warn if license expires within N hours
-  auto_refresh_threshold_hours: 24
-  # Check for skill updates during /setup
-  check_updates_on_setup: true
-  # Reserved skill names (cannot be installed from registry)
-  reserved_skill_names:
-    - discovering-requirements
-    - designing-architecture
-    - planning-sprints
-    - implementing-tasks
-    - reviewing-code
-    - auditing-security
-    - deploying-infrastructure
-    - riding-codebase
-    - mounting-framework
-    - translating-for-executives
-
-# =============================================================================
-# Structured Outputs (Claude Platform Integration)
-# =============================================================================
-# JSON Schema validation for agent outputs
-structured_outputs:
-  # Master toggle for structured output validation
-  enabled: true
-  # Validation mode: strict (block on invalid), warn (warn only), disabled
-  validation_mode: "warn"
-  # Schema directory path (relative to .claude/)
-  schema_dir: "schemas"
-  # Schema mappings (file patterns -> schema names)
-  schemas:
-    prd: "prd.schema.json"
-    sdd: "sdd.schema.json"
-    sprint: "sprint.schema.json"
-    trajectory: "trajectory-entry.schema.json"
-  # Auto-validate outputs before writing
-  auto_validate: true
-
-# =============================================================================
-# Extended Thinking (Claude Platform Integration)
-# =============================================================================
-# Extended thinking for complex reasoning agents
-extended_thinking:
-  # Master toggle for extended thinking features
-  enabled: true
-  # Budget tokens for thinking (0 = model decides, max 32000)
-  budget_tokens: 16000
-  # Agents that use extended thinking by default
-  enabled_agents:
-    - designing-architecture
-    - reviewing-code
-    - auditing-security
-    - planning-sprints
-  # Log thinking traces to trajectory
-  log_thinking: true
-  # Include thinking summary in output
-  include_summary: true
-  # Thinking step types to capture
-  step_types:
-    - analysis
-    - hypothesis
-    - evaluation
-    - decision
-    - reflection
-
-# =============================================================================
-# Trajectory Logging (Claude Platform Integration)
-# =============================================================================
-# ADK-style trajectory evaluation with extended thinking support
-trajectory:
-  # Enable trajectory logging
-  enabled: true
-  # Output directory for trajectory files
-  output_dir: "grimoires/loa/a2a/trajectory"
-  # File naming pattern: {agent}-{date}.jsonl
-  file_pattern: "{agent}-{date}.jsonl"
-  # Include extended thinking traces
-  include_thinking: true
-  # Grounding requirements
-  grounding:
-    # Require grounding for all claims
-    required: true
-    # Types of grounding to capture
-    types:
-      - citation
-      - code_reference
-      - assumption
-      - user_input
-      - inference
-    # Minimum confidence for ungrounded claims
-    min_confidence: 0.8
-  # Retention settings
-  retention:
-    # Days to keep trajectory files (0 = forever)
-    days: 30
-    # Archive old files instead of deleting
-    archive: true
-
-# =============================================================================
-# Tool Search (Claude Platform Integration)
-# =============================================================================
-# Dynamic tool discovery for MCP servers and Loa Constructs
-tool_search:
-  # Master toggle for tool search features
-  enabled: true
-  # Auto-discover available tools on startup
-  auto_discover: true
-  # Cache TTL in hours (0 = no caching)
-  cache_ttl_hours: 24
-  # Cache directory (default: ~/.loa/cache/tool-search)
-  # cache_dir: ~/.loa/cache/tool-search
-  # Include Loa Constructs in search results
-  include_constructs: true
-  # Default result limit for searches
-  default_limit: 10
-  # Search ranking weights (name match > description > scope)
-  ranking:
-    name_weight: 100
-    description_weight: 50
-    scope_weight: 30
-
-# =============================================================================
-# Context Management (Claude Platform Integration v0.11.0)
-# =============================================================================
-# Client-side compaction with Lossless Ledger Protocol
-context_management:
-  # Enable client-side compaction integration
-  client_compaction: true
-  # Always preserve NOTES.md critical sections
-  preserve_notes_md: true
-  # Use simplified 3-step checkpoint (vs full 7-step)
-  simplified_checkpoint: true
-  # Auto-log thinking blocks to trajectory before compaction
-  auto_trajectory_log: true
-  # Preservation rules (what survives compaction)
-  preservation_rules:
-    # Items that ALWAYS survive compaction
-    always_preserve:
-      - notes_session_continuity
-      - notes_decision_log
-      - trajectory_entries
-      - active_beads
-    # Items that CAN be compacted after use
-    compactable:
-      - tool_results
-      - thinking_blocks
-      - verbose_debug
-      - redundant_file_reads
-      - intermediate_outputs
-
-  # -------------------------------------------------------------------------
-  # Probe-Before-Load (RLM Pattern) - v0.14.0
-  # -------------------------------------------------------------------------
-  # Enable probe-before-load pattern (check file metadata before full read)
-  probe_before_load: true
-  # Files under this line count are loaded immediately without probe
-  max_eager_load_lines: 500
-  # Require relevance check for files exceeding threshold
-  require_relevance_check: true
-  # Keywords that increase relevance score (used for large file decisions)
-  relevance_keywords:
-    - export
-    - class
-    - interface
-    - function
-    - async
-    - api
-    - route
-    - handler
-  # Patterns to exclude from probing (always skipped)
-  exclude_patterns:
-    - "*.test.ts"
-    - "*.spec.ts"
-    - "node_modules/**"
-    - "dist/**"
-    - "build/**"
-    - ".git/**"
-  # Token budgets for loading strategy decisions
-  token_budget:
-    # Codebases under this are "small" - load all files
-    small_codebase: 30000
-    # Codebases under this are "medium" - prioritized loading
-    medium_codebase: 150000
-    # Codebases over medium are "large" - probe + excerpts only
-    large_codebase: 500000
-
-# =============================================================================
-# Update Check (v0.14.0)
-# =============================================================================
-# Automatic version checking on session start
-update_check:
-  # Master toggle - set to false to disable all update checks
-  enabled: true
-  # Cache TTL in hours (0 = check every time)
-  cache_ttl_hours: 24
-  # Notification style: banner | line | silent
-  notification_style: banner
-  # Include pre-release versions in update checks
-  include_prereleases: false
-  # Custom upstream repo (for forks)
-  upstream_repo: "0xHoneyJar/loa"
-
-# =============================================================================
-# Continuous Learning (v0.17.0)
-# =============================================================================
-# Autonomous skill extraction from debugging discoveries
+# Continuous Learning — Skill Extraction (cycle-046)
 continuous_learning:
-  # Master toggle - set to false to disable all continuous learning
-  enabled: true
-  # Auto-extract skills during implementation phases (false = /retrospective only)
-  auto_extract: true
-  # Require manual approval before skills become active
-  require_approval: true
-  # Directories for skill lifecycle management (all in State Zone)
   skills_dir: grimoires/loa/skills
   pending_dir: grimoires/loa/skills-pending
   archive_dir: grimoires/loa/skills-archived
-  # Quality gate thresholds
-  quality_gates:
-    # Minimum discovery depth: 1=any, 2=moderate, 3=significant
-    min_discovery_depth: 2
-    # Require solution verification before extraction
-    require_verification: true
-  # NOTES.md integration
-  notes_integration:
-    # Check NOTES.md for duplicate knowledge before extraction
-    check_notes_md: true
-    # Deduplicate against existing skills
-    deduplicate: true
-  # Pruning settings for /skill-audit --prune
-  pruning:
-    # Archive skills with no matches after N days
-    prune_after_days: 90
-    # Minimum match count to retain skill
-    prune_min_matches: 2
-    # Require confirmation before pruning
-    auto_prune: false
 
-# =============================================================================
-# Run Mode (v0.18.0)
-# =============================================================================
-# Autonomous implementation with human-in-the-loop at PR review
-run_mode:
-  # Master toggle - set to false to disable Run Mode
-  # IMPORTANT: Run Mode requires explicit opt-in for safety
+run_bridge:
   enabled: true
-  # Default options for /run command
   defaults:
-    # Maximum cycles before circuit breaker trips
-    max_cycles: 20
-    # Maximum runtime in hours before timeout
-    timeout_hours: 8
-  # Rate limiting to prevent API exhaustion
-  rate_limiting:
-    # Maximum API calls per hour during Run Mode
-    calls_per_hour: 100
-  # Circuit breaker thresholds
-  circuit_breaker:
-    # Halt after same finding appears N times
-    same_issue_threshold: 3
-    # Halt after N cycles with no file changes
-    no_progress_threshold: 5
-  # Git safety settings
-  git:
-    # Prefix for auto-created feature branches
-    branch_prefix: "feature/"
-    # Always create draft PRs (never ready for review)
-    create_draft_pr: true
-  # Sprint plan settings
-  sprint_plan:
-    # Default branch name for multi-sprint execution
-    default_branch_name: "release"
+    depth: 5
+    per_sprint: false
+    flatline_threshold: 0.05
+    consecutive_flatline: 2
+  bridgebuilder:
+    persona_enabled: true
+    persona_path: .claude/data/bridgebuilder-persona.md
+    enriched_findings: true
+    insights_stream: true
+    praise_findings: true
+    integrity_check: true
+    token_budget:
+      findings_tokens: 5000
+      insights_tokens: 25000
+      total_tokens: 30000
+    size_limits:
+      truncate_bytes: 66560
+      findings_only_bytes: 262144
+    redaction:
+      enabled: true
+      post_redaction_safety: true
+  pipeline_self_review:
+    enabled: false              # Default false — progressive rollout
+    base_branch: main           # Branch to diff against
 
-# =============================================================================
-# Recursive JIT Context System (v0.20.0)
-# =============================================================================
-# Semantic result caching and condensation for recursive subagent patterns
-recursive_jit:
-  # -------------------------------------------------------------------------
-  # Semantic Result Cache
-  # -------------------------------------------------------------------------
-  cache:
-    # Master toggle for semantic cache
-    enabled: true
-    # Maximum cache size in MB (LRU eviction when exceeded)
-    max_size_mb: 100
-    # Time-to-live in days (entries expire after this period)
-    ttl_days: 30
+# Bridgebuilder Design Review (cycle-044)
+bridgebuilder_design_review:
+  enabled: true                 # Enabled for cycle-048 — progressive rollout (sole gate)
+  persona_path: ".claude/data/bridgebuilder-persona.md"  # FR-5.2: configurable persona
+  lore_enabled: true            # Load lore context for reviews
+  vision_capture: true          # Capture VISION/SPECULATION to registry
+  token_budget:                 # Inherits run_bridge.bridgebuilder defaults
+    findings_tokens: 5000
+    insights_tokens: 25000
+    total_tokens: 30000         # Output budget only (input context is additional)
 
-  # -------------------------------------------------------------------------
-  # Condensation Engine
-  # -------------------------------------------------------------------------
-  condensation:
-    # Default strategy for result condensation
-    # Options: structured_verdict, identifiers_only, summary
-    default_strategy: structured_verdict
-    # Maximum tokens for condensed results
-    max_condensed_tokens: 50
-    # Preserve these fields in structured_verdict strategy
-    preserve_fields:
-      - verdict
-      - severity_counts
-      - top_findings
+flatline_protocol:
+  enabled: true
+  auto_trigger: true
+  phases:
+    prd: true
+    sdd: true
+    sprint: true
+  models:
+    primary: opus
+    secondary: gpt-5.3-codex
+    tertiary: gemini-2.5-pro        # 3-model Flatline (also read from hounfour.flatline_tertiary_model)
+  thresholds:
+    high_consensus: 700
+    disputed_delta: 300
+    low_value: 400
+    blocker_skeptic: 700
+  max_iterations: 5
+  secret_scanning:
+    patterns:
+      - "AIzaSy[A-Za-z0-9_-]{33}"
+  knowledge:
+    local:
+      enabled: true
+      paths:
+        - grimoires/loa/
+        - .claude/protocols/
+    notebooklm:
+      enabled: false
+      notebook_id: ""
 
-  # -------------------------------------------------------------------------
-  # Semantic Recovery Enhancement
-  # -------------------------------------------------------------------------
-  recovery:
-    # Enable semantic (query-based) recovery
-    semantic_enabled: true
-    # Fall back to positional recovery if semantic search fails
-    fallback_to_positional: true
-    # Prefer ck for semantic search when available
-    prefer_ck: true
-
-  # -------------------------------------------------------------------------
-  # Early-Exit Coordination
-  # -------------------------------------------------------------------------
-  early_exit:
-    # Enable early-exit protocol for parallel subagents
-    enabled: true
-    # Grace period in seconds before cleanup
-    grace_period_seconds: 5
-
-  # -------------------------------------------------------------------------
-  # Continuous Synthesis (Anti-Platform-Summarization)
-  # -------------------------------------------------------------------------
-  # Automatically externalize data to ledgers when RLM operations occur.
-  # This ensures critical information survives Claude Code's automatic
-  # context summarization by writing to NOTES.md/trajectory at every
-  # natural checkpoint (cache writes, condensation, early-exit signals).
-  continuous_synthesis:
-    # Master toggle for auto-synthesis
-    enabled: true
-    # Write to NOTES.md Decision Log on cache set operations
-    on_cache_set: true
-    # Log condensation decisions to trajectory
-    on_condense: true
-    # Log milestone completions on early-exit signals
-    on_early_exit: true
-    # Target for synthesis writes
-    target: notes_decision_log
-    # Also update active bead (if beads_rust available)
-    update_bead: true
-
-# =============================================================================
-# Plan and Analyze Configuration (v1.6.0)
-# =============================================================================
-# Codebase grounding integration with /ride for brownfield projects
-plan_and_analyze:
-  codebase_grounding:
-    # Master toggle - set to false to disable codebase grounding entirely
-    enabled: true
-    # Days before reality files are considered stale (prompt user to re-run)
-    reality_staleness_days: 7
-    # Timeout in minutes for /ride execution
-    ride_timeout_minutes: 20
-    # Auto-skip to Phase -1 if /ride fails (not recommended)
-    skip_on_ride_error: false
-
-# =============================================================================
-# Behavior Preferences
-# =============================================================================
-preferences:
-  auto_bead_on_review: true
-  require_security_audit: true
-  confirm_app_writes: true
+# Red Team — Generative Adversarial Security Design (cycle-012)
+red_team:
+  enabled: true
+  mode: standard
+  models:
+    attacker_primary: opus
+    attacker_secondary: gpt-5.3-codex
+    defender_primary: opus
+    defender_secondary: gpt-5.3-codex
+  defaults:
+    attacks_per_model: 10
+    depth: 1
+    focus: null
+  thresholds:
+    confirmed_attack: 700
+    theoretical: 400
+    human_review_gate: 800
+  budgets:
+    quick_max_tokens: 50000
+    standard_max_tokens: 200000
+    deep_max_tokens: 500000
+    max_attacks_total: 20
+  early_stopping:
+    saturation_threshold: 0.8
+    min_novel_per_iteration: 2
+  safety:
+    prohibited_content: true
+    mandatory_redaction: true
+    retention_days_restricted: 30
+    retention_days_internal: 90
+    ci_artifact_scrubbing: true
+  input_sanitization:
+    injection_detection: true
+    context_isolation: true
+    secret_filtering: true
+  surfaces_registry: .claude/data/attack-surfaces.yaml
+  simstim:
+    auto_trigger: true      # Enabled for cycle-048
+    phase: post_sdd
+  bridge:
+    enabled: false
+  # Compliance Gate Profiles — parameterized keyword extraction (cycle-046 FR-4)
+  # The 'security' profile is the default. Additional profiles (accessibility,
+  # performance) can be added following the same schema.
+  compliance_gates:
+    security:
+      # Values are grep -E regex patterns. Use "." for single-char wildcard
+      # (e.g., "Error.Handling" matches "Error Handling" and "Error-Handling").
+      keywords:
+        - Security
+        - Authentication
+        - Authorization
+        - Validation
+        - Error.Handling
+        - Access.Control
+        - Secrets
+        - Encryption
+        - Input.Sanitiz
+      prompt_template: "security-comparison"  # Maps to get_evaluation_context() in compliance-lib.sh
+  # Code-vs-Design gate — compares SDD security design to implemented code (cycle-045)
+  code_vs_design:
+    enabled: false                    # Default off — opt-in per FR-3
+    max_cycles: 2                     # Circuit breaker: max re-implementation cycles
+    skip_if_no_sdd: true             # Skip silently when no SDD exists
+    severity_threshold: 700           # Only divergences >700 trigger re-implementation
+    token_budget: 150000              # 150K token ceiling per invocation

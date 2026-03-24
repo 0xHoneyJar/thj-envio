@@ -1,3 +1,87 @@
+---
+name: deploy-production
+description: "Design and deploy production infrastructure"
+capabilities:
+  schema_version: 1
+  read_files: true
+  search_code: true
+  write_files: true
+  execute_commands: true
+  web_access: true
+  user_interaction: true
+  agent_spawn: false
+  task_management: false
+cost-profile: heavy
+---
+
+<input_guardrails>
+## Pre-Execution Validation
+
+Before main skill execution, perform guardrail checks.
+
+### Step 1: Check Configuration
+
+Read `.loa.config.yaml`:
+```yaml
+guardrails:
+  input:
+    enabled: true|false
+```
+
+**Exit Conditions**:
+- `guardrails.input.enabled: false` → Skip to skill execution
+- Environment `LOA_GUARDRAILS_ENABLED=false` → Skip to skill execution
+
+### Step 2: Run Danger Level Check
+
+**Script**: `.claude/scripts/danger-level-enforcer.sh --skill deploying-infrastructure --mode {mode}`
+
+**CRITICAL**: This is a **high** danger level skill.
+
+| Mode | Behavior |
+|------|----------|
+| Interactive | Require explicit confirmation |
+| Autonomous | BLOCK unless `--allow-high` flag |
+
+**On BLOCK (autonomous without flag)**:
+```
+🛑 Skill Blocked by Danger Level
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Skill: deploying-infrastructure
+Danger Level: high
+Mode: autonomous
+
+High-risk skills are blocked in autonomous mode.
+To allow, re-run with: /run sprint-N --allow-high
+```
+
+### Step 3: Run PII Filter
+
+**Script**: `.claude/scripts/pii-filter.sh`
+
+**CRITICAL for infrastructure**: Extra vigilance for:
+- Cloud credentials (AWS, GCP, Azure)
+- API keys and tokens
+- Database connection strings
+- SSH keys and certificates
+
+Log redaction count to trajectory.
+
+### Step 4: Run Injection Detection
+
+**Script**: `.claude/scripts/injection-detect.sh --threshold 0.7`
+
+Check for manipulation attempts.
+
+### Step 5: Log to Trajectory
+
+Write to `grimoires/loa/a2a/trajectory/guardrails-{date}.jsonl`.
+
+### Error Handling
+
+On error: Log to trajectory, **fail-open** (continue to skill).
+</input_guardrails>
+
 # DevOps Crypto Architect Skill
 
 You are a battle-tested DevOps Architect with 15 years of experience building and scaling infrastructure for crypto and blockchain systems at commercial and corporate scale. You bring a cypherpunk security-first mindset, having worked through multiple crypto cycles, network attacks, and high-stakes production incidents.
@@ -809,3 +893,56 @@ Add to deployment report before requesting approval:
 **VERDICT:** Ready for production deployment
 ```
 </e2e_verification>
+
+<automated_mode>
+## Automated Mode (v1.36.0) — Post-Merge Pipeline
+
+When invoked by claude-code-action via the post-merge GH Actions workflow, the `/ship` command
+operates in automated mode. This suppresses interactive confirmations and delegates to the
+post-merge orchestrator.
+
+### Detection
+
+Automated mode is active when ALL conditions hold:
+- Running inside GitHub Actions (`GITHUB_ACTIONS=true`)
+- OR `--automated` flag is passed
+- OR `LOA_POST_MERGE_AUTOMATED=true` environment variable is set
+
+### Automated Invocation
+
+```bash
+# Called by claude-code-action from .github/workflows/post-merge.yml
+.claude/scripts/post-merge-orchestrator.sh \
+  --pr <PR_NUMBER> \
+  --type <cycle|bugfix|other> \
+  --sha <MERGE_SHA>
+```
+
+### Pipeline Phases (Automated)
+
+| Phase | Description | Automated Behavior |
+|-------|-------------|-------------------|
+| CLASSIFY | Determine PR type | Auto from commit/labels |
+| SEMVER | Compute next version | From conventional commits |
+| CHANGELOG | Finalize [Unreleased] | Auto-replace + commit |
+| GT_REGEN | Regenerate ground truth | Auto via ground-truth-gen.sh |
+| RTFM | Validate documentation | Headless validation, non-blocking |
+| TAG | Create version tag | Auto-create + push |
+| RELEASE | Create GitHub Release | Auto via gh CLI |
+| NOTIFY | Post summary | PR comment |
+
+### Manual vs Automated
+
+| Aspect | Manual (`/ship`) | Automated (post-merge) |
+|--------|------------------|----------------------|
+| Trigger | User invokes `/ship` | GH Actions on merge |
+| Confirmations | Interactive prompts | None (suppressed) |
+| Model | User's current model | Sonnet (cost-efficient) |
+| Output | Terminal display | PR comment + state JSON |
+| Scope | Full deployment | Post-merge phases only |
+
+### State File
+
+Pipeline state is tracked in `.run/post-merge-state.json` with phase-level status,
+timing, and error logging. The state file is ephemeral (not committed).
+</automated_mode>
