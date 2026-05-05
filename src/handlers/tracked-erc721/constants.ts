@@ -41,6 +41,12 @@ export const TRACKED_ERC721_COLLECTION_KEYS: Record<string, string> = {
   // NOTE: mibera_zora is ERC-1155 (Zora platform), handled by MiberaZora1155 handler
   // NOTE: puru collections are ERC-1155 (party.app), handled by PuruApiculture1155 handler
 
+  // ===== APIOLOGY DAO =====
+  // ApiologyDAO seat NFT — governance membership token for apdao-auction-house
+  // (paired with ApdaoAuctionHouse proxy at 0xE840929c…0A0b). Consumed via
+  // TrackedHolder for governance snapshots + delegate-eligibility checks.
+  "0xfc2d7ebfeb2714fce13caf234a95db129ecc43da": "apdao_seat",
+
   // ===== OPTIMISM - Mibera Lore Articles =====
   // Mirror WritingEditions ERC-721 collections
   "0x6b31859e5e32a5212f1ba4d7b377604b9d4c7a60": "lore_1_introducing_mibera",

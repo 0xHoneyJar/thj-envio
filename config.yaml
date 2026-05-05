@@ -723,6 +723,12 @@ chains:
           - 0xaaB7b4502251aE393D0590bAB3e208E2d58F4813 # fracture #8: mireveal_6_6
           - 0xc64126EA8dC7626c16daA2A29D375C33fcaa4C7c # fracture #9: mireveal_7_7
           - 0x24F4047d372139de8DACbe79e2fC576291Ec3ffc # fracture #10: mireveal_8_8
+
+          # ----- APIOLOGY DAO SEAT NFT (governance membership) -----
+          # ApiologyDAO seat NFT — governance vote weight + delegate eligibility
+          # for apdao-auction-house (consumed via TrackedHolder for holder snapshots).
+          # name=ApiologyDAO · symbol=APDAO · paired with ApdaoAuctionHouse at 0xE840929c…0A0b.
+          - 0xFc2D7eBFEB2714fCE13CaF234A95dB129ecC43Da # apdao_seat
         start_block: 4029732 # fracture #1 deployment (earliest TrackedErc721 on Berachain)
       # ============================================================
       # General ERC721 Mint tracking (quest/missions)
